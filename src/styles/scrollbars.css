@@ -1,0 +1,75 @@
+/* ═══════════════════════════════════════════
+   SCROLLBAR POLICY
+   Shell: hidden. Document (editor html): minimal overlay autohide.
+   Autohide class: html.is-scrolling (useDocumentScrollbar)
+   Windows: tauri.conf scrollBarStyle fluentOverlay (no arrow buttons)
+   ═══════════════════════════════════════════ */
+
+/* ── Tier A: shell / browse — no visible scrollbar ── */
+
+[data-view]:not(:has(.editor-view)),
+.outline-nav,
+.editor-root pre,
+.editor-root .editor-code-block {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-view]:not(:has(.editor-view))::-webkit-scrollbar,
+.outline-nav::-webkit-scrollbar,
+.editor-root pre::-webkit-scrollbar,
+.editor-root .editor-code-block::-webkit-scrollbar {
+  display: none;
+}
+
+[data-view]:not(:has(.editor-view))::-webkit-scrollbar-button,
+.outline-nav::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* ── Tier B: document — minimal overlay thumb while scrolling ── */
+
+html.editor-revealed:has([data-view]:has(.editor-view)) {
+  overflow-y: auto;
+  scrollbar-gutter: auto;
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+
+html.editor-revealed:has([data-view]:has(.editor-view)).is-scrolling {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+html.editor-revealed:has([data-view]:has(.editor-view))::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+html.editor-revealed:has([data-view]:has(.editor-view))::-webkit-scrollbar-button {
+  display: none;
+}
+
+html.editor-revealed:has([data-view]:has(.editor-view)).is-scrolling::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+}
+
+html.editor-revealed:has([data-view]:has(.editor-view))::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html.editor-revealed:has([data-view]:has(.editor-view))::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border: var(--scrollbar-inset) solid transparent;
+  background-clip: padding-box;
+  border-radius: var(--radius-pill);
+  transition: background-color var(--dur-fast) ease;
+}
+
+html.editor-revealed:has([data-view]:has(.editor-view)).is-scrolling::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+}
+
+html.editor-revealed:has([data-view]:has(.editor-view)).is-scrolling::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}

@@ -1,0 +1,606 @@
+:root {
+
+  --titlebar-h: 3.5vh;
+
+  --titlebar-nav-gap: var(--space-1);
+
+  --sidebar-w: 15vw;
+
+  --sidebar-rail-w: 2.5vw;
+
+  --bottom-bar-h: 3rem;
+
+  --bottom-bar-collapsed-h: 4px;
+
+  --window-chrome-h: calc(var(--u) * 1.75);
+
+  --window-chrome-hit-h: var(--space-2);
+
+  --window-chrome-hide-delay: 250ms;
+
+  --window-control-size: calc(var(--u) * 1.25);
+
+  --window-control-gap: var(--space-3);
+
+  --window-control-rest: color-mix(in srgb, var(--text-tertiary) 55%, transparent);
+
+  --window-control-icon: color-mix(in srgb, var(--text-primary) 88%, transparent);
+
+  --window-control-close-hover: #ff5f57;
+
+  --window-control-minimize-hover: #febc2e;
+
+  --window-control-maximize-hover: #28c840;
+
+  --editor-bar-min-w: min(36rem, calc(100% - 2 * var(--shell-inset-x)));
+
+  --editor-bar-prompt-min-w: 12rem;
+
+  --editor-pad-v: clamp(3rem, 6vh, 5rem);
+
+  --editor-pad-h: clamp(1rem, 4vw, 2.5rem);
+
+  --shell-inset-x: var(--editor-pad-h);
+
+  --shell-content-max: min(64rem, calc(100vw - 2 * var(--shell-inset-x)));
+
+  --bookmark-card-w: calc(var(--u) * 20);
+
+  --bookmark-card-h: calc(var(--u) * 12);
+
+  --bookmark-popup-scale: 1.55;
+
+  --bookmark-popup-card-w: clamp(
+    calc(var(--bookmark-card-w) * var(--bookmark-popup-scale)),
+    calc(var(--shell-content-max) * 0.8),
+    calc(100vw - 2 * var(--shell-inset-x) - var(--space-8))
+  );
+
+  --bookmark-popup-card-h: calc(var(--bookmark-popup-card-w) * 12 / 20);
+
+  --bookmark-popup-perspective: calc(var(--bookmark-popup-card-w) * 2.5);
+
+  --bookmark-popup-body-size: clamp(
+    var(--text-lg),
+    calc(var(--text-lg) + var(--bookmark-popup-card-w) * 0.008),
+    var(--text-xl)
+  );
+
+  --bookmark-popup-meta-size: clamp(
+    var(--text-xs),
+    calc(var(--text-xs) + var(--bookmark-popup-card-w) * 0.0025),
+    var(--text-sm)
+  );
+
+  --stack-card-shift: var(--space-2);
+
+  --bookmark-stack-folder-name-size: var(--text-base);
+
+  --dur-stack-card-leave: var(--dur-open-leave);
+
+  --dur-stack-card-enter: var(--dur-open-enter);
+
+  --bookmark-folder-phi: 1.618;
+
+  --bookmark-folder-tab-w: 38.2%;
+
+  --bookmark-fringe-h: calc(var(--u) * 0.382);
+
+  --bookmark-fringe-step: calc(var(--u) / var(--bookmark-folder-phi));
+
+  --browse-drag-ghost-w: calc(var(--u) * 14);
+
+  --browse-drag-ghost-icon-size: 1rem;
+
+  --browse-drag-follower-offset-y: 0;
+
+  --outline-panel-w: min(var(--shell-content-max), calc(100vw - 2 * var(--shell-inset-x)));
+
+  --outline-panel-inset-y: var(--space-4);
+
+  --outline-panel-max-h: calc(
+
+    100vh - var(--titlebar-h) - var(--bottom-bar-h) - 2 * var(--outline-panel-inset-y) -
+
+      var(--space-12)
+
+  );
+
+  --outline-panel-centered-max-h: min(var(--outline-panel-max-h), 75vh);
+
+  --u: clamp(0.875rem, 0.5rem + 0.83vw, 1.125rem);
+
+  --toggle-track-w: calc(var(--u) * 2.75);
+
+  --toggle-track-h: calc(var(--u) * 1.5);
+
+  --toggle-thumb-size: calc(var(--u) * 1.25);
+
+  --r: clamp(0.25rem, 0.15rem + 0.3vw, 0.5rem);
+
+  --space-1: calc(var(--u) * 0.25);
+
+  --space-2: calc(var(--u) * 0.5);
+
+  --space-3: calc(var(--u) * 0.75);
+
+  --space-4: var(--u);
+
+  --space-6: calc(var(--u) * 1.5);
+
+  --space-8: calc(var(--u) * 2);
+
+  --space-12: calc(var(--u) * 3);
+
+  --editor-gutter: clamp(var(--space-4), 2vw, var(--space-6));
+
+  --editor-col-max: 64rem;
+
+  --editor-col-w: min(var(--editor-col-max), calc(100vw - 2 * var(--editor-gutter)));
+
+  --radius-sm: calc(var(--r) * 0.75);
+
+  --radius-md: var(--r);
+
+  --radius-lg: calc(var(--r) * 2);
+
+  --radius-xl: calc(var(--r) * 4);
+
+  --radius-pill: 999px;
+
+  --font-sans: "Geist", "SF Pro Text", system-ui, sans-serif;
+
+  --font-serif: "Newsreader", Georgia, serif;
+
+  --editor-font-family: "Newsreader", Georgia, serif;
+
+  --segmented-track-bg: color-mix(in srgb, var(--shell-chrome-bg) 65%, transparent);
+  --segmented-indicator-bg: var(--surface-solid);
+  --segmented-indicator-shadow: var(--shadow-sm);
+  --segmented-padding: 2px;
+  --segmented-radius: var(--radius-md);
+  --segmented-height: calc(var(--u) * 1.75);
+  --segmented-option-color: var(--text-secondary);
+  --segmented-option-active-color: var(--text-primary);
+
+  --bg: #F3F0E8;
+
+  --bg-deep: #E9E4DB;
+
+  --surface: rgba(247, 244, 238, 0.88);
+
+  --surface-strong: rgba(247, 244, 238, 0.97);
+
+  --surface-solid: #F7F4EE;
+
+  --shell-chrome-bg: rgba(247, 244, 238, 0.50);
+
+  --shell-chrome-bg-strong: rgba(247, 244, 238, 0.72);
+
+  --shell-chrome-border: transparent;
+
+  --shell-chrome-blur: 20px;
+
+  --text-primary: #2C261E;
+
+  --text-secondary: rgba(44, 38, 30, 0.52);
+
+  --text-tertiary: rgba(44, 38, 30, 0.32);
+
+  --accent: #A83D52;
+
+  --accent-subtle: rgba(168, 61, 82, 0.10);
+
+  --atom-highlight-definition: color-mix(in srgb, var(--accent) 20%, transparent);
+
+  --atom-highlight-note: color-mix(in srgb, var(--text-tertiary) 28%, transparent);
+
+  --atom-highlight-reminder: color-mix(in srgb, var(--accent) 16%, transparent);
+
+  --find-match-wash: color-mix(in srgb, var(--text-tertiary) 38%, transparent);
+
+  --find-active-wash: color-mix(in srgb, var(--text-secondary) 52%, transparent);
+
+  --authorship-paste-wash: linear-gradient(
+    105deg,
+    #E07A5F 0%,
+    #C65FA4 28%,
+    #6F73D2 55%,
+    #4F9BD8 78%,
+    #D69A2D 100%
+  );
+
+  --authorship-paste-wash-hover: linear-gradient(
+    105deg,
+    #D7664F 0%,
+    #B84F96 28%,
+    #5E64C7 55%,
+    #3E89CC 78%,
+    #C88621 100%
+  );
+
+  --authorship-paste-fallback: color-mix(in srgb, var(--text-primary) 62%, #8B6914 38%);
+
+  --authorship-paste-fallback-hover: color-mix(in srgb, var(--text-primary) 72%, #8B6914 28%);
+
+  --accent-text: #7A2030;
+
+  --destructive: #b42020;
+
+  --destructive-on: #F7F4EE;
+
+  --border: rgba(44, 38, 30, 0.08);
+
+  --border-strong: rgba(44, 38, 30, 0.14);
+
+  --shadow-sm: 0 1px 3px rgba(44, 38, 30, 0.07);
+
+  --shadow-md: 0 4px 16px rgba(44, 38, 30, 0.09);
+
+  --shadow-lg: 0 8px 32px rgba(44, 38, 30, 0.11);
+
+  --text-xs: 0.6875rem;
+
+  --text-sm: 0.8125rem;
+
+  --text-base: 0.9375rem;
+
+  --text-lg: 1.125rem;
+
+  --text-xl: 1.5rem;
+
+  --text-2xl: 2.25rem;
+
+  --editor-text: 1.0625rem;
+
+  --editor-font-size-override: 17px;
+
+  --editor-h1: 1.8823529412em;
+
+  --editor-h2: 1.4117647059em;
+
+  --editor-h3: 1.1764705882em;
+
+  --editor-h4: 1.0588235294em;
+
+  --editor-h5: 1em;
+
+  --editor-h6: 0.9411764706em;
+
+  --editor-small: 0.875rem;
+
+  --editor-line-height: 1.85;
+
+  --editor-heading-line-height: 1.3;
+
+  --editor-prose: #252017;
+
+  /* Editor navigation scroll (find + outline) */
+  --editor-scroll-target-ratio: 0.4;
+
+  --dur-editor-scroll: 280ms;
+
+  /* ── Document scrollbar (editor html scroll only) ── */
+  --scrollbar-size: 3px;
+  --scrollbar-inset: 2px;
+  --scrollbar-thumb: color-mix(in srgb, var(--text-primary) 20%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--text-primary) 36%, transparent);
+
+  /* ── Transition system ── */
+
+  /* Easings */
+  --ease-out: cubic-bezier(0.32, 0, 0.16, 1); /* arriving — decelerates in */
+  --ease-in: cubic-bezier(0.4, 0, 1, 1); /* leaving — accelerates out */
+  --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1); /* popups only */
+
+  /* Legacy shell durations */
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-slow: 400ms;
+
+  /* Tab switches — lightweight, confident */
+  --dur-tab-leave: 180ms;
+  --dur-tab-enter: 220ms;
+
+  /* Opening a note — heavier context change */
+  --dur-open-leave: 200ms;
+  --dur-open-enter: 280ms;
+
+  /* Closing a note — leave faster, settle slower */
+  --dur-close-leave: 200ms;
+  --dur-close-enter: 300ms;
+
+  /* Search results */
+  --dur-search-leave: 200ms;
+  --dur-search-enter: 280ms;
+  --dur-stagger: 32ms; /* per item delay */
+  --stagger-max-index: 8;
+
+  /* Popups / modals (atom popup, context menu) */
+  --dur-modal-enter: 200ms;
+  --dur-modal-leave: 150ms;
+
+  /* Sidebar */
+  --sidebar-shift-enter: var(--space-4);
+  --sidebar-shift-leave: var(--space-2);
+  --swipe-shift-close: var(--space-6);
+  --dur-sidebar-enter: 400ms;
+  --dur-sidebar-leave: 240ms;
+  --dur-sidebar-scrim-enter: 400ms;
+  --dur-sidebar-scrim-leave: 240ms;
+
+  /* Focus mode — atmospheric, slow */
+  --dur-focus-enter: 400ms;
+  --dur-focus-leave: 360ms;
+
+  /* Layering */
+  --z-notification: 350;
+
+}
+
+
+
+@media (prefers-color-scheme: dark) {
+
+  :root:not([data-theme='light']) {
+
+    --bg: #171615;
+
+    --bg-deep: #121110;
+
+    --surface: #1F1D1C;
+
+    --surface-strong: #262321;
+
+    --surface-solid: #1F1D1C;
+
+    --shell-chrome-bg: rgba(31, 29, 28, 0.52);
+
+    --shell-chrome-bg-strong: rgba(31, 29, 28, 0.72);
+
+    --shell-chrome-border: transparent;
+
+    --shell-chrome-blur: 20px;
+
+    --text-primary: #EDE6DC;
+
+    --editor-prose: #EDE6DC;
+
+    --text-secondary: rgba(237, 230, 220, 0.60);
+
+    --text-tertiary: rgba(237, 230, 220, 0.30);
+
+    --accent: #B86830;
+
+    --accent-subtle: rgba(184, 104, 48, 0.12);
+
+    --authorship-paste-wash: linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--text-primary) 58%, #C49A6C 42%) 0%,
+      color-mix(in srgb, var(--text-primary) 64%, #B86830 36%) 52%,
+      color-mix(in srgb, var(--text-primary) 58%, #C49A6C 42%) 100%
+    );
+
+    --authorship-paste-wash-hover: linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--text-primary) 68%, #C49A6C 32%) 0%,
+      color-mix(in srgb, var(--text-primary) 72%, #B86830 28%) 52%,
+      color-mix(in srgb, var(--text-primary) 68%, #C49A6C 32%) 100%
+    );
+
+    --authorship-paste-fallback: color-mix(in srgb, var(--text-primary) 58%, #C49A6C 42%);
+
+    --authorship-paste-fallback-hover: color-mix(in srgb, var(--text-primary) 68%, #C49A6C 32%);
+
+    --accent-text: #D89A5C;
+
+    --destructive: #b42020;
+
+    --destructive-on: #fafaf9;
+
+    --border: rgba(68, 62, 56, 0.40);
+
+    --border-strong: rgba(68, 62, 56, 0.75);
+
+    --shadow-sm: 0 1px 2px rgba(18, 17, 16, 0.22);
+
+    --shadow-md: 0 2px 8px rgba(18, 17, 16, 0.26);
+
+    --shadow-lg: 0 4px 16px rgba(18, 17, 16, 0.30);
+
+    --scrollbar-thumb: color-mix(in srgb, var(--text-primary) 32%, transparent);
+    --scrollbar-thumb-hover: color-mix(in srgb, var(--text-primary) 50%, transparent);
+
+  }
+
+}
+
+
+
+html[data-theme='dark'] {
+
+  --bg: #171615;
+
+  --bg-deep: #121110;
+
+  --surface: #1F1D1C;
+
+  --surface-strong: #262321;
+
+  --surface-solid: #1F1D1C;
+
+  --shell-chrome-bg: rgba(31, 29, 28, 0.52);
+
+  --shell-chrome-bg-strong: rgba(31, 29, 28, 0.72);
+
+  --shell-chrome-border: transparent;
+
+  --shell-chrome-blur: 20px;
+
+  --text-primary: #EDE6DC;
+
+  --editor-prose: #EDE6DC;
+
+  --text-secondary: rgba(237, 230, 220, 0.60);
+
+  --text-tertiary: rgba(237, 230, 220, 0.30);
+
+  --accent: #B86830;
+
+  --accent-subtle: rgba(184, 104, 48, 0.12);
+
+  --authorship-paste-wash: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--text-primary) 58%, #C49A6C 42%) 0%,
+    color-mix(in srgb, var(--text-primary) 64%, #B86830 36%) 52%,
+    color-mix(in srgb, var(--text-primary) 58%, #C49A6C 42%) 100%
+  );
+
+  --authorship-paste-wash-hover: linear-gradient(
+    105deg,
+    color-mix(in srgb, var(--text-primary) 68%, #C49A6C 32%) 0%,
+    color-mix(in srgb, var(--text-primary) 72%, #B86830 28%) 52%,
+    color-mix(in srgb, var(--text-primary) 68%, #C49A6C 32%) 100%
+  );
+
+  --authorship-paste-fallback: color-mix(in srgb, var(--text-primary) 58%, #C49A6C 42%);
+
+  --authorship-paste-fallback-hover: color-mix(in srgb, var(--text-primary) 68%, #C49A6C 32%);
+
+  --accent-text: #D89A5C;
+
+  --destructive: #b42020;
+
+  --destructive-on: #fafaf9;
+
+  --border: rgba(68, 62, 56, 0.40);
+
+  --border-strong: rgba(68, 62, 56, 0.75);
+
+  --shadow-sm: 0 1px 2px rgba(18, 17, 16, 0.22);
+
+  --shadow-md: 0 2px 8px rgba(18, 17, 16, 0.26);
+
+  --shadow-lg: 0 4px 16px rgba(18, 17, 16, 0.30);
+
+  --scrollbar-thumb: color-mix(in srgb, var(--text-primary) 32%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--text-primary) 50%, transparent);
+
+}
+
+
+
+html[data-theme='light'] {
+
+  --bg: #F3F0E8;
+
+  --bg-deep: #E9E4DB;
+
+  --surface: rgba(247, 244, 238, 0.88);
+
+  --surface-strong: rgba(247, 244, 238, 0.97);
+
+  --surface-solid: #F7F4EE;
+
+  --shell-chrome-bg: rgba(247, 244, 238, 0.50);
+
+  --shell-chrome-bg-strong: rgba(247, 244, 238, 0.72);
+
+  --shell-chrome-border: transparent;
+
+  --shell-chrome-blur: 20px;
+
+  --text-primary: #2C261E;
+
+  --editor-prose: #252017;
+
+  --text-secondary: rgba(44, 38, 30, 0.52);
+
+  --text-tertiary: rgba(44, 38, 30, 0.32);
+
+  --accent: #A83D52;
+
+  --accent-subtle: rgba(168, 61, 82, 0.10);
+
+  --authorship-paste-wash: linear-gradient(
+    105deg,
+    #E07A5F 0%,
+    #C65FA4 28%,
+    #6F73D2 55%,
+    #4F9BD8 78%,
+    #D69A2D 100%
+  );
+
+  --authorship-paste-wash-hover: linear-gradient(
+    105deg,
+    #D7664F 0%,
+    #B84F96 28%,
+    #5E64C7 55%,
+    #3E89CC 78%,
+    #C88621 100%
+  );
+
+  --authorship-paste-fallback: color-mix(in srgb, var(--text-primary) 62%, #8B6914 38%);
+
+  --authorship-paste-fallback-hover: color-mix(in srgb, var(--text-primary) 72%, #8B6914 28%);
+
+  --accent-text: #7A2030;
+
+  --destructive: #b42020;
+
+  --destructive-on: #F7F4EE;
+
+  --border: rgba(44, 38, 30, 0.08);
+
+  --border-strong: rgba(44, 38, 30, 0.14);
+
+  --shadow-sm: 0 1px 3px rgba(44, 38, 30, 0.07);
+
+  --shadow-md: 0 4px 16px rgba(44, 38, 30, 0.09);
+
+  --shadow-lg: 0 8px 32px rgba(44, 38, 30, 0.11);
+
+}
+
+
+
+/* Modest legibility bump when backdrop-filter is unavailable (not applied in Tauri). */
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+
+  :root,
+
+  html[data-theme='light'] {
+
+    --shell-chrome-bg: rgba(247, 244, 238, 0.60);
+
+    --shell-chrome-bg-strong: rgba(247, 244, 238, 0.78);
+
+  }
+
+
+
+  @media (prefers-color-scheme: dark) {
+
+    :root:not([data-theme='light']) {
+
+      --shell-chrome-bg: rgba(31, 29, 28, 0.62);
+
+      --shell-chrome-bg-strong: rgba(31, 29, 28, 0.78);
+
+    }
+
+  }
+
+
+
+  html[data-theme='dark'] {
+
+    --shell-chrome-bg: rgba(31, 29, 28, 0.62);
+
+    --shell-chrome-bg-strong: rgba(31, 29, 28, 0.78);
+
+  }
+
+}
+

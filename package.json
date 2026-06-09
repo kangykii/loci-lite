@@ -1,0 +1,36 @@
+{
+  "name": "loci-lite",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@fontsource/geist-sans": "^5.2.5",
+    "@lexical/code": "^0.45.0",
+    "@lexical/extension": "^0.45.0",
+    "@lexical/list": "^0.45.0",
+    "@lexical/markdown": "^0.45.0",
+    "@lexical/react": "^0.45.0",
+    "@lexical/rich-text": "^0.45.0",
+    "@lexical/utils": "^0.45.0",
+    "@tauri-apps/api": "2",
+    "@tauri-apps/plugin-sql": "~2",
+    "lexical": "^0.45.0",
+    "lucide-react": "^1.17.0",
+    "react": "19",
+    "react-dom": "19"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "5",
+    "vite": "5"
+  }
+}

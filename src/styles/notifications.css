@@ -1,0 +1,117 @@
+.notification-host {
+  position: fixed;
+  top: calc(var(--space-2) + var(--bottom-bar-h) + var(--space-2));
+  right: var(--shell-inset-x);
+  z-index: var(--z-notification);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.notification-chip {
+  display: flex;
+  max-width: min(18rem, calc(100vw - 2 * var(--shell-inset-x)));
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--shell-chrome-border);
+  border-radius: var(--radius-pill);
+  background: var(--shell-chrome-bg);
+  box-shadow: none;
+  backdrop-filter: blur(var(--shell-chrome-blur));
+  -webkit-backdrop-filter: blur(var(--shell-chrome-blur));
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  animation: notification-enter var(--dur-base) var(--ease-out) both;
+}
+
+.notification-chip--error {
+  color: var(--destructive);
+}
+
+.notification-chip-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-chip-dismiss {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: var(--space-1);
+  transition: color var(--dur-fast) ease;
+}
+
+.notification-chip-dismiss:hover {
+  color: var(--text-primary);
+}
+
+.notification-chip.is-leaving {
+  animation: notification-leave var(--dur-fast) var(--ease-in) both;
+}
+
+@keyframes notification-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes notification-leave {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-chip {
+    animation: notification-enter-reduced 1ms var(--ease-out) both;
+  }
+
+  .notification-chip.is-leaving {
+    animation: notification-leave-reduced 1ms var(--ease-in) both;
+  }
+}
+
+@keyframes notification-enter-reduced {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes notification-leave-reduced {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}

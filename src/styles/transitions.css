@@ -1,0 +1,492 @@
+/* ═══════════════════════════════════════════
+   LOCI TRANSITION SYSTEM
+   All view transitions live here.
+   Components never hardcode timing values.
+   ═══════════════════════════════════════════ */
+
+/* ── View stage (App.tsx page area below titlebar) ── */
+
+.view-stage {
+  position: relative;
+  min-height: calc(100vh - var(--titlebar-h));
+  overflow: visible;
+}
+
+/* ── Base states ── */
+
+[data-view] {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+}
+
+/* Entering — browse views only; keep overflow-y:auto to avoid post-animation shift */
+[data-view][data-state='entering']:not(:has(.editor-view)) {
+  animation-fill-mode: both;
+  overflow-x: clip;
+  will-change: opacity, transform;
+}
+
+/* Leaving — browse views only */
+[data-view][data-state='leaving']:not(:has(.editor-view)) {
+  animation-fill-mode: both;
+  overflow-x: clip;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+/* Entering / leaving — editor (opacity only; chrome entry is post-load) */
+[data-view][data-state='entering']:has(.editor-view),
+[data-view][data-state='leaving']:has(.editor-view) {
+  animation-fill-mode: both;
+  will-change: opacity;
+}
+
+[data-view][data-state='leaving']:has(.editor-view) {
+  pointer-events: none;
+}
+
+/* Idle — fully arrived, no animation */
+[data-view][data-state='idle'] {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+/* Editor fixed chrome (bar, outline, focus exit) must not be clipped or re-contained */
+[data-view]:has(.editor-view) {
+  overflow: visible;
+  scrollbar-gutter: auto;
+}
+
+/* ── Tab transitions ── */
+/* Horizontal feel — views slide very slightly */
+
+[data-view][data-transition='tab'][data-state='entering'] {
+  animation: tab-enter var(--dur-tab-enter) var(--ease-out) both;
+}
+
+[data-view][data-transition='tab'][data-state='leaving'] {
+  animation: tab-leave var(--dur-tab-leave) var(--ease-in) both;
+}
+
+@keyframes tab-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tab-leave {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ── Open note transition ── */
+/* Slight upward arrival — feels like opening something */
+
+[data-view][data-transition='open'][data-state='entering'] {
+  animation: open-enter var(--dur-open-enter) var(--ease-out) both;
+}
+
+[data-view][data-transition='open'][data-state='leaving'] {
+  animation: open-leave var(--dur-open-leave) var(--ease-in) both;
+}
+
+@keyframes open-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+[data-view][data-transition='open'][data-state='leaving']:not(:has(.editor-view)) {
+  animation: open-leave-fade var(--dur-open-leave) var(--ease-in) both;
+}
+
+@keyframes open-leave-fade {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes open-leave {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* Editor shell — opacity only (chrome slides in post-load via chrome-offstage) */
+
+[data-view]:has(.editor-view)[data-transition='open'][data-state='entering'] {
+  animation: editor-open-enter var(--dur-open-enter) var(--ease-out) both;
+}
+
+[data-view]:has(.editor-view)[data-transition='open'][data-state='leaving'] {
+  animation: editor-open-leave var(--dur-open-leave) var(--ease-in) both;
+}
+
+[data-view]:has(.editor-view)[data-transition='close'][data-state='entering'] {
+  animation: editor-close-enter var(--dur-close-enter) var(--ease-out) both;
+}
+
+[data-view]:has(.editor-view)[data-transition='close'][data-state='leaving'] {
+  animation: editor-close-leave var(--dur-close-leave) var(--ease-in) both;
+}
+
+@keyframes editor-open-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes editor-open-leave {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes editor-close-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes editor-close-leave {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--swipe-shift-close) * -0.5));
+  }
+}
+
+/* ── Close note transition ── */
+/* Reverse of open — settles downward back to home */
+
+[data-view][data-transition='close'][data-state='entering'] {
+  animation: close-enter var(--dur-close-enter) var(--ease-out) both;
+}
+
+[data-view][data-transition='close'][data-state='leaving'] {
+  animation: close-leave var(--dur-close-leave) var(--ease-in) both;
+}
+
+@keyframes close-enter {
+  from {
+    opacity: 0;
+    transform: translateX(var(--swipe-shift-close));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes close-leave {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--swipe-shift-close) * -1));
+  }
+}
+
+/* ── Search results ── */
+/* Asymmetric leave then enter; chronological stagger (capped) on both phases */
+
+[data-stagger] > * {
+  opacity: 0;
+  animation: search-item-enter var(--dur-search-enter) var(--ease-out) both;
+  animation-delay: calc(min(var(--stagger-index, 0), var(--stagger-max-index)) * var(--dur-stagger));
+}
+
+[data-stagger].leaving > * {
+  animation: search-item-leave var(--dur-search-leave) var(--ease-in) both;
+  animation-delay: calc(min(var(--stagger-index, 0), var(--stagger-max-index)) * var(--dur-stagger));
+}
+
+[data-stagger='horizontal'] > * {
+  opacity: 0;
+  animation: search-item-enter-x var(--dur-search-enter) var(--ease-out) both;
+  animation-delay: calc(min(var(--stagger-index, 0), var(--stagger-max-index)) * var(--dur-stagger));
+}
+
+[data-stagger='horizontal'].leaving > * {
+  animation: search-item-leave var(--dur-search-leave) var(--ease-in) both;
+  animation-delay: calc(min(var(--stagger-index, 0), var(--stagger-max-index)) * var(--dur-stagger));
+}
+
+@keyframes search-item-enter-x {
+  from {
+    opacity: 0;
+    transform: translateX(var(--space-3));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes search-item-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes search-item-leave {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* ── Stack popup card switch ── */
+/* Asymmetric leave then enter on prev/next/shuffle; not on initial open */
+
+.bookmark-stack-popup-card[data-stack-leave='next'],
+.bookmark-stack-popup-card[data-stack-leave='prev'],
+.bookmark-stack-popup-card[data-stack-leave='shuffle'],
+.bookmark-stack-popup-card[data-stack-enter='next'],
+.bookmark-stack-popup-card[data-stack-enter='prev'],
+.bookmark-stack-popup-card[data-stack-enter='shuffle'] {
+  animation-fill-mode: both;
+  will-change: opacity, transform;
+}
+
+.bookmark-stack-popup-card[data-stack-leave='next'] {
+  animation: stack-card-leave-next var(--dur-stack-card-leave) var(--ease-in) both;
+}
+
+.bookmark-stack-popup-card[data-stack-leave='prev'] {
+  animation: stack-card-leave-prev var(--dur-stack-card-leave) var(--ease-in) both;
+}
+
+.bookmark-stack-popup-card[data-stack-leave='shuffle'] {
+  animation: stack-card-leave-shuffle var(--dur-stack-card-leave) var(--ease-in) both;
+}
+
+.bookmark-stack-popup-card[data-stack-enter='next'] {
+  animation: stack-card-enter-next var(--dur-stack-card-enter) var(--ease-out) both;
+}
+
+.bookmark-stack-popup-card[data-stack-enter='prev'] {
+  animation: stack-card-enter-prev var(--dur-stack-card-enter) var(--ease-out) both;
+}
+
+.bookmark-stack-popup-card[data-stack-enter='shuffle'] {
+  animation: stack-card-enter-shuffle var(--dur-stack-card-enter) var(--ease-out) both;
+}
+
+@keyframes stack-card-leave-next {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--stack-card-shift) * -1));
+  }
+}
+
+@keyframes stack-card-leave-prev {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(var(--stack-card-shift));
+  }
+}
+
+@keyframes stack-card-leave-shuffle {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes stack-card-enter-next {
+  from {
+    opacity: 0;
+    transform: translateX(var(--stack-card-shift));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes stack-card-enter-prev {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--stack-card-shift) * -1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes stack-card-enter-shuffle {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Modal / popup transitions ── */
+/* Surfaces from below with spring — dismisses cleanly */
+
+[data-transition='modal'][data-state='entering'] {
+  animation: modal-enter var(--dur-modal-enter) var(--ease-spring) both;
+}
+
+[data-transition='modal'][data-state='leaving'] {
+  animation: modal-leave var(--dur-modal-leave) var(--ease-in) both;
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modal-leave {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* ── Sidebar ── */
+/* Slides in from left, leaves faster */
+
+[data-transition='sidebar'][data-state='entering'] {
+  animation: sidebar-enter var(--dur-sidebar-enter) var(--ease-out) both;
+}
+
+[data-transition='sidebar'][data-state='leaving'] {
+  animation: sidebar-leave var(--dur-sidebar-leave) var(--ease-in) both;
+}
+
+@keyframes sidebar-enter {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--sidebar-shift-enter) * -1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes sidebar-leave {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--sidebar-shift-leave) * -1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-transition='sidebar'] {
+    animation-duration: 1ms;
+  }
+
+  [data-view][data-transition='close'] {
+    animation-duration: 1ms;
+  }
+
+  [data-stagger] > *,
+  [data-stagger='horizontal'] > * {
+    animation: search-item-leave 1ms var(--ease-out) both;
+  }
+}

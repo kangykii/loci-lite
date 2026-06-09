@@ -1,0 +1,209 @@
+* {
+  box-sizing: border-box;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg);
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: calc(var(--titlebar-h) + var(--space-8)) var(--shell-inset-x)
+    var(--space-12);
+}
+
+.shell-content {
+  width: 100%;
+  max-width: var(--shell-content-max);
+  margin-inline: auto;
+}
+
+.placeholder-view {
+  display: grid;
+  min-height: calc(100vh - var(--titlebar-h) - var(--space-12));
+  place-items: center;
+  text-align: center;
+}
+
+.placeholder-view p {
+  max-width: 28rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.creation-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  border: 1px solid var(--shell-chrome-border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  cursor: pointer;
+  padding: var(--space-4);
+  text-align: left;
+  transition: background var(--dur-fast) ease, transform var(--dur-base) var(--ease-out);
+  backdrop-filter: blur(var(--shell-chrome-blur));
+  -webkit-backdrop-filter: blur(var(--shell-chrome-blur));
+}
+
+.creation-card:hover {
+  background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
+  transform: translateY(calc(var(--space-1) * -1));
+}
+
+.creation-badge {
+  display: grid;
+  width: calc(var(--u) * 2.6);
+  height: calc(var(--u) * 2.6);
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface-strong) 55%, transparent);
+  color: var(--text-secondary);
+}
+
+.creation-copy {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.creation-copy strong {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.creation-copy span {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.browse-delete-bin {
+  display: grid;
+  width: calc(var(--u) * 2.75);
+  height: calc(var(--u) * 2.75);
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--shell-chrome-border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text-secondary);
+  transition:
+    background var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+.browse-delete-bin.is-drop-target {
+  border-color: color-mix(in srgb, var(--destructive) 45%, var(--shell-chrome-border));
+  background: color-mix(in srgb, var(--destructive) 10%, var(--surface));
+  color: var(--destructive);
+}
+
+.browse-delete-bin.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+html.is-browse-dragging .document-row[draggable='true']:active,
+html.is-browse-dragging .bookmark-flashcard[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.browse-drag-ghost {
+  display: none;
+  width: var(--browse-drag-ghost-w);
+  max-width: min(var(--browse-drag-ghost-w), 13.5rem);
+  align-items: flex-start;
+  gap: var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-solid);
+  color: var(--text-primary);
+  padding: var(--space-2) var(--space-3);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.browse-drag-ghost.is-follower {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  opacity: 1;
+}
+
+.browse-drag-ghost-icon {
+  flex-shrink: 0;
+  width: var(--browse-drag-ghost-icon-size);
+  height: var(--browse-drag-ghost-icon-size);
+  color: var(--text-secondary);
+}
+
+.browse-drag-ghost-text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: var(--space-1);
+}
+
+.browse-drag-ghost-primary {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browse-drag-ghost-secondary {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

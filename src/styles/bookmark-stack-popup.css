@@ -1,0 +1,123 @@
+.bookmark-stack-popup-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+}
+
+.bookmark-stack-popup-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
+  cursor: default;
+  padding: 0;
+}
+
+.bookmark-stack-popup {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+  width: min(var(--bookmark-popup-card-w), calc(100vw - 2 * var(--shell-inset-x) - var(--space-8)));
+  pointer-events: none;
+}
+
+.bookmark-stack-popup-header {
+  width: 100%;
+  pointer-events: auto;
+}
+
+.bookmark-stack-popup-card.bookmark-flashcard {
+  width: var(--bookmark-popup-card-w);
+  height: var(--bookmark-popup-card-h);
+  max-width: 100%;
+  perspective: var(--bookmark-popup-perspective);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.bookmark-stack-popup-card .bookmark-flashcard-inner {
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+.bookmark-stack-popup-card .bookmark-flashcard-face {
+  background: var(--surface-solid);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.bookmark-stack-popup-card .bookmark-flashcard-source,
+.bookmark-stack-popup-card .bookmark-flashcard-content {
+  font-size: var(--bookmark-popup-body-size);
+}
+
+.bookmark-stack-popup-card .bookmark-flashcard-type,
+.bookmark-stack-popup-card .bookmark-flashcard-doc,
+.bookmark-stack-popup-card .bookmark-flashcard-meta-sep {
+  font-size: var(--bookmark-popup-meta-size);
+}
+
+.bookmark-stack-popup-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  pointer-events: auto;
+}
+
+.bookmark-stack-popup-nav-btn {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: var(--space-2) var(--space-3);
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+
+.bookmark-stack-popup-nav-btn:hover {
+  background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
+  color: var(--text-primary);
+}
+
+.bookmark-stack-popup-nav-btn:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.bookmark-stack-popup-nav-btn:disabled:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.bookmark-stack-popup-nav-icon-btn {
+  display: inline-grid;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: var(--space-1);
+  place-items: center;
+  transition: color var(--dur-fast) ease;
+}
+
+.bookmark-stack-popup-nav-icon-btn:hover {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.bookmark-stack-popup-counter {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  min-width: 3.5rem;
+  text-align: center;
+}

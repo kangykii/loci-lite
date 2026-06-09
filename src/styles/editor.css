@@ -1,0 +1,396 @@
+.editor-status {
+  max-width: var(--editor-col-w);
+  margin: var(--editor-pad-v) auto;
+  padding-inline: var(--editor-gutter);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.editor-shortcut-error {
+  margin: 0 0 var(--space-3);
+  color: var(--destructive);
+  font-size: var(--text-sm);
+}
+
+.editor-view {
+  position: relative;
+  min-height: 100vh;
+  padding-bottom: calc(var(--bottom-bar-h) + var(--space-12));
+}
+
+.editor-view.app-shell {
+  padding-inline: 0;
+}
+
+html:not(.editor-revealed) .editor-view .editor-layout {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html:not(.editor-revealed) .editor-view .editor-entry-loading {
+  position: relative;
+  z-index: 1;
+}
+
+.editor-layout {
+  display: block;
+  width: 100%;
+  max-width: var(--editor-col-w);
+  margin-inline: auto;
+  padding-block: var(--editor-pad-v);
+  padding-inline: var(--editor-gutter);
+}
+
+.editor-frame {
+  position: relative;
+  width: 100%;
+  min-height: calc(140vh - var(--titlebar-h));
+  margin: 0;
+  padding: 0;
+}
+
+.editor-root {
+  width: 100%;
+  min-height: 58vh;
+  margin: 0;
+  outline: none;
+  color: var(--editor-prose);
+  caret-color: var(--accent);
+  font-family: var(--editor-font-family);
+  font-size: var(--editor-font-size-override, var(--editor-text));
+  line-height: var(--editor-line-height);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.outline-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+
+.outline-scrim {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--bg-deep) 55%, transparent);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.outline-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: var(--outline-panel-w);
+  max-height: var(--outline-panel-centered-max-h);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  border: 1px solid var(--shell-chrome-border);
+  border-radius: var(--radius-lg);
+  background: var(--shell-chrome-bg-strong);
+  padding: var(--space-4);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  backdrop-filter: blur(var(--shell-chrome-blur));
+  -webkit-backdrop-filter: blur(var(--shell-chrome-blur));
+}
+
+.outline-panel-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.outline-nav {
+  display: grid;
+  gap: var(--space-4);
+  overflow-y: auto;
+}
+
+.outline-nav button {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: color var(--dur-fast) ease;
+}
+
+.outline-nav button:hover {
+  color: var(--text-primary);
+}
+
+.editor-root .editor-paragraph,
+.editor-root p {
+  margin: 0 0 var(--space-4);
+}
+
+.editor-root .editor-heading-h1,
+.editor-root h1 {
+  margin: 0 0 var(--space-6);
+  font-size: var(--editor-h1);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: var(--editor-heading-line-height);
+}
+
+.editor-root .editor-heading-h2,
+.editor-root h2 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--editor-h2);
+  font-weight: 600;
+  line-height: var(--editor-heading-line-height);
+}
+
+.editor-root .editor-heading-h3,
+.editor-root h3 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--editor-h3);
+  font-weight: 500;
+  line-height: var(--editor-heading-line-height);
+}
+
+.editor-root .editor-heading-h4,
+.editor-root h4 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--editor-h4);
+  font-weight: 500;
+  line-height: var(--editor-heading-line-height);
+}
+
+.editor-root .editor-heading-h5,
+.editor-root h5 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--editor-h5);
+  font-weight: 500;
+  line-height: var(--editor-heading-line-height);
+}
+
+.editor-root .editor-heading-h6,
+.editor-root h6 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--editor-h6);
+  font-weight: 500;
+  line-height: var(--editor-heading-line-height);
+}
+
+.editor-root .editor-list-ul,
+.editor-root .editor-list-ol,
+.editor-root ul,
+.editor-root ol {
+  margin: 0 0 var(--space-4);
+  padding-left: var(--space-6);
+}
+
+.editor-root .editor-list-item,
+.editor-root li {
+  margin: 0 0 var(--space-2);
+}
+
+.editor-root mark {
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--editor-prose);
+  padding: 0 var(--space-1);
+}
+
+::highlight(loci-find-match) {
+  background: var(--find-match-wash);
+}
+
+::highlight(loci-find-active) {
+  background: var(--find-active-wash);
+}
+
+.editor-root .editor-quote,
+.editor-root blockquote {
+  margin: var(--space-6) 0;
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--accent);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.editor-root .editor-text-code,
+.editor-root code {
+  border-radius: var(--radius-sm);
+  background: var(--bg-deep);
+  font-family: var(--editor-font-family);
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+}
+
+.editor-root .editor-code-block,
+.editor-root pre {
+  margin: var(--space-6) 0;
+  border-radius: var(--radius-md);
+  background: var(--bg-deep);
+  padding: var(--space-4) var(--space-6);
+  overflow-x: auto;
+}
+
+.editor-root .editor-code-block code,
+.editor-root pre code {
+  background: none;
+  padding: 0;
+}
+
+.editor-root .editor-hr,
+.editor-root hr {
+  margin: var(--space-6) 0;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+}
+
+.editor-root .atom-definition,
+.editor-root .atom-note,
+.editor-root .atom-reminder {
+  text-decoration: none;
+  cursor: help;
+}
+
+.editor-root.bookmark-highlight-on .atom-definition,
+.editor-root.bookmark-highlight-on .atom-note,
+.editor-root.bookmark-highlight-on .atom-reminder {
+  -webkit-box-decoration-break: clone;
+  background-image: linear-gradient(
+    to bottom,
+    transparent 50%,
+    var(--atom-highlight-fill) 50%
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-decoration-break: clone;
+  text-decoration: none;
+}
+
+.editor-root.bookmark-highlight-on .atom-definition {
+  --atom-highlight-fill: var(--atom-highlight-definition);
+}
+
+.editor-root.bookmark-highlight-on .atom-note {
+  --atom-highlight-fill: var(--atom-highlight-note);
+}
+
+.editor-root.bookmark-highlight-on .atom-reminder {
+  --atom-highlight-fill: var(--atom-highlight-reminder);
+}
+
+/* ── Authorship mode — range overlay ── */
+
+::highlight(loci-authorship-paste) {
+  color: var(--authorship-paste-fallback);
+}
+
+.authorship-overlay-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.authorship-overlay-range {
+  position: absolute;
+  border-radius: var(--radius-sm);
+  background-image: var(--authorship-paste-wash);
+  opacity: 0.34;
+  pointer-events: none;
+}
+
+/* ── Focus mode — paragraph dimming ── */
+
+.editor-root.focus-active
+  :is(
+    .editor-paragraph,
+    .editor-heading-h1,
+    .editor-heading-h2,
+    .editor-heading-h3,
+    .editor-heading-h4,
+    .editor-heading-h5,
+    .editor-heading-h6,
+    .editor-list-item,
+    .editor-quote,
+    .editor-code-block,
+    .editor-hr
+  ):not([data-focus='true']) {
+  opacity: 0.18;
+  transition: opacity 380ms ease;
+}
+
+.editor-root.focus-active [data-focus='true'] {
+  opacity: 1;
+  transition: opacity 240ms ease;
+}
+
+/* ── Focus mode — chrome hide/show ── */
+
+.shell-header {
+  transition: transform 360ms var(--ease-out), opacity 360ms ease;
+}
+
+.window-chrome-zone {
+  transition: transform 360ms var(--ease-out), opacity 360ms ease;
+}
+
+.focus-mode-active .shell-header,
+.focus-mode-active .window-chrome-zone {
+  transform: translateY(calc(-100% - var(--space-2)));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.editor-bar {
+  transition: transform 360ms var(--ease-out), opacity 360ms ease;
+}
+
+.focus-mode-active .editor-bar,
+.chrome-offstage .editor-bar {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Focus mode — exit control ── */
+
+.focus-exit-btn {
+  position: fixed;
+  top: var(--space-4);
+  left: var(--space-4);
+  z-index: 200;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: var(--space-2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease, color 150ms ease;
+}
+
+.focus-exit-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.focus-exit-btn:hover {
+  color: var(--text-primary);
+}
+
+/* ── Typewriter mode ── */
+
+.editor-root.typewriter-active {
+  padding-top: 40vh;
+  padding-bottom: 60vh;
+}
