@@ -68,3 +68,18 @@ export function onWindowResized(callback: () => void): Promise<() => void> {
   }
   return appWindow().onResized(callback);
 }
+
+export async function openUrl(url: string): Promise<void> {
+  if (!isTauri()) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  await invoke('open_url', { url });
+}
+
+export function waitForOAuthCallback(port: number): Promise<string> {
+  if (!isTauri()) {
+    return Promise.reject(new Error('OAuth callback requires the desktop app'));
+  }
+  return invoke<string>('wait_for_oauth_callback', { port });
+}

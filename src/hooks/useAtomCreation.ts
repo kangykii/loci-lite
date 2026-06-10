@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { AtomSavePayload } from '../components/atoms/AtomPopup';
 import { buildAtomRecord, saveAtomRecord } from '../lib/atomRecord';
+import { dispatchBookmarkCreated } from '../lib/pluginLifecycle';
 import type { AtomRecord } from '../lib/atomTypes';
 import { useNotifications } from './useNotifications';
 
@@ -75,6 +76,7 @@ export function useAtomCreation(onCreated?: (atom: AtomRecord) => void) {
 
         await saveAtomRecord(atom);
         onCreated?.(atom);
+        dispatchBookmarkCreated({ text: sourceText, type: payload.type });
         notifyBookmark();
         setPopup(null);
       } catch (cause: unknown) {

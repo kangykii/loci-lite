@@ -7,6 +7,7 @@ import type {
 } from '../editor/context/EditorChromeContext';
 import { atomRecordToDecoration } from '../lib/atomDecorations';
 import { persistDefinitionShortcut } from '../lib/definitionShortcutSave';
+import { dispatchBookmarkCreated } from '../lib/pluginLifecycle';
 import { findSpanInMarkdown } from '../lib/atomSpans';
 import type { AtomRecord } from '../lib/atomTypes';
 import { useAtomCreation } from './useAtomCreation';
@@ -82,6 +83,7 @@ export function useEditorAtomBridge(
           definition,
         });
         handleAtomCreated(atom);
+        dispatchBookmarkCreated({ text: term, type: 'definition' });
         notifyBookmark();
       } catch (cause: unknown) {
         const message =

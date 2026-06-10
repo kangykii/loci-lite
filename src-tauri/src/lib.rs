@@ -36,12 +36,15 @@ pub fn run() {
                 .add_migrations(DB_URI, migrations())
                 .build(),
         )
+        .plugin(tauri_plugin_oauth::init())
         .invoke_handler(tauri::generate_handler![
             commands::file::get_notes_dir,
             commands::file::create_note,
             commands::file::read_file,
             commands::file::write_file,
             commands::file::delete_file,
+            commands::window::open_url,
+            commands::window::wait_for_oauth_callback,
         ])
         .setup(|app| {
             #[cfg(target_os = "windows")]

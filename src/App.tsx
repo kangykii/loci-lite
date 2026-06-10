@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
+import ProfileDialog from './components/profile/ProfileDialog';
 import ShellSidebar, { type SidebarPhase } from './components/shell/ShellSidebar';
 import ShellSidebarTrigger from './components/shell/ShellSidebarTrigger';
 import WindowChrome from './components/shell/WindowChrome';
 
 import { TransitionShell } from './components/shell/TransitionShell';
 
+import { AuthProvider, useAuthContext } from './hooks/useAuthContext';
 import { useCreateDocument } from './hooks/useCreateDocument';
 import { useDefaultEditorFontSetting } from './hooks/useDefaultEditorFontSetting';
 import { NotificationProvider } from './hooks/useNotifications';
@@ -18,16 +20,14 @@ import { useViewTransition, type ViewName } from './hooks/useViewTransition';
 
 import { renderAppPage, type AppPageProps } from './lib/renderAppPage';
 
-import { seedBaseDocumentsIfNeeded } from './lib/seedDocuments';
-
 import { isTauri } from './lib/tauri';
-
-import { initDb } from './store/db';
 
 export default function App() {
   return (
     <NotificationProvider>
-      <AppRoot />
+      <AuthProvider>
+        <AppRoot />
+      </AuthProvider>
     </NotificationProvider>
   );
 }
@@ -44,7 +44,13 @@ function AppRoot() {
 
   const [sidebarPhase, setSidebarPhase] = useState<SidebarPhase>('closed');
 
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
   const { theme, toggleTheme } = useTheme();
+
+  const { isAuthenticated, profile, email } = useAuthContext();
+
+  const profileName = isAuthenticated ? (profile?.displayName || email) : null;
 
   useDefaultEditorFontSetting();
 
@@ -76,30 +82,9 @@ function AppRoot() {
     setIsSidebarOpen(true);
   }, []);
 
-
-
-  useEffect(() => {
-
-    if (!isTauri()) {
-
-      return;
-
-    }
-
-
-
-    void (async () => {
-
-      await initDb();
-
-      await seedBaseDocumentsIfNeeded();
-
-    })().catch((error: unknown) => {
-
-      console.error('Failed to initialize app data', error);
-
-    });
-
+  const handleOpenProfile = useCallback(() => {
+    setIsSidebarOpen(false);
+    setIsProfileOpen(true);
   }, []);
 
 
@@ -266,11 +251,14 @@ function AppRoot() {
         onOpenBookmarks={() => handleSidebarNavigate('atoms')}
         onOpenDocument={handleOpenEditor}
         onOpenDocumentsPage={() => handleSidebarNavigate('documents')}
+        onOpenProfile={handleOpenProfile}
         onOpenSettings={() => handleSidebarNavigate('settings')}
         onPhaseChange={setSidebarPhase}
         onThemeToggle={toggleTheme}
+        profileName={profileName}
         theme={theme}
       />
+      <ProfileDialog isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
       <div className="view-stage">
 

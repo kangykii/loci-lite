@@ -88,6 +88,7 @@ Store → AI               ✗ NEVER
 AI → Store               ✗ NEVER
 anything → invoke()      ✗ NEVER — use lib/tauri.ts
 anything → OpenAI SDK    ✗ NEVER — use ai/providers/openai.ts
+anything → @supabase/supabase-js  ✗ NEVER — use lib/supabase.ts
 ```
 
 If the architecture disagrees with a solution you are about to implement, **stop**. Do not force the solution. Surface the conflict to the user and propose an architecture-compliant alternative.
@@ -271,6 +272,7 @@ A task is not done until all of these are true:
 - [ ] No `npm`, `yarn`, or `npm run` anywhere
 - [ ] No `invoke()` outside `lib/tauri.ts`
 - [ ] No OpenAI SDK imports outside `ai/providers/openai.ts`
+- [ ] No `@supabase/supabase-js` imports outside `lib/supabase.ts`
 - [ ] No Lexical plugin importing from store or AI
 - [ ] ARCHITECTURE.md updated if a new file was created
 - [ ] DESIGN.md updated if a new token was added
@@ -342,6 +344,8 @@ npm install          → pnpm install
 yarn add             → pnpm add
 npm run              → pnpm run
 import { invoke }    → import from lib/tauri.ts
+import from '@supabase/supabase-js'  → import from lib/supabase.ts
+getSupabaseClient() without remoteCall in new callers → use remoteCall()
 font-family: Inter   → var(--font-sans)
 font-weight: 700     → 600 maximum
 transition: all      → list specific properties

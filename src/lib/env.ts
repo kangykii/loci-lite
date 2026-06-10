@@ -1,4 +1,5 @@
 // Warn at import if Supabase vars are missing — remote features stay disabled.
+// Use the Publishable key (sb_publishable_…), not the legacy anon JWT key.
 
 function readEnvVar(value: string | undefined): string {
   const trimmed = value?.trim() ?? '';
@@ -10,11 +11,11 @@ function readEnvVar(value: string | undefined): string {
 
 export const ENV = {
   supabaseUrl: readEnvVar(import.meta.env.VITE_SUPABASE_URL),
-  supabaseKey: readEnvVar(import.meta.env.VITE_SUPABASE_ANON_KEY),
+  supabasePublishableKey: readEnvVar(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY),
 } as const;
 
-if (!ENV.supabaseUrl || !ENV.supabaseKey) {
+if (!ENV.supabaseUrl || !ENV.supabasePublishableKey) {
   console.warn('Supabase environment variables missing — remote features disabled');
 }
 
-export const hasRemote = Boolean(ENV.supabaseUrl && ENV.supabaseKey);
+export const hasRemote = Boolean(ENV.supabaseUrl && ENV.supabasePublishableKey);

@@ -109,6 +109,14 @@
   cursor: default; opacity: 0.45;
 }
 
+.shell-sidebar-avatar {
+  display: inline-flex; align-items: center; justify-content: center; flex: none; width: calc(var(--u) * 1.25); height: calc(var(--u) * 1.25); border-radius: var(--radius-pill); background: var(--accent-subtle); color: var(--accent-text); font-size: var(--text-xs); font-weight: 600;
+}
+
+.shell-sidebar-profile-name {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 .shell-sidebar-library {
   min-height: 0; grid-template-rows: auto auto auto minmax(0, 1fr); gap: var(--space-3);
 }
