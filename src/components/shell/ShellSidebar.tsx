@@ -12,6 +12,7 @@ type ShellSidebarProps = {
   isOpen: boolean;
   isCreating?: boolean;
   libraryRevision: number;
+  profileName?: string | null;
   theme: Theme;
   onClose: () => void;
   onCreateNote: () => void;
@@ -19,6 +20,7 @@ type ShellSidebarProps = {
   onOpenBookmarks: () => void;
   onOpenDocument: (fileId: string) => void;
   onOpenDocumentsPage: () => void;
+  onOpenProfile: () => void;
   onOpenSettings: () => void;
   onPhaseChange?: (phase: SidebarPhase) => void;
   onThemeToggle: () => void;
@@ -29,6 +31,7 @@ export default function ShellSidebar({
   isOpen,
   isCreating,
   libraryRevision,
+  profileName,
   theme,
   onClose,
   onCreateNote,
@@ -36,6 +39,7 @@ export default function ShellSidebar({
   onOpenBookmarks,
   onOpenDocument,
   onOpenDocumentsPage,
+  onOpenProfile,
   onOpenSettings,
   onPhaseChange,
   onThemeToggle,
@@ -144,9 +148,11 @@ export default function ShellSidebar({
           activeView={activeView}
           onGoHome={onGoHome}
           onOpenBookmarks={onOpenBookmarks}
+          onOpenProfile={onOpenProfile}
           onOpenSettings={onOpenSettings}
           onThemeToggle={onThemeToggle}
           placement="secondary"
+          profileName={profileName}
           theme={theme}
         />
       </aside>

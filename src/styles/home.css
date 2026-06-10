@@ -19,7 +19,7 @@
   margin: 0;
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: clamp(var(--text-2xl), 5vw, calc(var(--text-2xl) + var(--space-8)));
+  font-size: clamp(var(--text-2xl), 3.5vw, calc(var(--text-2xl) + var(--space-4)));
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1.05;
@@ -101,6 +101,7 @@
 .recent-name {
   margin: 0 0 var(--space-1);
   color: var(--text-primary);
+  font-size: var(--text-base);
   font-weight: 600;
 }
 

@@ -74,6 +74,7 @@ loci-lite/
 │   │   ├── atom-popup.css        # Bookmark creation popup
 │   │   ├── bookmark-stack-popup.css  # Stack folder popup card + navigation
 │   │   ├── confirm-dialog.css    # Shared delete confirmation modal
+│   │   ├── profile.css           # Account dialog: sign-in, identity, tier chip
 │   │   ├── settings.css          # Settings page sections and rows
 │   │   └── editor.css            # Lexical editor surface + atom/authorship overlay styling
 │   │
@@ -165,6 +166,10 @@ loci-lite/
 │   │   ├── settings/
 │   │   │   ├── SettingsSection.tsx # Settings section heading + rows
 │   │   │   └── SettingsRow.tsx     # Label, description, control slot
+│   │   ├── profile/
+│   │   │   ├── ProfileDialog.tsx   # Portaled account modal; sign-in vs account panel
+│   │   │   ├── ProfileSignIn.tsx   # Magic link email + code verify + Google button
+│   │   │   └── ProfileAccount.tsx  # Avatar, editable display name, tier, sign out
 │   │   └── ui/
 │   │       ├── Button.tsx
 │   │       ├── Toggle.tsx
@@ -209,7 +214,15 @@ loci-lite/
 │   │   ├── useAiWelcomeMessages.ts # Cached 5-message AI welcome rotation
 │   │   ├── useOpenAIKeySetting.ts  # Local OpenAI key setting
 │   │   ├── useSettings.ts          # App settings read/write
+│   │   ├── useRemoteSession.ts     # Remote profile + entitlements snapshot (future cosmetics consumers)
+│   │   ├── useAuth.ts              # Auth state machine + sign-in/out/verify actions
+│   │   ├── useAuthContext.tsx      # AuthProvider; single shared session + profile for the UI
 │   │   └── useTheme.ts             # Light/dark theme toggle + persistence
+│   │
+│   ├── plugins/
+│   │   ├── registry.ts             # LociPlugin contract, registerPlugin, dispatchHook
+│   │   ├── index.ts                # Side-effect imports for built plugins (empty until plugins exist)
+│   │   └── README.md               # How to add a Modern Writer extension plugin
 │   │
 │   ├── store/
 │   │   ├── db.ts                   # SQLite connection + migration runner
@@ -221,7 +234,8 @@ loci-lite/
 │   │   ├── atoms.store.ts          # Atom CRUD queries
 │   │   ├── stackNames.store.ts     # Stack display names in settings KV
 │   │   ├── annotations.store.ts    # Authorship annotation queries
-│   │   └── settings.store.ts       # Settings queries
+│   │   ├── settings.store.ts       # Settings queries
+│   │   └── remote.store.ts         # Supabase profile, cosmetics, plugin entitlements (remoteCall only)
 │   │
 │   ├── ai/
 │   │   ├── providers/
@@ -232,7 +246,12 @@ loci-lite/
 │   │
 │   └── lib/
 │       ├── renderAppPage.tsx       # Maps ViewName → view components for transition shells
-│       ├── env.ts                  # Vite env validation; ENV + hasRemote for Supabase (offline-first when unset)
+│       ├── env.ts                  # Vite env validation; URL + publishable key; ENV + hasRemote (offline-first when unset)
+│       ├── supabase.ts             # Sole @supabase/supabase-js site; getSupabaseClient + remoteCall (offline-first)
+│       ├── auth.ts                 # Sole Supabase auth site; magic link, Google OAuth, signOut, getSession
+│       ├── remoteSessionCache.ts   # In-memory remote session snapshot (profile, entitlements, cosmetics)
+│       ├── syncRemoteProfile.ts    # Background remote session sync after auth restore
+│       ├── pluginLifecycle.ts      # dispatchNoteOpen/Close/Bookmark → plugin registry
 │       ├── tauri.ts                # All Tauri command + window API invocations (one file)
 │       ├── documentMeta.ts         # Slug, title, excerpt, outline helpers
 │       ├── scrollEditorTarget.ts   # Token-driven eased scroll (find + outline); typewriter excluded
@@ -262,16 +281,26 @@ loci-lite/
 │   │   ├── main.rs
 │   │   ├── commands/
 │   │   │   ├── file.rs             # read_file, write_file, pick_file, list_dir
-│   │   │   └── window.rs           # Reserved; window chrome uses JS API via lib/tauri.ts
-│   │   └── lib.rs                  # Command registration; Windows set_decorations(false) in setup
-│   ├── Cargo.toml
-│   └── tauri.conf.json
+│   │   │   └── window.rs           # open_url, wait_for_oauth_callback (Google Sign In localhost capture)
+│   │   └── lib.rs                  # SQL + OAuth plugin init; command registration; Windows set_decorations(false)
+│   ├── capabilities/
+│   │   └── default.json            # sql, window, oauth (allow-start, allow-cancel)
+│   ├── Cargo.toml                  # tauri-plugin-sql, tauri-plugin-oauth
+│   └── tauri.conf.json             # plugins.sql preload; plugins.oauth ports [54321]
 │
 ├── index.html                      # Vite runtime entry
 ├── notes.md                        # Non-canonical editor behaviour scratch notes
 ├── ARCHITECTURE.md                 # This file
 ├── DESIGN.md
 ├── RULES.md
+├── supabase/
+│   └── migrations/               # Remote Postgres DDL (run in Supabase SQL editor or via MCP)
+│       ├── 001_profiles.sql
+│       ├── 002_cosmetics.sql
+│       ├── 003_plugin_entitlements.sql
+│       ├── 004_row_level_security.sql
+│       ├── 005_auth_signup_trigger.sql
+│       └── 006_security_hardening.sql
 ├── package.json
 ├── pnpm-lock.yaml
 ├── tsconfig.json
@@ -329,6 +358,22 @@ CREATE TABLE settings (
 
 **Source of truth:** `.md` file on disk. SQLite holds derived and supplementary data only. `opened_at` is recency/navigation metadata; `edited_at` is save recency for features such as AI welcome source selection. If the DB is deleted, documents are not lost.
 
+### Supabase schema (`supabase/migrations/` — Phase 3)
+
+Remote Postgres only. Apply migrations `001` → `005` in order (Supabase SQL editor or Supabase MCP `apply_migration`). Local app remains offline-capable when `hasRemote` is false.
+
+| Table | Purpose |
+|---|---|
+| `profiles` | One row per `auth.users` id — `display_name`, `tier` (`standard` \| `modern_writer`), `metadata` JSONB |
+| `cosmetics` | Per-user unlocked cosmetic slugs (`theme_midnight`, `cover_rust`, …) |
+| `plugin_entitlements` | Modern Writer plugin grants; `expires_at` null = permanent; `revoked_at` for soft revoke |
+
+**RLS:** enabled on all three tables; policies restrict rows to `auth.uid()`.
+
+**Signup trigger:** `on_auth_user_created` inserts a `profiles` row from `auth.users` metadata.
+
+**Expandability additions (over base spec):** `metadata JSONB` on all tables; `updated_at` + `set_updated_at()` triggers; `revoked_at` on entitlements; `user_id` indexes for RLS; `SET search_path = public` on `handle_new_user()`.
+
 ---
 
 ## Key mechanisms
@@ -353,6 +398,43 @@ CREATE TABLE settings (
 - **Stage 4 (browse UI):** [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts) loads all registry files + markdown haystack via `readFile`; [`matchesSearch`](src/lib/searchMatch.ts) filters client-side on keystroke. **Home:** AI-cached prose welcome via [`useAiWelcomeMessages.ts`](src/hooks/useAiWelcomeMessages.ts), recent 10 when search empty, global title+body search when query present ([`HomeView.tsx`](src/views/HomeView.tsx) + [`RecentFiles.tsx`](src/components/home/RecentFiles.tsx)); [`HomeQuickActions.tsx`](src/components/home/HomeQuickActions.tsx) for New note + Bookmarks; **View all** opens Documents via `App.tsx` `onOpenDocuments`. **Documents:** live global search ([`DocumentsView.tsx`](src/views/DocumentsView.tsx)); Filter button remains UI shell. `App.tsx` `handleOpenEditor(fileId)`; previews via [`excerptFromMarkdown`](src/lib/documentMeta.ts). List rows use [`useSearchStagger.ts`](src/hooks/useSearchStagger.ts) + `data-stagger` / `--stagger-index` ([`transitions.css`](src/styles/transitions.css)).
 - **First-run seed:** [`seedDocuments.ts`](src/lib/seedDocuments.ts) — after `initDb()`, if `settings.seed.docs_v1` is unset and the file registry is empty, writes two onboarding `.md` notes (`welcome-to-loci-lite`, `what-works-today`) via `create_note` + `insertFile`. Skipped when the user already has registry rows.
 
+### Network infrastructure (implemented — Phases 2–4)
+
+- **Env gate** ([`src/lib/env.ts`](src/lib/env.ts)): `ENV` + `hasRemote`; missing or placeholder `.env` vars disable remote without throwing.
+- **Supabase client** ([`src/lib/supabase.ts`](src/lib/supabase.ts)): sole `@supabase/supabase-js` import site; lazy `getSupabaseClient()` returns `null` when `!hasRemote`.
+- **Remote calls:** `remoteCall()` wraps all Supabase usage — unconfigured state returns `{ data: null, error: null }`; thrown errors are caught, logged with `console.warn`, and never propagate to UI.
+- **Remote schema** ([`supabase/migrations/`](supabase/migrations/)): `profiles`, `cosmetics`, `plugin_entitlements` + RLS + auth signup trigger.
+- **Remote store** ([`src/store/remote.store.ts`](src/store/remote.store.ts)): `getRemoteProfile`, `getUnlockedCosmetics`, `getPluginEntitlements` (active rows only: `revoked_at` null, `expires_at` null or future) — all via `remoteCall()`; null/empty when offline or unsigned-in. Hooks consume this file; components never import it directly.
+- **Remote session** ([`useRemoteSession.ts`](src/hooks/useRemoteSession.ts) + [`remoteSessionCache.ts`](src/lib/remoteSessionCache.ts) + [`syncRemoteProfile.ts`](src/lib/syncRemoteProfile.ts)): boot + hook refresh profile/entitlements/cosmetics into cache; [`App.tsx`](src/App.tsx) mounts the hook.
+- **Plugin registry** ([`src/plugins/registry.ts`](src/plugins/registry.ts)): `LociPlugin` contract, `registerPlugin`, `getInstalledPlugins`, `dispatchHook` — lifecycle hooks for Modern Writer extensions; errors in hooks are logged, never thrown. [`pluginLifecycle.ts`](src/lib/pluginLifecycle.ts) dispatches from editor open/close ([`EditorView.tsx`](src/views/EditorView.tsx)) and bookmark create ([`useAtomCreation.ts`](src/hooks/useAtomCreation.ts), [`useEditorAtomBridge.ts`](src/hooks/useEditorAtomBridge.ts)).
+- **Boot** ([`main.tsx`](src/main.tsx)): Tauri `initDb` + seed → non-blocking `getSession` / `syncRemoteProfile` → render. Session sync never blocks first paint.
+
+### OAuth plugin (implemented — Finale 2 Phase 1)
+
+Desktop **Google Sign In** needs a localhost redirect capture; magic link auth uses Supabase only (no Tauri plugin).
+
+- **Rust** ([`src-tauri/Cargo.toml`](src-tauri/Cargo.toml)): `tauri-plugin-oauth = "2"`; registered in [`lib.rs`](src-tauri/src/lib.rs) via `tauri_plugin_oauth::init()`.
+- **Tauri bridge** ([`lib/tauri.ts`](src/lib/tauri.ts)): `openUrl`, `waitForOAuthCallback` — sole `invoke()` site for OAuth flow helpers.
+- **Rust commands** ([`commands/window.rs`](src-tauri/src/commands/window.rs)): `open_url` (system browser via `open` crate), `wait_for_oauth_callback` (`tauri_plugin_oauth::start_with_config` on port 54321).
+- **Config** ([`tauri.conf.json`](src-tauri/tauri.conf.json)): `plugins.oauth.ports: [54321]` (documented preference; FabianLars may require port at `start()` call time).
+- **Capabilities** ([`capabilities/default.json`](src-tauri/capabilities/default.json)): `oauth:allow-start`, `oauth:allow-cancel`.
+
+### Auth actions (implemented — Finale 2 Phase 2)
+
+- **Auth layer** ([`lib/auth.ts`](src/lib/auth.ts)): sole site for Supabase `auth.*` calls — `signInWithMagicLink`, `signInWithGoogle`, `signOut`, `getSession`, `getAuthUser`, `subscribeToAuthStateChange`. Components use [`useAuth`](src/hooks/useAuth.ts), never import `auth.ts` directly.
+- **Auth hook** ([`useAuth.ts`](src/hooks/useAuth.ts)): `loading` only when `hasRemote` on startup; `anonymous` when offline or unsigned-in; `authenticated` when session exists. `onAuthStateChange` via `subscribeToAuthStateChange`; tier from `getRemoteProfile`. `signOut` clears session → `anonymous`. Also exposes `verifyEmailCode` (magic-link OTP entry for desktop, via `verifyEmailOtp` in `auth.ts`).
+
+### Account UI (implemented — Finale 2)
+
+- **Provider** ([`useAuthContext.tsx`](src/hooks/useAuthContext.tsx)): `AuthProvider` wraps the app inside `NotificationProvider`; owns the single `useAuth` instance, syncs `remoteSessionCache` via `syncRemoteProfile` when `authenticated`, clears it on `anonymous`, and exposes `profile` + `renameProfile` (via `updateRemoteDisplayName` in [`remote.store.ts`](src/store/remote.store.ts)). Components use `useAuthContext()` — never `useAuth` directly, never `lib/auth.ts`.
+- **Sidebar entry** ([`ShellSidebarNav.tsx`](src/components/shell/ShellSidebarNav.tsx)): secondary-nav Profile row is live — avatar initial chip + display name when signed in, `UserCircle` + "Profile" otherwise. Click closes the sidebar and opens the dialog (same dismiss-first convention as opening a document).
+- **Dialog** ([`ProfileDialog.tsx`](src/components/profile/ProfileDialog.tsx)): portaled scrim + centered panel (ConfirmDialog pattern, z-index 130); Escape and scrim close. Signed-out → [`ProfileSignIn.tsx`](src/components/profile/ProfileSignIn.tsx) (email → magic link → 6-digit code verify, divider, Google). Signed-in → [`ProfileAccount.tsx`](src/components/profile/ProfileAccount.tsx) (avatar, email, tier chip, editable display name, sign out). Auth state transitions switch panels automatically via `onAuthStateChange`.
+- **Boot sync ownership:** `AuthProvider` owns post-auth profile sync; [`useRemoteSession.ts`](src/hooks/useRemoteSession.ts) is no longer mounted in `App.tsx` and remains for future cosmetics consumers.
+- **Magic link:** `signInWithOtp` with `emailRedirectTo: loci://auth/callback`.
+- **Google:** `signInWithOAuth` → `openUrl` → localhost callback on port **54321** → `exchangeCodeForSession`. Listener starts before the browser opens.
+- **Boot** ([`main.tsx`](src/main.tsx)): `getSession()` from `auth.ts` when `hasRemote`; triggers `syncRemoteProfile` when signed in.
+- **Remote store** ([`remote.store.ts`](src/store/remote.store.ts)): uses `getAuthUser()` from `auth.ts` for `user_id` — no direct `client.auth` calls.
+
 ### Delete flows (implemented)
 
 All destructive actions gate on [`ConfirmDialog.tsx`](src/components/ui/ConfirmDialog.tsx) before store/Tauri calls. [`App.tsx`](src/App.tsx) `handleDocumentDeleted(fileId, source)` clears `activeFileId` when the deleted note was open, bumps `libraryRevision`, and navigates **Home** only when `source === 'editor'`.
@@ -366,7 +448,7 @@ All destructive actions gate on [`ConfirmDialog.tsx`](src/components/ui/ConfirmD
 
 **Browse drag-and-drop:**
 
-- Tauri main window sets `"dragDropEnabled": false`, `"scrollBarStyle": "fluentOverlay"`, and user-facing `"title": "Loci Notepad"` in [`tauri.conf.json`](src-tauri/tauri.conf.json). Windows disables native decorations in [`lib.rs`](src-tauri/src/lib.rs) setup; custom chrome in [`WindowChrome.tsx`](src/components/shell/WindowChrome.tsx). Capabilities grant window minimize/maximize/close/drag permissions.
+- Tauri main window sets `"dragDropEnabled": false`, `"scrollBarStyle": "fluentOverlay"`, and user-facing `"title": "Loci Notepad"` in [`tauri.conf.json`](src-tauri/tauri.conf.json). Windows disables native decorations in [`lib.rs`](src-tauri/src/lib.rs) setup; custom chrome in [`WindowChrome.tsx`](src/components/shell/WindowChrome.tsx). Capabilities grant sql, window minimize/maximize/close/drag, and oauth start/cancel permissions.
 - Drag sources: whole `.document-row` shell (`div`, not `<button>`) and whole `.bookmark-flashcard` (`article`) — no separate drag handles.
 - Payload: [`writeDragPayload`](src/lib/deletePayload.ts) / [`readDragPayload`](src/lib/deletePayload.ts) — MIME `application/x-loci-delete` plus `text/plain` JSON fallback for WebView2.
 - Session: [`browseDrag.ts`](src/lib/browseDrag.ts) toggles `html.is-browse-dragging` and suppresses click-after-drag via `consumeBrowseDragClick`.
@@ -588,21 +670,22 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 **Current (dev):**
 
 ```
-1. Tauri opens → React mounts → App.tsx calls initDb() (SQLite + migrations v1–v3)
-2. View: home by default; seed docs if empty registry
-3. Home / Documents: useSearchableDocuments (Home shows recent 10 when search empty)
-4. New note / open row → activeFileId → EditorView
-5. useDocument load/save + PersistPlugin debounce (800ms)
-6. useEditorAtomBridge loads atoms + definitions; useEditorAuthorshipBridge loads annotations; Editor mounts plugins via context
-7. Bookmarks tab: AtomsView loads listAllAtoms(); useDocumentTitles resolves per-card document names
-8. Bookmark: context menu → AtomPopup → createAtom → decoration + Bookmarks tab flashcards
-9. Browse drag: whole `.document-row` / `.bookmark-flashcard` → `writeDragPayload` → `BrowseDeleteBin` (`dragDropEnabled: false` on main window)
-10. Delete note: editor overflow or Documents bin drop → ConfirmDialog → useDeleteDocument; editor path → Home
-11. Delete bookmark: bin drop (browse) or editor tooltip → ConfirmDialog → useAtoms.removeAtom
-12. Focus mode: overflow **Focus** toggle → `useFocusMode` + `FocusModePlugin`; Esc or `‹` exits; chrome slides off-screen
-13. Authorship: paste → `AuthorshipPlugin` + `useEditorAuthorshipBridge` → `annotations` table; overflow **Authorship** toggle → `authorship-visible` wash; right-click span → **Mark as mine**
-14. Bottom bar: `useBottomBar(fileId, markdown)` loads `font_size_{fileId}`, applies `--editor-font-size-override`, derives word count and find labels, handles `Ctrl/Cmd+F` plus mode shortcuts from `EditorView`; `useFindHighlight` paints match highlights on `.editor-root`
-15. Sidebar: trigger / `Ctrl+Shift+L` / guarded right swipe opens `ShellSidebar`; document rows close the overlay then open the editor; left swipe from Home opens the most recent note and `useDocumentScrollRestore` restores saved scroll.
+1. Tauri opens → main.tsx boot(): initDb() (SQLite + migrations v1–v3) + seed docs if empty registry (Tauri only)
+2. main.tsx: import plugins/index (registry); fire-and-forget getSession() → syncRemoteProfile() when signed in; then render App
+3. View: home by default
+4. Home / Documents: useSearchableDocuments (Home shows recent 10 when search empty)
+5. New note / open row → activeFileId → EditorView
+6. useDocument load/save + PersistPlugin debounce (800ms)
+7. useEditorAtomBridge loads atoms + definitions; useEditorAuthorshipBridge loads annotations; Editor mounts plugins via context
+8. Bookmarks tab: AtomsView loads listAllAtoms(); useDocumentTitles resolves per-card document names
+9. Bookmark: context menu → AtomPopup → createAtom → decoration + Bookmarks tab flashcards
+10. Browse drag: whole `.document-row` / `.bookmark-flashcard` → `writeDragPayload` → `BrowseDeleteBin` (`dragDropEnabled: false` on main window)
+11. Delete note: editor overflow or Documents bin drop → ConfirmDialog → useDeleteDocument; editor path → Home
+12. Delete bookmark: bin drop (browse) or editor tooltip → ConfirmDialog → useAtoms.removeAtom
+13. Focus mode: overflow **Focus** toggle → `useFocusMode` + `FocusModePlugin`; Esc or `‹` exits; chrome slides off-screen
+14. Authorship: paste → `AuthorshipPlugin` + `useEditorAuthorshipBridge` → `annotations` table; overflow **Authorship** toggle → `authorship-visible` wash; right-click span → **Mark as mine**
+15. Bottom bar: `useBottomBar(fileId, markdown)` loads `font_size_{fileId}`, applies `--editor-font-size-override`, derives word count and find labels, handles `Ctrl/Cmd+F` plus mode shortcuts from `EditorView`; `useFindHighlight` paints match highlights on `.editor-root`
+16. Sidebar: trigger / `Ctrl+Shift+L` / guarded right swipe opens `ShellSidebar`; document rows close the overlay then open the editor; left swipe from Home opens the most recent note and `useDocumentScrollRestore` restores saved scroll.
 ```
 
 **Target (not yet mounted):**

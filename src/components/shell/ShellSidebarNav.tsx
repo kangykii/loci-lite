@@ -6,10 +6,12 @@ type ShellSidebarNavProps = {
   activeView: ViewName;
   isCreating?: boolean;
   placement: 'primary' | 'secondary';
+  profileName?: string | null;
   theme: Theme;
   onCreateNote?: () => void;
   onGoHome: () => void;
   onOpenBookmarks: () => void;
+  onOpenProfile?: () => void;
   onOpenSettings: () => void;
   onThemeToggle: () => void;
 };
@@ -18,10 +20,12 @@ export default function ShellSidebarNav({
   activeView,
   isCreating,
   placement,
+  profileName,
   theme,
   onCreateNote,
   onGoHome,
   onOpenBookmarks,
+  onOpenProfile,
   onOpenSettings,
   onThemeToggle,
 }: ShellSidebarNavProps) {
@@ -44,9 +48,15 @@ export default function ShellSidebarNav({
           )}
           <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
         </button>
-        <button className="shell-sidebar-nav-item" disabled type="button">
-          <UserCircle size={16} strokeWidth={1.5} />
-          <span>Profile</span>
+        <button className="shell-sidebar-nav-item" onClick={onOpenProfile} type="button">
+          {profileName ? (
+            <span aria-hidden="true" className="shell-sidebar-avatar">
+              {profileName.charAt(0).toUpperCase()}
+            </span>
+          ) : (
+            <UserCircle size={16} strokeWidth={1.5} />
+          )}
+          <span className="shell-sidebar-profile-name">{profileName ?? 'Profile'}</span>
         </button>
       </nav>
     );

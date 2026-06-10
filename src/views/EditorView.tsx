@@ -21,6 +21,7 @@ import {
   outlineEntriesFromMarkdown,
   scrollToOutlineHeading,
 } from '../lib/outlineNavigation';
+import { dispatchNoteClose, dispatchNoteOpen } from '../lib/pluginLifecycle';
 import { isTauri } from '../lib/tauri';
 
 type EditorViewProps = {
@@ -56,6 +57,20 @@ export default function EditorView({ fileId, onDocumentDeleted }: EditorViewProp
   const documentReady = state.status === 'ready';
   const isEditorRevealed = useEditorChromeEntry(fileId, documentReady);
   const bottomBar = useBottomBar(fileId, editorText);
+  const wordCountRef = useRef(bottomBar.wordCount);
+  wordCountRef.current = bottomBar.wordCount;
+
+  useEffect(() => {
+    if (!documentReady) {
+      return;
+    }
+
+    dispatchNoteOpen(fileId);
+
+    return () => {
+      dispatchNoteClose(fileId, wordCountRef.current);
+    };
+  }, [documentReady, fileId]);
 
   useFindHighlight(editorRootRef, bottomBar.mode, bottomBar.query, bottomBar.matchIndex);
 

@@ -1,8 +1,14 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './lib/env';
-import App from './App';
+import { getSession } from './lib/auth';
+import { hasRemote } from './lib/env';
+import { seedBaseDocumentsIfNeeded } from './lib/seedDocuments';
+import { syncRemoteProfile } from './lib/syncRemoteProfile';
 import { isTauri } from './lib/tauri';
+import { initDb } from './store/db';
+import './plugins/index';
+import App from './App';
 import '@fontsource/geist-sans/400.css';
 import '@fontsource/geist-sans/500.css';
 import '@fontsource/geist-sans/600.css';
@@ -22,6 +28,7 @@ import './styles/bookmark-stack-folder.css';
 import './styles/atom-popup.css';
 import './styles/bookmark-stack-popup.css';
 import './styles/confirm-dialog.css';
+import './styles/profile.css';
 import './styles/notifications.css';
 import './styles/editor.css';
 
@@ -29,8 +36,33 @@ if (isTauri()) {
   document.documentElement.classList.add('is-tauri');
 }
 
-createRoot(document.getElementById('root') as HTMLElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+async function boot() {
+  if (isTauri()) {
+    try {
+      await initDb();
+      await seedBaseDocumentsIfNeeded();
+    } catch (error) {
+      console.error('Failed to initialize local database', error);
+    }
+  }
+
+  if (hasRemote) {
+    void getSession()
+      .then((session) => {
+        if (session) {
+          void syncRemoteProfile();
+        }
+      })
+      .catch((err) => {
+        console.warn('Remote session check failed — app continues offline:', err);
+      });
+  }
+
+  createRoot(document.getElementById('root') as HTMLElement).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
+
+void boot();

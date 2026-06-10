@@ -27,6 +27,9 @@
   "plugins": {
     "sql": {
       "preload": ["sqlite:loci.db"]
+    },
+    "oauth": {
+      "ports": [54321]
     }
   },
   "bundle": {

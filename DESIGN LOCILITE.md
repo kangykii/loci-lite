@@ -11,7 +11,7 @@ This is not Canvas. Canvas is a document *engine*. Lite is a writing *room*.
 
 ### Colour direction — Light mode (Washi paper)
 
-Light mode uses a **washi paper** palette: warm hued off-white base (`#F3F0E8`), deeper fibre shadow (`#E9E4DB`), lifted sheet surfaces (`#F7F4EE`), and warm sumi ink text (`#2C261E` / `#252017` prose). Slightly warmer and more fibrous than iA Writer’s neutral `#F5F6F6` — not pure white, not grey UI white. The page background is flat `--bg` only; no atmospheric gradients on `html` or `body`.
+Light mode uses a **washed washi paper** palette: warm hued off-white base (`#F5F2EA`), deeper fibre shadow (`#ECE6DC`), lifted sheet surfaces (`#FAF7F0`), and softened warm sumi ink text (`#3A3128` / `#342B22` prose). Slightly warmer and more fibrous than iA Writer’s neutral `#F5F6F6` — not pure white, not grey UI white. The page background is flat `--bg` only; no atmospheric gradients on `html` or `body`.
 
 ### Colour direction — Dark mode (Charcoal Claude)
 
@@ -131,31 +131,31 @@ Implemented in `src/styles/tokens.css`. Every value a component needs already ex
   --editor-font-family: "IBM Plex Mono", "GeistMono", "SF Mono", monospace;  /* editor body — overridden by Settings */
 
   /* ── Light mode colours (washi paper) ── */
-  --bg:               #F3F0E8;
-  --bg-deep:          #E9E4DB;          /* scrims, depth behind overlays */
-  --surface:          rgba(247, 244, 238, 0.88);
-  --surface-strong:   rgba(247, 244, 238, 0.97);
-  --surface-solid:    #F7F4EE;
+  --bg:               #F5F2EA;
+  --bg-deep:          #ECE6DC;          /* scrims, depth behind overlays */
+  --surface:          rgba(250, 247, 240, 0.86);
+  --surface-strong:   rgba(250, 247, 240, 0.96);
+  --surface-solid:    #FAF7F0;
 
   /* ── Shell chrome (transparent glass + backdrop-filter) ── */
-  --shell-chrome-bg:         rgba(247, 244, 238, 0.50);
-  --shell-chrome-bg-strong:  rgba(247, 244, 238, 0.72);
+  --shell-chrome-bg:         rgba(250, 247, 240, 0.48);
+  --shell-chrome-bg-strong:  rgba(250, 247, 240, 0.70);
   --shell-chrome-border:     transparent;
   --shell-chrome-blur:       20px;
 
-  --text-primary:     #2C261E;
-  --text-secondary:   rgba(44, 38, 30, 0.52);
-  --text-tertiary:    rgba(44, 38, 30, 0.32);
+  --text-primary:     #3A3128;
+  --text-secondary:   rgba(58, 49, 40, 0.54);
+  --text-tertiary:    rgba(58, 49, 40, 0.34);
 
-  --accent:           #A83D52;          /* rust-rose — one accent, used sparingly */
-  --accent-subtle:    rgba(168, 61, 82, 0.10);
-  --accent-text:      #7A2030;          /* accent on white — passes AA */
+  --accent:           #A85F32;          /* muted terracotta — one accent, used sparingly */
+  --accent-subtle:    rgba(168, 95, 50, 0.11);
+  --accent-text:      #7A3F1D;          /* accent on light paper — passes AA */
 
   --destructive:      #B42020;          /* delete confirm, context menu — not accent */
-  --destructive-on:   #F7F4EE;          /* label on solid destructive buttons */
+  --destructive-on:   #FAF7F0;          /* label on solid destructive buttons */
 
-  --border:           rgba(44, 38, 30, 0.08);
-  --border-strong:    rgba(44, 38, 30, 0.14);
+  --border:           rgba(58, 49, 40, 0.08);
+  --border-strong:    rgba(58, 49, 40, 0.14);
 
   /* ── Dark mode colours (Charcoal Claude) ── */
   --bg-dark:            #171615;
@@ -260,7 +260,7 @@ Applied app-wide on boot via [`useDefaultEditorFontSetting.ts`](src/hooks/useDef
 --editor-small:     0.875rem;   /* 14px — footnotes, captions */
 --editor-line-height: 1.85;     /* wide leading — writer default */
 --editor-heading-line-height: 1.3;
---editor-prose: #1A1610;       /* solid full-opacity prose — writing surface only */
+--editor-prose: #342B22;       /* solid full-opacity softened warm prose — writing surface only */
 --editor-scroll-target-ratio: 0.4; /* find + outline scroll anchor — matches typewriter lock line */
 --dur-editor-scroll: 280ms;      /* find + outline navigation scroll */
 
@@ -531,7 +531,17 @@ Global save/error feedback via [`NotificationProvider`](src/hooks/useNotificatio
 
 `ShellSidebar` is an edge-attached temporary overlay, not a layout column. It is portaled to `document.body`, sits above the app/editor chrome and below the Tauri window controls, and uses the existing `data-transition="sidebar"` enter/leave keyframes. The editor column never reflows or shrinks while it is open.
 
-Contents are the former titlebar controls plus the document library: enlarged **Loci**, **New note**, **Bookmarks**, bottom utility rows for **Settings**, **Theme**, disabled **Profile**, and a searchable notes list with no document-row icons. Full **Documents** browse remains via Library **View all**. Opening a document dismisses the sidebar immediately. Bookmarks and Settings still use their full browse/settings views; bookmark flashcards, stack drag/drop, and document delete do not move into the sidebar.
+Contents are the former titlebar controls plus the document library: enlarged **Loci**, **New note**, **Bookmarks**, bottom utility rows for **Settings**, **Theme**, **Profile**, and a searchable notes list with no document-row icons. Full **Documents** browse remains via Library **View all**. Opening a document dismisses the sidebar immediately. Bookmarks and Settings still use their full browse/settings views; bookmark flashcards, stack drag/drop, and document delete do not move into the sidebar.
+
+**Profile row:** the only visible sign of an account. Signed out — `UserCircle` icon + "Profile". Signed in — `.shell-sidebar-avatar` initial chip (`calc(var(--u) * 1.25)` circle, `--accent-subtle` fill, `--accent-text` initial) + display name, ellipsized. Clicking it dismisses the sidebar and opens the profile dialog (same dismiss-first rule as opening a document). No account state ever appears in the titlebar, editor, or browse views.
+
+## Profile dialog — account modal
+
+Follows the ConfirmDialog shape: fixed `.profile-dialog-layer` at z-index 130, `color-mix` scrim on `--bg-deep` (no blur), centered `.profile-dialog` panel — `min(24rem, …)` wide, `--surface-strong`, `--radius-lg`, `--space-6` padding, title `--text-base` 600. Portaled to `document.body`; Escape and scrim close.
+
+Signed out ("Unlock cosmetics"): bordered `.profile-input` email field (`--surface` fill, `--radius-md`, min-height `calc(var(--u) * 2.25)`), accent **Send magic link** primary (same recipe as `.atom-popup-save`), then a code-entry step for the emailed 6-digit code, an `or` divider (`--text-xs` tertiary between 1px `--border` rules), and a bordered secondary **Continue with Google**. Errors render inline in `--destructive` `--text-sm` — never a toast.
+
+Signed in ("Account"): identity row — `.profile-avatar` circle (`calc(var(--u) * 2.25)`, accent-subtle/accent-text initial), name + email stacked (`--text-sm` 600 / `--text-xs` tertiary), `.profile-tier` pill chip (Standard / Modern Writer). Below: editable display name (`.profile-input` + accent Save appearing only when dirty; saves via notification "Saved"), then a top-ruled action row with bordered **Sign out** in `--destructive` text. Weight never exceeds 600.
 
 Gesture and shortcut behavior: `Ctrl/Cmd+Shift+L` toggles the sidebar instantly. Trackpad swipes use an accumulated horizontal delta with direction lock in [`shellSidebarGesture.ts`](src/lib/shellSidebarGesture.ts) / [`useShellSidebarGesture.ts`](src/hooks/useShellSidebarGesture.ts):
 
@@ -624,6 +634,7 @@ Shared bookmark create/edit modal ([`AtomPopup.tsx`](src/components/atoms/AtomPo
 
 Opened from the sidebar Settings row (`SettingsView`). Not a persistent left-nav tab. Uses `.app-shell.settings-view` with `.settings-stack` capped at `--shell-content-max` (same shell browse width as documents/atoms).
 
+- **Page title:** `.settings-page-title` uses `--text-xl` — same scale step as the sidebar heading. `--text-2xl` and above belong to the Home welcome heading only.
 - **Sections:** `.settings-section` + `.settings-section-title` (Appearance, Editor, Keyboard shortcuts, AI, Data, About).
 - **Rows:** `.settings-row` — label and optional `.settings-row-description` on the left; control or hint on the right. Frosted row background uses `var(--shell-chrome-bg)` like document search panels.
 - **Placeholders:** `.settings-coming-soon`, `.settings-hint`, disabled `.settings-input`, disabled `.settings-text-button` — `--text-tertiary` only; no accent on this view.
@@ -796,7 +807,7 @@ The home screen is a wide launch hub aligned with the titlebar content band (`--
 
 .home-welcome {
   font-family: var(--font-sans);
-  font-size: clamp(var(--text-2xl), 5vw, calc(var(--text-2xl) + var(--space-8)));
+  font-size: clamp(var(--text-2xl), 3.5vw, calc(var(--text-2xl) + var(--space-4)));
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1.05;
