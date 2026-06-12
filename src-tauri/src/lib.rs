@@ -25,6 +25,12 @@ fn migrations() -> Vec<Migration> {
             sql: include_str!("../../src/store/migrations/003_file_edited_at.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 4,
+            description: "onboarding",
+            sql: include_str!("../../src/store/migrations/004_onboarding.sql"),
+            kind: MigrationKind::Up,
+        },
     ]
 }
 
@@ -44,6 +50,7 @@ pub fn run() {
             commands::file::write_file,
             commands::file::delete_file,
             commands::window::open_url,
+            commands::window::wait_for_local_callback,
             commands::window::wait_for_oauth_callback,
         ])
         .setup(|app| {

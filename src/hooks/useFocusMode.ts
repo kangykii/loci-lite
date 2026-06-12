@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
 
 import { isTauri } from '../lib/tauri';
+import { markFeatureLearned } from '../store/onboarding.store';
 import { getDefaultFocusMode } from '../store/settings.store';
 
 export function useFocusMode(
@@ -23,9 +24,17 @@ export function useFocusMode(
     };
   }, [fileId]);
 
-  const enter = useCallback(() => setIsActive(true), []);
+  const enter = useCallback(() => {
+    void markFeatureLearned('focus');
+    setIsActive(true);
+  }, []);
   const exit = useCallback(() => setIsActive(false), []);
-  const toggle = useCallback(() => setIsActive((value) => !value), []);
+  const toggle = useCallback(() => {
+    setIsActive((value) => {
+      if (!value) void markFeatureLearned('focus');
+      return !value;
+    });
+  }, []);
 
   useEffect(() => {
     const element = editorRootRef.current;

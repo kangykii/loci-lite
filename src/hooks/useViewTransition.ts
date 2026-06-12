@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type ViewName = 'home' | 'editor' | 'documents' | 'atoms' | 'settings';
+export type ViewName = 'home' | 'editor' | 'documents' | 'atoms' | 'settings' | 'account';
 
 export type TransitionType = 'tab' | 'open' | 'close' | 'none';
 

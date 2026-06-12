@@ -83,3 +83,13 @@ export function waitForOAuthCallback(port: number): Promise<string> {
   }
   return invoke<string>('wait_for_oauth_callback', { port });
 }
+
+export function waitForLocalCallback(port: number): Promise<string> {
+  if (!isTauri()) {
+    return Promise.reject(new Error('Local callback requires the desktop app'));
+  }
+  return invoke<string>('wait_for_local_callback', {
+    port,
+    responseHtml: '<html><body>Payment check complete. You can close this window.</body></html>',
+  });
+}

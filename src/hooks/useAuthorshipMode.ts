@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
 
 import { isTauri } from '../lib/tauri';
+import { markFeatureLearned } from '../store/onboarding.store';
 import { getDefaultAuthorship } from '../store/settings.store';
 
 export function useAuthorshipMode(
@@ -23,7 +24,12 @@ export function useAuthorshipMode(
     };
   }, [fileId]);
 
-  const toggle = useCallback(() => setIsActive((value) => !value), []);
+  const toggle = useCallback(() => {
+    setIsActive((value) => {
+      if (!value) void markFeatureLearned('authorship');
+      return !value;
+    });
+  }, []);
 
   useEffect(() => {
     const element = editorRootRef.current;

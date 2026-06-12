@@ -3,6 +3,7 @@ import type { AtomSavePayload } from '../components/atoms/AtomPopup';
 import { buildAtomRecord, saveAtomRecord } from '../lib/atomRecord';
 import { dispatchBookmarkCreated } from '../lib/pluginLifecycle';
 import type { AtomRecord } from '../lib/atomTypes';
+import { markFeatureLearned } from '../store/onboarding.store';
 import { useNotifications } from './useNotifications';
 
 type PopupState = {
@@ -75,6 +76,7 @@ export function useAtomCreation(onCreated?: (atom: AtomRecord) => void) {
         });
 
         await saveAtomRecord(atom);
+        void markFeatureLearned('bookmarks');
         onCreated?.(atom);
         dispatchBookmarkCreated({ text: sourceText, type: payload.type });
         notifyBookmark();

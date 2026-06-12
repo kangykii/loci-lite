@@ -26,9 +26,9 @@
 
 .window-chrome-zone {
   position: fixed;
-  top: var(--space-2);
-  right: var(--shell-inset-x);
-  left: var(--shell-inset-x);
+  top: 0;
+  right: 0;
+  left: 0;
   z-index: 400;
   height: var(--window-chrome-hit-h);
 }
@@ -42,7 +42,11 @@
   display: flex;
   height: var(--window-chrome-h);
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
+  box-sizing: border-box;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-solid);
   opacity: 0;
   transform: translateY(calc(-1 * var(--window-chrome-h)));
   pointer-events: none;
@@ -62,11 +66,11 @@
   align-items: center;
   gap: var(--window-control-gap);
   flex-shrink: 0;
-  margin-inline-start: auto;
   -webkit-app-region: no-drag;
 }
 
 .window-control {
+  position: relative;
   display: grid;
   width: var(--window-control-size);
   height: var(--window-control-size);
@@ -75,7 +79,7 @@
   border: none;
   border-radius: var(--radius-pill);
   background: var(--window-control-rest);
-  color: transparent;
+  color: var(--window-control-icon);
   cursor: pointer;
   box-sizing: border-box;
   transition:
@@ -83,15 +87,59 @@
     color var(--dur-fast) ease;
 }
 
-.window-control svg {
+.window-control::before,
+.window-control::after {
+  position: absolute;
+  background: currentColor;
+  content: "";
   opacity: 0;
   transition: opacity var(--dur-fast) ease;
 }
 
-.window-chrome-zone:is(:hover, :focus-within, .is-revealed) .window-control svg,
-.window-chrome-controls:hover .window-control svg,
-.window-control:hover svg,
-.window-control:focus-visible svg {
+.window-control-close::before,
+.window-control-close::after {
+  width: 7px;
+  height: 1.25px;
+  border-radius: var(--radius-pill);
+}
+
+.window-control-close::before {
+  transform: rotate(45deg);
+}
+
+.window-control-close::after {
+  transform: rotate(-45deg);
+}
+
+.window-control-minimize::before {
+  width: 7px;
+  height: 1.25px;
+  border-radius: var(--radius-pill);
+}
+
+.window-control-maximize::before,
+.window-control-maximize::after {
+  width: 5px;
+  height: 1.25px;
+  border-radius: var(--radius-pill);
+}
+
+.window-control-maximize::before {
+  transform: translate(-1.75px, 1.75px) rotate(45deg);
+}
+
+.window-control-maximize::after {
+  transform: translate(1.75px, -1.75px) rotate(45deg);
+}
+
+.window-chrome-zone:is(:hover, :focus-within, .is-revealed) .window-control::before,
+.window-chrome-zone:is(:hover, :focus-within, .is-revealed) .window-control::after,
+.window-chrome-controls:hover .window-control::before,
+.window-chrome-controls:hover .window-control::after,
+.window-control:hover::before,
+.window-control:hover::after,
+.window-control:focus-visible::before,
+.window-control:focus-visible::after {
   opacity: 1;
 }
 

@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   getSession,
-  signInWithGoogle,
-  signInWithMagicLink,
+  signInWithOTPCode,
+  signInWithPassword,
   signOut,
   subscribeToAuthStateChange,
-  verifyEmailOtp,
+  updateAuthPassword,
+  verifyOTPCode,
 } from '../lib/auth';
 import { hasRemote } from '../lib/env';
-import { getRemoteProfile } from '../store/remote.store';
+import { ensureRemoteProfile } from '../store/remote.store';
 
 export type AuthState = 'loading' | 'anonymous' | 'authenticated';
 
@@ -32,7 +33,7 @@ export function useAuth() {
         setState('authenticated');
         setUserId(session.user.id);
         setEmail(session.user.email ?? null);
-        void getRemoteProfile().then((profile) => {
+        void ensureRemoteProfile().then((profile) => {
           if (!cancelled && profile) {
             setTier(profile.tier);
           }
@@ -57,14 +58,24 @@ export function useAuth() {
     };
   }, []);
 
-  const magicLink = useCallback(async (address: string) => signInWithMagicLink(address), []);
+  const sendCode = useCallback(async (email: string, shouldCreateUser = true) => {
+    return signInWithOTPCode(email, shouldCreateUser);
+  }, []);
 
   const verifyCode = useCallback(
-    async (address: string, token: string) => verifyEmailOtp(address, token),
+    async (email: string, token: string) => verifyOTPCode(email, token),
     [],
   );
 
-  const google = useCallback(async () => signInWithGoogle(), []);
+  const loginWithPassword = useCallback(
+    async (email: string, password: string) => signInWithPassword(email, password),
+    [],
+  );
+
+  const setPassword = useCallback(
+    async (password: string) => updateAuthPassword(password),
+    [],
+  );
 
   const logout = useCallback(async () => {
     await signOut();
@@ -77,9 +88,10 @@ export function useAuth() {
     email,
     isAuthenticated: state === 'authenticated',
     isModernWriter: tier === 'modern_writer',
-    signInWithMagicLink: magicLink,
-    verifyEmailCode: verifyCode,
-    signInWithGoogle: google,
+    loginWithPassword,
+    sendCode,
+    setPassword,
+    verifyCode,
     signOut: logout,
   };
 }

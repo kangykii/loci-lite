@@ -215,6 +215,15 @@ Shell browse views (home, workspace, documents, atoms, settings) share `--shell-
 
 ---
 
+## Auth rules
+
+- Email login is an 8-digit Supabase OTP code flow. Do not add `emailRedirectTo` to `signInWithOtp`; existing-account login must use `shouldCreateUser: false`.
+- Existing accounts can log in with either Supabase password auth or an email code; password login should be the default existing-account path to avoid wasting OTP emails.
+- First signup setup must collect name and password in the auth popup before opening the full Account view.
+- User-facing auth dialog errors must go through `useNotifications().notifyError`; never render inline auth error copy inside `ProfileSignIn`.
+
+---
+
 ## React rules
 
 - React 19 only — do not use patterns that were deprecated in React 18 or earlier
@@ -285,6 +294,7 @@ A task is not done until all of these are true:
 - [ ] Outline panel uses `--outline-panel-w` and `--outline-panel-max-h` (no hardcoded outline rem widths)
 - [ ] Outline panel header uses document title, not the word "Outline"
 - [ ] Theme uses dual-layer tokens (`data-theme` + `prefers-color-scheme` fallback); DESIGN updated
+- [ ] Notebook themes store ids, set `data-theme` mode + `data-notebook-theme` variant, and gate paid covers through Modern Writer or `cosmetics.slug`
 - [ ] Editor bar has prompt field; no Focus/Authorship/Atoms text buttons
 - [ ] Mode toggles use `AppleToggle` in overflow menu only
 - [ ] Focus mode toggle wired via `useFocusMode` + overflow `AppleToggle` (not a bar text button)
@@ -301,6 +311,8 @@ A task is not done until all of these are true:
 - [ ] Editor `.editor-bar` and `FocusExitButton` portaled to `document.body` — not DOM descendants of `[data-view]`
 - [ ] Note entry uses `chrome-offstage` + `useEditorChromeEntry`; editor bar reveals after document `ready` — shell header not offstaged
 - [ ] Editor `[data-view]` open/close transitions are opacity-only — no shell transform during load
+- [ ] Swipe quick-nav must not translate `.view-stage` or `[data-view]`; horizontal gesture feedback belongs in the sidebar edge-pull affordance only
+- [ ] Recognized horizontal wheel gestures call `preventDefault()` during accumulation so Tauri/WebView2 cannot native-pan the page before commit
 - [ ] View navigation goes through `useViewTransition` in `App.tsx` only — views never import the hook
 - [ ] `scrollbars.css` imported in `main.tsx` after `tokens.css`; shell scrollbars hidden; document Cursor-style 3px overlay thumb (`--scrollbar-thumb`, `--scrollbar-thumb-hover`, dual-theme tokens) via `useDocumentScrollbar` + `html.is-scrolling`; no `scrollbar-gutter: stable`
 - [ ] `transitions.css` imported in `main.tsx` after `scrollbars.css`; no hardcoded transition ms in components
@@ -331,6 +343,7 @@ A task is not done until all of these are true:
 - [ ] TypeScript has no `any` types unless explicitly justified in a comment
 - [ ] Notification host portaled from `NotificationProvider` in `App.tsx` — max 3 chips top-right
 - [ ] Save/error ack via `useNotifications()` in hooks (not `settings.store` in views); no third-party toast libraries
+- [ ] Auth dialog errors use `useNotifications().notifyError`; no inline auth error copy in `ProfileSignIn`
 - [ ] Error notification tone uses `--destructive` on icon/label only — no accent or solid destructive fill on chips
 
 ---

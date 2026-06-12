@@ -53,12 +53,6 @@ export default function SettingsView() {
       <div className="settings-stack">
         <h1 className="settings-page-title">Settings</h1>
 
-        <SettingsSection title="Appearance">
-          <SettingsRow label="Theme">
-            <span className="settings-hint">Use the sun/moon control in the title bar</span>
-          </SettingsRow>
-        </SettingsSection>
-
         <SettingsSection title="Editor">
           <SettingsRow description="Applied to all notes" label="Editor font">
             <SettingsFontChoiceControl

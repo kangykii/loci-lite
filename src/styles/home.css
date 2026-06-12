@@ -15,14 +15,29 @@
 }
 
 .home-welcome {
+  display: grid;
+  gap: var(--space-3);
   max-width: 100%;
   margin: 0;
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: clamp(var(--text-2xl), 3.5vw, calc(var(--text-2xl) + var(--space-4)));
+  font-size: clamp(var(--text-xl), 2.4vw, var(--text-2xl));
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1.05;
+}
+
+.home-welcome-greeting,
+.home-welcome-body,
+.home-welcome-sign {
+  white-space: pre-line;
+}
+
+.home-welcome-sign {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .home-actions {

@@ -55,6 +55,8 @@ UI colours are token-driven from `src/styles/tokens.css`. Dark mode follows the 
 
 ```
 loci-lite/
+├── public/
+│   └── loci-notebook-icon.png  # Web favicon copied from generated 256px icon
 ├── src/
 │   │
 │   ├── main.tsx                  # React root; imports tokens.css, scrollbars.css, transitions.css
@@ -64,6 +66,7 @@ loci-lite/
 │   │   ├── tokens.css            # Colours + shell layout + transition timing tokens
 │   │   ├── scrollbars.css        # Two-tier scrollbars: hidden shell, document overlay autohide
 │   │   ├── transitions.css       # View/search/modal/sidebar keyframes (data-* driven)
+│   │   ├── sidebar-edge-pull.css # Edge pull affordance for sidebar swipe gestures
 │   │   ├── base.css              # Global reset + page foundation
 │   │   ├── shell.css             # shell-header, window chrome, legacy titlebar, editor bar styles
 │   │   ├── search-field.css        # Shared browse search field shell + Lucide clear control
@@ -83,6 +86,7 @@ loci-lite/
 │   │   ├── DocumentsView.tsx     # All files list + live global search
 │   │   ├── AtomsView.tsx         # Bookmark browse; live sourceText search + type filter
 │   │   ├── SettingsView.tsx      # App settings, including local OpenAI key receiver
+│   │   ├── AccountView.tsx       # Full account page; welcome + notebook theme picker
 │   │   └── EditorView.tsx        # Editor + atom/authorship bridges, popup, outline, BottomBar
 │   │
 │   ├── editor/
@@ -167,9 +171,13 @@ loci-lite/
 │   │   │   ├── SettingsSection.tsx # Settings section heading + rows
 │   │   │   └── SettingsRow.tsx     # Label, description, control slot
 │   │   ├── profile/
-│   │   │   ├── ProfileDialog.tsx   # Portaled account modal; sign-in vs account panel
-│   │   │   ├── ProfileSignIn.tsx   # Magic link email + code verify + Google button
-│   │   │   └── ProfileAccount.tsx  # Avatar, editable display name, tier, sign out
+│   │   │   ├── ProfileDialog.tsx   # Portaled auth/setup modal
+│   │   │   ├── ProfileSignIn.tsx   # Signup code + existing password/code login flow
+│   │   │   ├── ProfileCodeEntry.tsx # Shared 8-digit email code form
+│   │   │   ├── ProfilePasswordLogin.tsx # Existing-account password form
+│   │   │   ├── ProfileSetup.tsx    # First signup name + password setup
+│   │   │   ├── ProfileAccount.tsx  # Account page body: welcome, notebooks, billing, sign out
+│   │   │   └── ProfileSubscription.tsx # Modern Writer upgrade / billing portal section
 │   │   └── ui/
 │   │       ├── Button.tsx
 │   │       ├── Toggle.tsx
@@ -214,10 +222,10 @@ loci-lite/
 │   │   ├── useAiWelcomeMessages.ts # Cached 5-message AI welcome rotation
 │   │   ├── useOpenAIKeySetting.ts  # Local OpenAI key setting
 │   │   ├── useSettings.ts          # App settings read/write
-│   │   ├── useRemoteSession.ts     # Remote profile + entitlements snapshot (future cosmetics consumers)
+│   │   ├── useRemoteSession.ts     # Remote profile + entitlements/cosmetics snapshot
 │   │   ├── useAuth.ts              # Auth state machine + sign-in/out/verify actions
 │   │   ├── useAuthContext.tsx      # AuthProvider; single shared session + profile for the UI
-│   │   └── useTheme.ts             # Light/dark theme toggle + persistence
+│   │   └── useTheme.ts             # Notebook theme id setter/toggle + persistence
 │   │
 │   ├── plugins/
 │   │   ├── registry.ts             # LociPlugin contract, registerPlugin, dispatchHook
@@ -229,12 +237,14 @@ loci-lite/
 │   │   ├── migrations/
 │   │   │   ├── 001_initial.sql     # Schema: files, atoms, annotations, settings
 │   │   │   ├── 002_atom_type.sql   # atoms.type column (definition/note/reminder)
-│   │   │   └── 003_file_edited_at.sql # files.edited_at for latest edited source
+│   │   │   ├── 003_file_edited_at.sql # files.edited_at for latest edited source
+│   │   │   └── 004_onboarding.sql # onboarding install date + learned feature flags
 │   │   ├── files.store.ts          # File registry queries
 │   │   ├── atoms.store.ts          # Atom CRUD queries
 │   │   ├── stackNames.store.ts     # Stack display names in settings KV
 │   │   ├── annotations.store.ts    # Authorship annotation queries
 │   │   ├── settings.store.ts       # Settings queries
+│   │   ├── onboarding.store.ts     # Install date + learned feature queries
 │   │   └── remote.store.ts         # Supabase profile, cosmetics, plugin entitlements (remoteCall only)
 │   │
 │   ├── ai/
@@ -248,7 +258,8 @@ loci-lite/
 │       ├── renderAppPage.tsx       # Maps ViewName → view components for transition shells
 │       ├── env.ts                  # Vite env validation; URL + publishable key; ENV + hasRemote (offline-first when unset)
 │       ├── supabase.ts             # Sole @supabase/supabase-js site; getSupabaseClient + remoteCall (offline-first)
-│       ├── auth.ts                 # Sole Supabase auth site; magic link, Google OAuth, signOut, getSession
+│       ├── stripe.ts               # Stripe-hosted Modern Writer checkout / portal launcher
+│       ├── auth.ts                 # Sole Supabase auth site; email code, password, signOut, getSession
 │       ├── remoteSessionCache.ts   # In-memory remote session snapshot (profile, entitlements, cosmetics)
 │       ├── syncRemoteProfile.ts    # Background remote session sync after auth restore
 │       ├── pluginLifecycle.ts      # dispatchNoteOpen/Close/Bookmark → plugin registry
@@ -264,13 +275,16 @@ loci-lite/
 │       ├── seedDocuments.ts        # First-run welcome docs (Tauri only)
 │       ├── formatRelativeTime.ts   # opened_at + created_at relative labels
 │       ├── welcomeWritingSource.ts # Markdown heuristic for writing-like documents
+│       ├── aiWelcomeSource.ts      # Latest writing-like source selection for AI welcome
+│       ├── fallbackLetterContent.ts # Onboarding-aware fallback welcome letter content
+│       ├── fallbackLetters.ts      # Fallback welcome letter selection
 │       ├── atomTypes.ts            # AtomType, AtomRecord, CreateAtomInput
 │       ├── atomRecord.ts           # buildAtomRecord + saveAtomRecord (popup + shortcut)
 │       ├── definitionShortcutSave.ts  # persistDefinitionShortcut for bridge handler
 │       ├── atomLabels.ts           # Type labels and filter pill options
 │       ├── atomSpans.ts            # Find selection offsets in markdown export
 │       ├── atomDecorations.ts      # AtomRecord → AtomEditorContext item
-│       ├── theme.ts                # Theme resolve/apply on documentElement
+│       ├── theme.ts                # Notebook theme registry + resolve/apply on documentElement
 │       ├── markdown.ts             # Markdown parse/serialise utilities
 │       ├── stage1FileSmoke.ts      # Dev console smoke: Tauri file I/O (see notes.md)
 │       ├── stage2RegistrySmoke.ts  # Dev console smoke: SQLite file registry (see notes.md)
@@ -281,7 +295,7 @@ loci-lite/
 │   │   ├── main.rs
 │   │   ├── commands/
 │   │   │   ├── file.rs             # read_file, write_file, pick_file, list_dir
-│   │   │   └── window.rs           # open_url, wait_for_oauth_callback (Google Sign In localhost capture)
+│   │   │   └── window.rs           # open_url, wait_for_oauth_callback, wait_for_local_callback
 │   │   └── lib.rs                  # SQL + OAuth plugin init; command registration; Windows set_decorations(false)
 │   ├── capabilities/
 │   │   └── default.json            # sql, window, oauth (allow-start, allow-cancel)
@@ -294,15 +308,22 @@ loci-lite/
 ├── DESIGN.md
 ├── RULES.md
 ├── supabase/
+│   ├── functions/                # Supabase Edge Functions
+│   │   ├── create-checkout/index.ts
+│   │   ├── create-portal-session/index.ts
+│   │   └── stripe-webhook/index.ts
 │   └── migrations/               # Remote Postgres DDL (run in Supabase SQL editor or via MCP)
 │       ├── 001_profiles.sql
 │       ├── 002_cosmetics.sql
 │       ├── 003_plugin_entitlements.sql
 │       ├── 004_row_level_security.sql
 │       ├── 005_auth_signup_trigger.sql
-│       └── 006_security_hardening.sql
+│       ├── 006_security_hardening.sql
+│       └── 007_subscriptions.sql
 ├── package.json
 ├── pnpm-lock.yaml
+├── loci notebook logo.png      # Original logo artwork
+├── loci notebook icon.png      # Cleaned transparent icon source for favicon and Tauri icons
 ├── tsconfig.json
 └── vite.config.ts
 ```
@@ -354,21 +375,29 @@ CREATE TABLE settings (
   key    TEXT PRIMARY KEY,
   value  TEXT NOT NULL
 );
+
+-- Onboarding state (004_onboarding.sql)
+CREATE TABLE onboarding (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
 ```
 
-**Source of truth:** `.md` file on disk. SQLite holds derived and supplementary data only. `opened_at` is recency/navigation metadata; `edited_at` is save recency for features such as AI welcome source selection. If the DB is deleted, documents are not lost.
+**Source of truth:** `.md` file on disk. SQLite holds derived and supplementary data only. `opened_at` is recency/navigation metadata; `edited_at` is save recency for features such as AI welcome source selection. `onboarding` holds local app age and learned-feature flags only. If the DB is deleted, documents are not lost.
 
 ### Supabase schema (`supabase/migrations/` — Phase 3)
 
-Remote Postgres only. Apply migrations `001` → `005` in order (Supabase SQL editor or Supabase MCP `apply_migration`). Local app remains offline-capable when `hasRemote` is false.
+Remote Postgres only. Apply migrations `001` → `007` in order (Supabase SQL editor or Supabase MCP `apply_migration`). Local app remains offline-capable when `hasRemote` is false.
 
 | Table | Purpose |
 |---|---|
 | `profiles` | One row per `auth.users` id — `display_name`, `tier` (`standard` \| `modern_writer`), `metadata` JSONB |
 | `cosmetics` | Per-user unlocked cosmetic slugs (`theme_midnight`, `cover_rust`, …) |
 | `plugin_entitlements` | Modern Writer plugin grants; `expires_at` null = permanent; `revoked_at` for soft revoke |
+| `subscriptions` | Stripe subscription mirror for Modern Writer — one row per user, customer/subscription ids, status, period end |
 
-**RLS:** enabled on all three tables; policies restrict rows to `auth.uid()`.
+**RLS:** enabled on all user tables; policies restrict rows to `auth.uid()`.
 
 **Signup trigger:** `on_auth_user_created` inserts a `profiles` row from `auth.users` metadata.
 
@@ -391,7 +420,7 @@ Remote Postgres only. Apply migrations `001` → `005` in order (Supabase SQL ed
 
 - **Tauri commands** ([`src-tauri/src/commands/file.rs`](src-tauri/src/commands/file.rs)): `get_notes_dir`, `create_note`, `read_file`, `write_file`, `delete_file`. Notes directory: `{appDataDir}/notes/`. `create_note` slugifies paths (aligned with [`src/lib/documentMeta.ts`](src/lib/documentMeta.ts)). `delete_file` validates path is under notes dir before `fs::remove_file`.
 - **Frontend bridge** ([`src/lib/tauri.ts`](src/lib/tauri.ts)): sole `invoke()` and `@tauri-apps/api/window` site; exports `isTauri`.
-- **SQLite** ([`src/store/db.ts`](src/store/db.ts)): `initDb()` loads `sqlite:loci.db`; migrations v1–v3 from [`src/store/migrations/`](src/store/migrations/) registered in [`src-tauri/src/lib.rs`](src-tauri/src/lib.rs).
+- **SQLite** ([`src/store/db.ts`](src/store/db.ts)): `initDb()` loads `sqlite:loci.db`; migrations v1-v4 from [`src/store/migrations/`](src/store/migrations/) registered in [`src-tauri/src/lib.rs`](src-tauri/src/lib.rs).
 - **File registry** ([`src/store/files.store.ts`](src/store/files.store.ts)): `insertFile`, `getFileById`, `touchOpenedAt`, `touchEditedAt`, `updateTitle`, `listRecentFiles`, `listAllFiles`, `listFilesByEditedAt`, `deleteFile` — metadata only; `.md` body on disk is source of truth.
 - **List refresh:** `App.tsx` `libraryRevision` counter bumps on create/delete; passed as `listRefreshKey` to browse views (replaces using `activeFileId` as refresh signal).
 - **`App.tsx`** calls `initDb()` once when `isTauri()` (not in Vite-only browser).
@@ -401,39 +430,36 @@ Remote Postgres only. Apply migrations `001` → `005` in order (Supabase SQL ed
 ### Network infrastructure (implemented — Phases 2–4)
 
 - **Env gate** ([`src/lib/env.ts`](src/lib/env.ts)): `ENV` + `hasRemote`; missing or placeholder `.env` vars disable remote without throwing.
-- **Supabase client** ([`src/lib/supabase.ts`](src/lib/supabase.ts)): sole `@supabase/supabase-js` import site; lazy `getSupabaseClient()` returns `null` when `!hasRemote`.
+- **Supabase client** ([`src/lib/supabase.ts`](src/lib/supabase.ts)): sole `@supabase/supabase-js` import site; lazy `getSupabaseClient()` returns `null` when `!hasRemote`; `invokeRemoteFunction()` is the only app-side path to Supabase Edge Functions.
 - **Remote calls:** `remoteCall()` wraps all Supabase usage — unconfigured state returns `{ data: null, error: null }`; thrown errors are caught, logged with `console.warn`, and never propagate to UI.
-- **Remote schema** ([`supabase/migrations/`](supabase/migrations/)): `profiles`, `cosmetics`, `plugin_entitlements` + RLS + auth signup trigger.
-- **Remote store** ([`src/store/remote.store.ts`](src/store/remote.store.ts)): `getRemoteProfile`, `getUnlockedCosmetics`, `getPluginEntitlements` (active rows only: `revoked_at` null, `expires_at` null or future) — all via `remoteCall()`; null/empty when offline or unsigned-in. Hooks consume this file; components never import it directly.
+- **Remote schema** ([`supabase/migrations/`](supabase/migrations/)): `profiles`, `cosmetics`, `plugin_entitlements`, `subscriptions` + RLS + auth signup trigger.
+- **Stripe payment gate:** [`src/lib/stripe.ts`](src/lib/stripe.ts) starts hosted Checkout or the Billing Portal via `create-checkout` / `create-portal-session`. Desktop checkout opens in the system browser via [`openUrl`](src/lib/tauri.ts), sends separate local success/cancel callback URLs, waits on `waitForLocalCallback()`, then refreshes the account profile. Edge Functions verify the Supabase bearer token, use Stripe secret keys from Supabase secrets only, and never trust the client to set tier. [`stripe-webhook`](supabase/functions/stripe-webhook/index.ts) is the source of truth: Stripe subscription events upsert `subscriptions` and set `profiles.tier` to `modern_writer` only while status is active.
+- **Remote store** ([`src/store/remote.store.ts`](src/store/remote.store.ts)): `getRemoteProfile`, `ensureRemoteProfile`, `getUnlockedCosmetics`, `getPluginEntitlements` (active rows only: `revoked_at` null, `expires_at` null or future) — all via `remoteCall()`; null/empty when offline or unsigned-in. Hooks consume this file; components never import it directly.
 - **Remote session** ([`useRemoteSession.ts`](src/hooks/useRemoteSession.ts) + [`remoteSessionCache.ts`](src/lib/remoteSessionCache.ts) + [`syncRemoteProfile.ts`](src/lib/syncRemoteProfile.ts)): boot + hook refresh profile/entitlements/cosmetics into cache; [`App.tsx`](src/App.tsx) mounts the hook.
 - **Plugin registry** ([`src/plugins/registry.ts`](src/plugins/registry.ts)): `LociPlugin` contract, `registerPlugin`, `getInstalledPlugins`, `dispatchHook` — lifecycle hooks for Modern Writer extensions; errors in hooks are logged, never thrown. [`pluginLifecycle.ts`](src/lib/pluginLifecycle.ts) dispatches from editor open/close ([`EditorView.tsx`](src/views/EditorView.tsx)) and bookmark create ([`useAtomCreation.ts`](src/hooks/useAtomCreation.ts), [`useEditorAtomBridge.ts`](src/hooks/useEditorAtomBridge.ts)).
 - **Boot** ([`main.tsx`](src/main.tsx)): Tauri `initDb` + seed → non-blocking `getSession` / `syncRemoteProfile` → render. Session sync never blocks first paint.
 
-### OAuth plugin (implemented — Finale 2 Phase 1)
+### Desktop auth callback helpers (dormant)
 
-Desktop **Google Sign In** needs a localhost redirect capture; magic link auth uses Supabase only (no Tauri plugin).
-
-- **Rust** ([`src-tauri/Cargo.toml`](src-tauri/Cargo.toml)): `tauri-plugin-oauth = "2"`; registered in [`lib.rs`](src-tauri/src/lib.rs) via `tauri_plugin_oauth::init()`.
-- **Tauri bridge** ([`lib/tauri.ts`](src/lib/tauri.ts)): `openUrl`, `waitForOAuthCallback` — sole `invoke()` site for OAuth flow helpers.
-- **Rust commands** ([`commands/window.rs`](src-tauri/src/commands/window.rs)): `open_url` (system browser via `open` crate), `wait_for_oauth_callback` (`tauri_plugin_oauth::start_with_config` on port 54321).
-- **Config** ([`tauri.conf.json`](src-tauri/tauri.conf.json)): `plugins.oauth.ports: [54321]` (documented preference; FabianLars may require port at `start()` call time).
-- **Capabilities** ([`capabilities/default.json`](src-tauri/capabilities/default.json)): `oauth:allow-start`, `oauth:allow-cancel`.
+The Tauri OAuth helper remains registered for future provider work, but the active account UI is email/password only.
 
 ### Auth actions (implemented — Finale 2 Phase 2)
 
-- **Auth layer** ([`lib/auth.ts`](src/lib/auth.ts)): sole site for Supabase `auth.*` calls — `signInWithMagicLink`, `signInWithGoogle`, `signOut`, `getSession`, `getAuthUser`, `subscribeToAuthStateChange`. Components use [`useAuth`](src/hooks/useAuth.ts), never import `auth.ts` directly.
-- **Auth hook** ([`useAuth.ts`](src/hooks/useAuth.ts)): `loading` only when `hasRemote` on startup; `anonymous` when offline or unsigned-in; `authenticated` when session exists. `onAuthStateChange` via `subscribeToAuthStateChange`; tier from `getRemoteProfile`. `signOut` clears session → `anonymous`. Also exposes `verifyEmailCode` (magic-link OTP entry for desktop, via `verifyEmailOtp` in `auth.ts`).
+- **Auth layer** ([`lib/auth.ts`](src/lib/auth.ts)): sole site for Supabase `auth.*` calls — `signInWithOTPCode`, `verifyOTPCode`, `signInWithPassword`, `updateAuthPassword`, `signOut`, `getSession`, `getAuthUser`, `subscribeToAuthStateChange`. Components use [`useAuth`](src/hooks/useAuth.ts), never import `auth.ts` directly. Supabase client URL session detection is disabled; email code auth has no redirect URL. `signInWithOTPCode(email, shouldCreateUser)` uses `true` for signup and `false` for existing-account code login.
+- **Auth hook** ([`useAuth.ts`](src/hooks/useAuth.ts)): `loading` only when `hasRemote` on startup; `anonymous` when offline or unsigned-in; `authenticated` when session exists. `onAuthStateChange` via `subscribeToAuthStateChange`; tier from `ensureRemoteProfile`, which creates a basic missing profile row after auth. Supabase `persistSession: true` keeps this device signed in until `signOut`. Exposes `sendCode`, `verifyCode`, `loginWithPassword`, and `setPassword`.
 
 ### Account UI (implemented — Finale 2)
 
-- **Provider** ([`useAuthContext.tsx`](src/hooks/useAuthContext.tsx)): `AuthProvider` wraps the app inside `NotificationProvider`; owns the single `useAuth` instance, syncs `remoteSessionCache` via `syncRemoteProfile` when `authenticated`, clears it on `anonymous`, and exposes `profile` + `renameProfile` (via `updateRemoteDisplayName` in [`remote.store.ts`](src/store/remote.store.ts)). Components use `useAuthContext()` — never `useAuth` directly, never `lib/auth.ts`.
-- **Sidebar entry** ([`ShellSidebarNav.tsx`](src/components/shell/ShellSidebarNav.tsx)): secondary-nav Profile row is live — avatar initial chip + display name when signed in, `UserCircle` + "Profile" otherwise. Click closes the sidebar and opens the dialog (same dismiss-first convention as opening a document).
-- **Dialog** ([`ProfileDialog.tsx`](src/components/profile/ProfileDialog.tsx)): portaled scrim + centered panel (ConfirmDialog pattern, z-index 130); Escape and scrim close. Signed-out → [`ProfileSignIn.tsx`](src/components/profile/ProfileSignIn.tsx) (email → magic link → 6-digit code verify, divider, Google). Signed-in → [`ProfileAccount.tsx`](src/components/profile/ProfileAccount.tsx) (avatar, email, tier chip, editable display name, sign out). Auth state transitions switch panels automatically via `onAuthStateChange`.
-- **Boot sync ownership:** `AuthProvider` owns post-auth profile sync; [`useRemoteSession.ts`](src/hooks/useRemoteSession.ts) is no longer mounted in `App.tsx` and remains for future cosmetics consumers.
-- **Magic link:** `signInWithOtp` with `emailRedirectTo: loci://auth/callback`.
-- **Google:** `signInWithOAuth` → `openUrl` → localhost callback on port **54321** → `exchangeCodeForSession`. Listener starts before the browser opens.
+- **Provider** ([`useAuthContext.tsx`](src/hooks/useAuthContext.tsx)): `AuthProvider` wraps the app inside `NotificationProvider`; owns the single `useAuth` instance, syncs `remoteSessionCache` via `syncRemoteProfile` when `authenticated`, clears it on `anonymous`, and exposes `profile`, `cosmetics`, and `renameProfile` (via `updateRemoteDisplayName` in [`remote.store.ts`](src/store/remote.store.ts)). Components use `useAuthContext()` — never `useAuth` directly, never `lib/auth.ts`.
+- **Sidebar entry** ([`ShellSidebarNav.tsx`](src/components/shell/ShellSidebarNav.tsx)): secondary-nav Profile/Account row is live — avatar initial chip when signed in, `UserCircle` + "Profile" otherwise. Signed-in click closes the sidebar and opens the full Account view; signed-out click opens the auth dialog.
+- **Auth/setup dialog** ([`ProfileDialog.tsx`](src/components/profile/ProfileDialog.tsx)): portaled scrim + centered panel (ConfirmDialog pattern, z-index 130); Escape and scrim close. Signed-out → [`ProfileSignIn.tsx`](src/components/profile/ProfileSignIn.tsx): create account by 8-digit code, or existing-account login by password with code fallback. New authenticated users with empty `profiles.display_name` stay in the popup and complete [`ProfileSetup.tsx`](src/components/profile/ProfileSetup.tsx), which saves password then name.
+- **Account page** ([`AccountView.tsx`](src/views/AccountView.tsx)): signed-in sidebar Profile opens the full `account` view. [`ProfileAccount.tsx`](src/components/profile/ProfileAccount.tsx) renders welcome, avatar, email, tier chip, editable name, Modern Writer billing section, **Notebooks** registry picker, and sign out. Free notebook themes call the existing `useTheme` setter immediately; Modern Writer themes unlock through active `profiles.tier = modern_writer` or matching `cosmetics.slug` ownership. Signing out while on Account redirects Home.
+- **Notebook theme registry** ([`theme.ts`](src/lib/theme.ts)): stores notebook theme ids such as `default_white`, `default_dark`, `anthracite_grey`, and `ochre_black`. Each registry item declares a light/dark token mode, access level, optional cosmetic slug, and cover class. Applying a notebook writes the id to localStorage, sets `html[data-theme]` to the mode, and sets `html[data-notebook-theme]` for palette variants.
+- **Modern Writer billing UI** ([`ProfileSubscription.tsx`](src/components/profile/ProfileSubscription.tsx)): Standard users get the $2.99/month hosted Stripe Checkout path; Modern Writer users get the Stripe Billing Portal path. The next profile sync reads `profiles.tier` after the webhook updates it.
+- **Boot sync ownership:** `AuthProvider` owns post-auth profile sync and exposes cosmetics for account notebook unlocks; [`useRemoteSession.ts`](src/hooks/useRemoteSession.ts) is no longer mounted in `App.tsx` and remains for future cached ownership consumers.
+- **Email code:** `signInWithOtp` without `emailRedirectTo`; Supabase **Magic Link / OTP** email template must use `{{ .Token }}` and omit `{{ .ConfirmationURL }}`.
 - **Boot** ([`main.tsx`](src/main.tsx)): `getSession()` from `auth.ts` when `hasRemote`; triggers `syncRemoteProfile` when signed in.
-- **Remote store** ([`remote.store.ts`](src/store/remote.store.ts)): uses `getAuthUser()` from `auth.ts` for `user_id` — no direct `client.auth` calls.
+- **Remote store** ([`remote.store.ts`](src/store/remote.store.ts)): uses `getAuthUser()` from `auth.ts` for `user_id` — no direct `client.auth` calls. Profile reads use `.maybeSingle()`; `ensureRemoteProfile()` upserts `{ id, display_name: '' }` when the auth signup trigger has not created a row yet.
 
 ### Delete flows (implemented)
 
@@ -573,10 +599,11 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 ### AI welcome messages (implemented)
 
 - [`SettingsView.tsx`](src/views/SettingsView.tsx) stores the OpenAI key locally in the `settings` table via [`useOpenAIKeySetting.ts`](src/hooks/useOpenAIKeySetting.ts) and [`settings.store.ts`](src/store/settings.store.ts).
-- [`useAiWelcomeMessages.ts`](src/hooks/useAiWelcomeMessages.ts) owns the Home welcome rotation. It reads `ai.welcome_batch`, `ai.welcome_index`, and `ai.welcome_source_file_id` from settings; shows one cached message; advances the index; and only calls AI again after all five cached messages have been shown.
-- Latest source selection uses `listFilesByEditedAt()` plus `readFile`; [`welcomeWritingSource.ts`](src/lib/welcomeWritingSource.ts) skips empty, short, checklist-heavy, table-heavy, and code-heavy documents before sending markdown to AI.
+- [`useAiWelcomeMessages.ts`](src/hooks/useAiWelcomeMessages.ts) owns the Home welcome rotation. It reads `ai.welcome_batch`, `ai.welcome_index`, and `ai.welcome_source_file_id` from settings; shows one cached message; advances the index; and only calls AI again after all five cached messages have been shown. When no key/cache exists, it selects an onboarding-aware fallback letter from [`fallbackLetters.ts`](src/lib/fallbackLetters.ts).
+- Latest source selection uses [`aiWelcomeSource.ts`](src/lib/aiWelcomeSource.ts), which reads `listFilesByEditedAt()` plus `readFile`; [`welcomeWritingSource.ts`](src/lib/welcomeWritingSource.ts) skips empty, short, checklist-heavy, table-heavy, and code-heavy documents before sending markdown to AI.
 - [`writeWelcomeMessages.ts`](src/ai/actions/writeWelcomeMessages.ts) calls [`openai.ts`](src/ai/providers/openai.ts) and returns structured data only. It does not write settings, mutate markdown, or touch Lexical.
-- If the key is missing or generation fails, Home sends an error notification and keeps a local fallback message visible.
+- If the key is missing, Home quietly uses fallback letters. If generation fails after a key is configured, Home sends an error notification and keeps a local fallback message visible.
+- [`onboarding.store.ts`](src/store/onboarding.store.ts) stores `install_date` and `learned_*` flags. Days 0-7 may show unlearned feature tips; day 8+ and fully learned users see ambient fallback letters only. Feature hooks mark learning fire-and-forget after successful use.
 
 ### Editor chrome entry (implemented)
 - [`useEditorChromeEntry.ts`](src/hooks/useEditorChromeEntry.ts) in [`EditorView.tsx`](src/views/EditorView.tsx): `chrome-offstage` on `document.body` on mount; removed after double `rAF` when `useDocument` is `ready` — **editor bar** slides in (shell header stays visible; focus mode still hides both)
@@ -600,18 +627,19 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 - `App.tsx` wraps [`WindowChrome.tsx`](src/components/shell/WindowChrome.tsx) + [`ShellSidebarTrigger.tsx`](src/components/shell/ShellSidebarTrigger.tsx) in `.shell-header` **outside** `.view-stage` (persistent during view transitions), then portals [`ShellSidebar.tsx`](src/components/shell/ShellSidebar.tsx) to `document.body`.
 - `WindowChrome.tsx` — hover-revealed `.window-chrome-zone` + traffic lights; reveal state in [`useWindowChrome.ts`](src/hooks/useWindowChrome.ts).
 - `ShellSidebar` is an edge-attached temporary slide-over overlay, not a `ViewName`. It never participates in [`useViewTransition.ts`](src/hooks/useViewTransition.ts), never reserves a layout column, and closes before document navigation.
-- Former titlebar actions live in [`ShellSidebarNav.tsx`](src/components/shell/ShellSidebarNav.tsx): enlarged `Loci` → Home, **New note** → create/open editor, `Documents` focuses the sidebar library, `Bookmarks` → `AtomsView`, and bottom utility rows for **Settings**, **Theme**, and disabled **Profile**.
+- Former titlebar actions live in [`ShellSidebarNav.tsx`](src/components/shell/ShellSidebarNav.tsx): `Loci Notebook` brand button → Home, **New note** → create/open editor, `Documents` focuses the sidebar library, `Bookmarks` → `AtomsView`, and bottom utility rows for **Settings**, **Theme**, and **Profile/Account**.
+- Product logo source is [`loci notebook logo.png`](loci%20notebook%20logo.png). The cleaned icon source is [`loci notebook icon.png`](loci%20notebook%20icon.png), used for the browser favicon and generated native Tauri icons under [`src-tauri/icons/`](src-tauri/icons/).
 - [`ShellSidebarLibrary.tsx`](src/components/shell/ShellSidebarLibrary.tsx) reuses [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts), [`matchesSearch`](src/lib/searchMatch.ts), and [`useSearchStagger.ts`](src/hooks/useSearchStagger.ts). It opens documents only; delete, creation, drag/drop, and bookmark stack operations remain on their existing full browse views.
-- [`useShellSidebarGesture.ts`](src/hooks/useShellSidebarGesture.ts) owns `Ctrl/Cmd+Shift+L` (instant toggle) and accumulated horizontal wheel gestures via [`shellSidebarGesture.ts`](src/lib/shellSidebarGesture.ts): swipe right opens at **140px**; swipe left closes, goes Home, or returns from Home to the most recent note at **180px**. Dominance ratio **2.2**, idle reset **140ms**, accum window **480ms**, post-commit cooldown **1100ms**. Commits blocked while sidebar phase is `entering` or `leaving`.
+- [`useShellSidebarGesture.ts`](src/hooks/useShellSidebarGesture.ts) owns `Ctrl/Cmd+Shift+L` (instant toggle) and accumulated horizontal wheel gestures via [`shellSidebarGesture.ts`](src/lib/shellSidebarGesture.ts): swipe right opens at **140px**; swipe left closes, goes Home, or returns from Home to the most recent note at **180px**. The non-passive capture-phase wheel listener calls `preventDefault()` once horizontal intent is recognized so Windows Tauri / WebView2 cannot pan the page before commit. [`sidebar-edge-pull.css`](src/styles/sidebar-edge-pull.css) shows a neutral curved edge pull during accumulation; swipe commits use opacity-only view transitions and never translate `.view-stage` or `[data-view]`. Dominance ratio **2.2**, idle reset **140ms**, accum window **480ms**, post-commit cooldown **1100ms**. Commits blocked while sidebar phase is `entering` or `leaving`.
 - [`useDocumentScrollRestore.ts`](src/hooks/useDocumentScrollRestore.ts) persists per-document scroll position in the `settings` table (`document_scroll_{fileId}`) and restores it after the editor document is ready.
 
 ### Notifications
 - [`NotificationProvider`](src/hooks/useNotifications.tsx) wraps [`App.tsx`](src/App.tsx); [`NotificationHost.tsx`](src/components/shell/NotificationHost.tsx) portals to `document.body` at `--z-notification` (350).
 - API: `notifySaved()`, `notifyBookmark()`, `notifyError(message)`, generic `notify({ tone, message })`, `dismiss(id)`.
 - Stack policy in [`notifications.ts`](src/lib/notifications.ts): max **3** chips, newest first, coalesce duplicate tone+message, evict oldest success on overflow; success auto-dismiss 3200ms, error 6000ms.
-- **Hooks trigger notifications** after async persist — not views (except [`AtomsView.tsx`](src/views/AtomsView.tsx) bookmark edit). Inline field/dialog errors **coexist** with error chips in v1.
+- **Hooks trigger notifications** after async persist — not views (except [`AtomsView.tsx`](src/views/AtomsView.tsx) bookmark edit and auth dialog actions). Auth dialog user-facing errors are notification-only.
 - v1 success wires: settings hooks (`useDefaultEditorFontSetting`, `useDefaultFontSizeSetting`, `useEditorModeDefaultSettings`, `useTypewriterSoundSetting`, `useOpenAIKeySetting`), bookmark create/edit (`useAtomCreation`, `useEditorAtomBridge`, `AtomsView`).
-- v1 error wires: `useOpenAIKeySetting`, `useAtomCreation` (example paths; other failures keep inline errors until migrated).
+- v1 error wires: `useOpenAIKeySetting`, `useAtomCreation`, `ProfileSignIn` auth actions (example paths; other failures keep inline errors until migrated).
 
 ### View transitions
 - [`useViewTransition.ts`](src/hooks/useViewTransition.ts) — sole navigation state owner in `App.tsx`; `navigateTo` wraps `navigate`. State machine: `idle` → `leaving` → `entering` → `idle`. Leaving view stays mounted for `EXIT_DURATION` (tab 180ms, open 200ms, close 200ms) then unmounts.
@@ -670,7 +698,7 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 **Current (dev):**
 
 ```
-1. Tauri opens → main.tsx boot(): initDb() (SQLite + migrations v1–v3) + seed docs if empty registry (Tauri only)
+1. Tauri opens → main.tsx boot(): initDb() (SQLite + migrations v1-v4), init onboarding install date, then seed docs if empty registry (Tauri only)
 2. main.tsx: import plugins/index (registry); fire-and-forget getSession() → syncRemoteProfile() when signed in; then render App
 3. View: home by default
 4. Home / Documents: useSearchableDocuments (Home shows recent 10 when search empty)

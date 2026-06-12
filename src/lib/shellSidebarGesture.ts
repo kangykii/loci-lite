@@ -64,3 +64,47 @@ export function accumulateHorizontalWheel(
 
   return direction;
 }
+
+export function isBlockedTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+
+  return Boolean(
+    target.closest(
+      [
+        'input',
+        'textarea',
+        'select',
+        '[role="dialog"]',
+        '.context-menu-layer',
+        '.confirm-dialog-layer',
+        '.profile-dialog-layer',
+        '.atom-popup-layer',
+        '.bookmark-stack-popup-layer',
+      ].join(','),
+    ),
+  );
+}
+
+export function hasTextSelection(): boolean {
+  return (document.getSelection()?.toString().trim().length ?? 0) > 0;
+}
+
+export function setSidebarGestureVisual(
+  direction: GestureDirection,
+  sum: number,
+  threshold: number,
+): void {
+  const doc = document.documentElement;
+  const progress = Math.min(1, sum / threshold);
+
+  doc.setAttribute('data-sidebar-gesture', direction);
+  doc.style.setProperty('--sidebar-gesture-progress', progress.toFixed(3));
+  doc.style.setProperty('--sidebar-gesture-pull-x', `calc(var(--u) * ${progress.toFixed(3)})`);
+}
+
+export function clearSidebarGestureVisual(): void {
+  const doc = document.documentElement;
+  doc.removeAttribute('data-sidebar-gesture');
+  doc.style.removeProperty('--sidebar-gesture-progress');
+  doc.style.removeProperty('--sidebar-gesture-pull-x');
+}

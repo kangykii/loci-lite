@@ -6,6 +6,7 @@ import {
   getFontSize,
   setFontSize,
 } from '../store/settings.store';
+import { markFeatureLearned } from '../store/onboarding.store';
 
 export type BarMode = 'idle' | 'find';
 
@@ -56,19 +57,14 @@ export function useBottomBar(fileId: string, editorText: string) {
     setMatchIndex((current) => Math.min(current, Math.max(matchTotal - 1, 0)));
   }, [matchTotal]);
 
-  useEffect(
-    () => () => {
-      if (fontTimerRef.current) clearTimeout(fontTimerRef.current);
-    },
-    [],
-  );
+  useEffect(() => () => {
+    if (fontTimerRef.current) clearTimeout(fontTimerRef.current);
+  }, []);
 
   const showFontSize = useCallback(() => {
     setFontSizeVisible(true);
 
-    if (fontTimerRef.current) {
-      clearTimeout(fontTimerRef.current);
-    }
+    if (fontTimerRef.current) clearTimeout(fontTimerRef.current);
 
     fontTimerRef.current = setTimeout(() => setFontSizeVisible(false), FONT_LABEL_DURATION);
   }, []);
@@ -106,6 +102,7 @@ export function useBottomBar(fileId: string, editorText: string) {
   }, [fontSize, matchTotal, mode, persistFontSize]);
 
   const openFind = useCallback(() => {
+    void markFeatureLearned('find');
     setFindFocusTick((tick) => tick + 1);
   }, []);
 

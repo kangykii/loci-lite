@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import ProfileDialog from './components/profile/ProfileDialog';
 import ShellSidebar, { type SidebarPhase } from './components/shell/ShellSidebar';
@@ -46,7 +46,7 @@ function AppRoot() {
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme, toggleTheme } = useTheme();
 
   const { isAuthenticated, profile, email } = useAuthContext();
 
@@ -84,8 +84,17 @@ function AppRoot() {
 
   const handleOpenProfile = useCallback(() => {
     setIsSidebarOpen(false);
+    navigateTo('account');
+  }, [navigateTo]);
+
+  const handleOpenAuthDialog = useCallback(() => {
     setIsProfileOpen(true);
   }, []);
+
+  const handleProfileComplete = useCallback(() => {
+    setIsProfileOpen(false);
+    navigateTo('account');
+  }, [navigateTo]);
 
 
 
@@ -158,8 +167,6 @@ function AppRoot() {
     onOpenSidebar: openSidebar,
   });
 
-
-
   const handleDocumentDeleted = useCallback(
 
     (fileId: string, source: 'editor' | 'browse') => {
@@ -203,8 +210,11 @@ function AppRoot() {
       onOpenDocuments: () => navigateTo('documents'),
 
       onOpenBookmarks: () => navigateTo('atoms'),
+      onOpenProfile: handleOpenAuthDialog,
 
       onDocumentDeleted: handleDocumentDeleted,
+      onThemeSelect: setTheme,
+      theme,
 
     }),
 
@@ -219,12 +229,15 @@ function AppRoot() {
       handleDocumentDeleted,
 
       handleOpenEditor,
+      handleOpenAuthDialog,
 
       isCreating,
 
       libraryRevision,
 
       navigateTo,
+      setTheme,
+      theme,
 
     ],
 
@@ -258,7 +271,11 @@ function AppRoot() {
         profileName={profileName}
         theme={theme}
       />
-      <ProfileDialog isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <ProfileDialog
+        isOpen={isProfileOpen}
+        onComplete={handleProfileComplete}
+        onClose={() => setIsProfileOpen(false)}
+      />
 
       <div className="view-stage">
 

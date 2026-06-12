@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
 
 import { destroyContext, playKeyClick, resumeContext } from '../editor/sound/typewriterSound';
+import { markFeatureLearned } from '../store/onboarding.store';
 import { useTypewriterSoundSetting } from './useTypewriterSoundSetting';
 
 function isKeyClickKey(key: string): boolean {
@@ -21,7 +22,12 @@ export function useTypewriterMode(editorRootRef: RefObject<HTMLDivElement | null
     element.classList.toggle('typewriter-active', isActive);
   }, [editorRootRef, isActive]);
 
-  const toggle = useCallback(() => setIsActive((value) => !value), []);
+  const toggle = useCallback(() => {
+    setIsActive((value) => {
+      if (!value) void markFeatureLearned('typewriter');
+      return !value;
+    });
+  }, []);
 
   useEffect(() => {
     if (!isActive || !soundOn) {

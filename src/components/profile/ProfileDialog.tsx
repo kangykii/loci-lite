@@ -1,17 +1,30 @@
 import { useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuthContext } from '../../hooks/useAuthContext';
-import ProfileAccount from './ProfileAccount';
 import ProfileSignIn from './ProfileSignIn';
+import ProfileSetup from './ProfileSetup';
 
 type ProfileDialogProps = {
   isOpen: boolean;
   onClose: () => void;
+  onComplete: () => void;
 };
 
-export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
+export default function ProfileDialog({
+  isOpen,
+  onComplete,
+  onClose,
+}: ProfileDialogProps) {
   const titleId = useId();
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, profile, profileReady } = useAuthContext();
+  const needsSetup = isAuthenticated && profileReady && !profile?.displayName.trim();
+  const title = isAuthenticated ? (needsSetup ? 'Finish setup' : 'Account') : 'Unlock cosmetics';
+
+  useEffect(() => {
+    if (isOpen && isAuthenticated && profileReady && !needsSetup) {
+      onComplete();
+    }
+  }, [isAuthenticated, isOpen, needsSetup, onComplete, profileReady]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -48,9 +61,15 @@ export default function ProfileDialog({ isOpen, onClose }: ProfileDialogProps) {
         role="dialog"
       >
         <h2 className="profile-dialog-title" id={titleId}>
-          {isAuthenticated ? 'Account' : 'Unlock cosmetics'}
+          {title}
         </h2>
-        {isAuthenticated ? <ProfileAccount /> : <ProfileSignIn />}
+        {needsSetup ? (
+          <ProfileSetup onComplete={onComplete} />
+        ) : isAuthenticated && !profileReady ? (
+          <p className="profile-dialog-message">Loading account...</p>
+        ) : (
+          <ProfileSignIn />
+        )}
       </div>
     </div>,
     document.body,

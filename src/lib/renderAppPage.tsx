@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 
 import type { ViewName } from '../hooks/useViewTransition';
+import type { Theme } from './theme';
+import AccountView from '../views/AccountView';
 import AtomsView from '../views/AtomsView';
 import DocumentsView from '../views/DocumentsView';
 import EditorView from '../views/EditorView';
@@ -16,7 +18,10 @@ export type AppPageProps = {
   onOpenEditor: (fileId: string) => void;
   onOpenDocuments: () => void;
   onOpenBookmarks: () => void;
+  onOpenProfile: () => void;
   onDocumentDeleted: (fileId: string, source: 'editor' | 'browse') => void;
+  onThemeSelect: (theme: Theme) => void;
+  theme: Theme;
 };
 
 export function renderAppPage(view: ViewName, props: AppPageProps): ReactNode {
@@ -29,7 +34,10 @@ export function renderAppPage(view: ViewName, props: AppPageProps): ReactNode {
     onOpenEditor,
     onOpenDocuments,
     onOpenBookmarks,
+    onOpenProfile,
     onDocumentDeleted,
+    onThemeSelect,
+    theme,
   } = props;
 
   switch (view) {
@@ -46,6 +54,14 @@ export function renderAppPage(view: ViewName, props: AppPageProps): ReactNode {
       );
     case 'settings':
       return <SettingsView />;
+    case 'account':
+      return (
+        <AccountView
+          onOpenProfile={onOpenProfile}
+          onThemeSelect={onThemeSelect}
+          theme={theme}
+        />
+      );
     case 'home':
       return (
         <HomeView

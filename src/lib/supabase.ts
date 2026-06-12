@@ -16,7 +16,7 @@ export function getSupabaseClient(): AppSupabaseClient {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true,
+        detectSessionInUrl: false,
       },
     });
   }
@@ -31,11 +31,29 @@ export async function remoteCall<T>(
   try {
     const result = await fn(client);
     if (result.error) {
-      console.warn('Remote call returned error — app continues offline:', result.error);
+      console.warn('Remote call returned error; app continues offline:', result.error);
     }
     return result;
   } catch (err) {
-    console.warn('Remote call failed — app continues offline:', err);
+    console.warn('Remote call failed; app continues offline:', err);
+    return { data: null, error: err };
+  }
+}
+
+export async function invokeRemoteFunction<T>(
+  name: string,
+  body?: Record<string, unknown>,
+): Promise<{ data: T | null; error: unknown }> {
+  const client = getSupabaseClient();
+  if (!client) return { data: null, error: 'No network connection' };
+  try {
+    const { data, error } = await client.functions.invoke<T>(name, { body });
+    if (error) {
+      console.warn(`Remote function '${name}' returned error:`, error);
+    }
+    return { data: data ?? null, error };
+  } catch (err) {
+    console.warn(`Remote function '${name}' failed:`, err);
     return { data: null, error: err };
   }
 }

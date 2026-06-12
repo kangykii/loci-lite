@@ -1,8 +1,8 @@
 // One job: background-fetch remote profile, entitlements, and cosmetics.
 
 import {
+  ensureRemoteProfile,
   getPluginEntitlements,
-  getRemoteProfile,
   getUnlockedCosmetics,
 } from '../store/remote.store';
 import {
@@ -19,7 +19,7 @@ export async function syncRemoteProfile(): Promise<RemoteSessionSnapshot> {
 
   try {
     const [profile, entitlements, cosmetics] = await Promise.all([
-      getRemoteProfile(),
+      ensureRemoteProfile(),
       getPluginEntitlements(),
       getUnlockedCosmetics(),
     ]);
@@ -27,7 +27,7 @@ export async function syncRemoteProfile(): Promise<RemoteSessionSnapshot> {
     setRemoteSessionSnapshot(next);
     return next;
   } catch (err) {
-    console.warn('Remote session sync failed — app continues offline:', err);
+    console.warn('Remote session sync failed; app continues offline:', err);
     setRemoteSessionSnapshot(empty);
     return empty;
   }

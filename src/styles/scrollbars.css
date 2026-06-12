@@ -8,6 +8,7 @@
 /* ── Tier A: shell / browse — no visible scrollbar ── */
 
 [data-view]:not(:has(.editor-view)),
+.shell-sidebar-documents,
 .outline-nav,
 .editor-root pre,
 .editor-root .editor-code-block {
@@ -16,6 +17,7 @@
 }
 
 [data-view]:not(:has(.editor-view))::-webkit-scrollbar,
+.shell-sidebar-documents::-webkit-scrollbar,
 .outline-nav::-webkit-scrollbar,
 .editor-root pre::-webkit-scrollbar,
 .editor-root .editor-code-block::-webkit-scrollbar {
@@ -23,6 +25,7 @@
 }
 
 [data-view]:not(:has(.editor-view))::-webkit-scrollbar-button,
+.shell-sidebar-documents::-webkit-scrollbar-button,
 .outline-nav::-webkit-scrollbar-button {
   display: none;
 }

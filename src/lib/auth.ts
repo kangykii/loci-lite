@@ -1,78 +1,81 @@
 // One job: all authentication actions.
-// Magic link and Google Sign In both live here.
-// Never import this from components — use useAuth hook instead.
+// Email code and password sign-in both live here.
+// Never import this from components - use useAuth hook instead.
 
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { getSupabaseClient } from './supabase';
-import { isTauri, openUrl, waitForOAuthCallback } from './tauri';
 
 export type AuthStateListener = (
   event: AuthChangeEvent,
   session: Session | null,
 ) => void;
 
-const OAUTH_PORT = 54321;
-
-export async function signInWithMagicLink(email: string): Promise<{ error: string | null }> {
+export async function signInWithOTPCode(
+  email: string,
+  shouldCreateUser = true,
+): Promise<{ error: string | null }> {
   const client = getSupabaseClient();
   if (!client) return { error: 'No network connection' };
-
-  const { error } = await client.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: 'loci://auth/callback',
-      shouldCreateUser: true,
-    },
-  });
-
-  return { error: error?.message ?? null };
-}
-
-export async function signInWithGoogle(): Promise<{ error: string | null }> {
-  const client = getSupabaseClient();
-  if (!client) return { error: 'No network connection' };
-  if (!isTauri()) return { error: 'Google Sign In requires the desktop app' };
 
   try {
-    const redirectUri = `http://localhost:${OAUTH_PORT}`;
-    const callbackPromise = waitForOAuthCallback(OAUTH_PORT);
-
-    const { data, error } = await client.auth.signInWithOAuth({
-      provider: 'google',
+    const { error } = await client.auth.signInWithOtp({
+      email,
       options: {
-        redirectTo: redirectUri,
-        skipBrowserRedirect: true,
+        shouldCreateUser,
+        // No emailRedirectTo; code flow does not need a redirect URL.
       },
     });
 
-    if (error) return { error: error.message };
-    if (!data.url) return { error: 'No auth URL returned' };
-
-    await openUrl(data.url);
-
-    const callbackUrl = await callbackPromise;
-    if (!callbackUrl) return { error: 'OAuth callback not received' };
-
-    const url = new URL(callbackUrl);
-    const code = url.searchParams.get('code');
-    if (!code) return { error: 'No auth code in callback' };
-
-    const { error: exchangeError } = await client.auth.exchangeCodeForSession(code);
-    return { error: exchangeError?.message ?? null };
+    return { error: error?.message ?? null };
   } catch (err) {
     return { error: String(err) };
   }
 }
 
-export async function verifyEmailOtp(
+export async function signInWithPassword(
+  email: string,
+  password: string,
+): Promise<{ error: string | null }> {
+  const client = getSupabaseClient();
+  if (!client) return { error: 'No network connection' };
+
+  try {
+    const { error } = await client.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    return { error: error?.message ?? null };
+  } catch (err) {
+    return { error: String(err) };
+  }
+}
+
+export async function updateAuthPassword(password: string): Promise<{ error: string | null }> {
+  const client = getSupabaseClient();
+  if (!client) return { error: 'No network connection' };
+
+  try {
+    const { error } = await client.auth.updateUser({ password });
+    return { error: error?.message ?? null };
+  } catch (err) {
+    return { error: String(err) };
+  }
+}
+
+export async function verifyOTPCode(
   email: string,
   token: string,
 ): Promise<{ error: string | null }> {
   const client = getSupabaseClient();
   if (!client) return { error: 'No network connection' };
 
-  const { error } = await client.auth.verifyOtp({ email, token, type: 'email' });
-  return { error: error?.message ?? null };
+  try {
+    const { error } = await client.auth.verifyOtp({ email, token, type: 'email' });
+    return { error: error?.message ?? null };
+  } catch (err) {
+    return { error: String(err) };
+  }
 }
 
 export async function signOut(): Promise<void> {
