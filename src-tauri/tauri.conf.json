@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Loci Notepad",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "identifier": "app.loci.lite",
   "build": {
     "beforeDevCommand": "corepack pnpm dev",
@@ -21,12 +21,21 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: https://asset.localhost data:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://checkout.stripe.com; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
     }
   },
   "plugins": {
     "sql": {
       "preload": ["sqlite:loci.db"]
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZEOEQyMzVCQzdGQkNDODYKUldTR3pQdkhXeU9OL1pad3JEKys4cHp3dUxBZWxSZmJRYzVrQWlnRXB3cCtFejlYcUtrcURmN0YK",
+      "endpoints": [
+        "https://github.com/kangykii/loci-lite/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     },
     "oauth": {
       "ports": [54321]
@@ -34,6 +43,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "icon": [
       "icons/32x32.png",

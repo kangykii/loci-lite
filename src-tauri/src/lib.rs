@@ -2,6 +2,8 @@ mod commands;
 
 use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
+#[cfg(desktop)]
+use tauri_plugin_updater::UpdaterExt;
 
 const DB_URI: &str = "sqlite:loci.db";
 
@@ -54,12 +56,35 @@ pub fn run() {
             commands::window::wait_for_oauth_callback,
         ])
         .setup(|app| {
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
+
             #[cfg(target_os = "windows")]
             if let Some(window) = app.get_webview_window("main") {
                 window.set_decorations(false)?;
+            }
+
+            #[cfg(desktop)]
+            {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(error) = install_update_if_available(handle).await {
+                        eprintln!("update check failed: {error}");
+                    }
+                });
             }
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(desktop)]
+async fn install_update_if_available(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
+    if let Some(update) = app.updater()?.check().await? {
+        update.download_and_install(|_, _| {}, || {}).await?;
+        app.restart();
+    }
+    Ok(())
 }

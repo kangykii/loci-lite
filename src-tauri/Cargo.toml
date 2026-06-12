@@ -1,6 +1,6 @@
 [package]
 name = "loci-lite"
-version = "0.0.0"
+version = "0.1.0"
 description = "Loci Lite"
 authors = ["Loci"]
 edition = "2021"
@@ -19,3 +19,6 @@ serde_json = "1"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-oauth = "2"
 open = "5"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"

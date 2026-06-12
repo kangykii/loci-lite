@@ -55,6 +55,9 @@ UI colours are token-driven from `src/styles/tokens.css`. Dark mode follows the 
 
 ```
 loci-lite/
+├── .github/
+│   └── workflows/
+│       └── release.yml            # Draft GitHub Release build for signed Windows Tauri bundles + latest.json
 ├── public/
 │   └── loci-notebook-icon.png  # Web favicon copied from generated 256px icon
 ├── src/
@@ -641,6 +644,13 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 - v1 success wires: settings hooks (`useDefaultEditorFontSetting`, `useDefaultFontSizeSetting`, `useEditorModeDefaultSettings`, `useTypewriterSoundSetting`, `useOpenAIKeySetting`), bookmark create/edit (`useAtomCreation`, `useEditorAtomBridge`, `AtomsView`).
 - v1 error wires: `useOpenAIKeySetting`, `useAtomCreation`, `ProfileSignIn` auth actions (example paths; other failures keep inline errors until migrated).
 
+### Releases and updates
+
+- [`tauri.conf.json`](src-tauri/tauri.conf.json) enables `bundle.createUpdaterArtifacts`, sets the updater public key, and points the desktop updater at `https://github.com/kangykii/loci-lite/releases/latest/download/latest.json`.
+- [`src-tauri/src/lib.rs`](src-tauri/src/lib.rs) initializes `tauri-plugin-updater` on desktop and performs a quiet startup update check. If a signed update is available, it downloads, installs, and restarts the app.
+- Signing secrets are never stored in the repo. The public key is committed in Tauri config; the private key and password are stored as GitHub Actions secrets (`TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`) and local backup files under the user's home `.tauri` directory.
+- [`release.yml`](.github/workflows/release.yml) runs on `workflow_dispatch` or pushed `app-v*` tags, uses pnpm through Corepack, builds Windows bundles with `tauri-action`, creates a draft GitHub Release, and uploads the updater `latest.json` generated from the signed NSIS artifact.
+
 ### View transitions
 - [`useViewTransition.ts`](src/hooks/useViewTransition.ts) — sole navigation state owner in `App.tsx`; `navigateTo` wraps `navigate`. State machine: `idle` → `leaving` → `entering` → `idle`. Leaving view stays mounted for `EXIT_DURATION` (tab 180ms, open 200ms, close 200ms) then unmounts.
 - `resolveTransition(from, to)`: `to === 'editor'` → `open`; `from === 'editor'` → `close`; else → `tab` (includes Settings).
@@ -700,6 +710,7 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 ```
 1. Tauri opens → main.tsx boot(): initDb() (SQLite + migrations v1-v4), init onboarding install date, then seed docs if empty registry (Tauri only)
 2. main.tsx: import plugins/index (registry); fire-and-forget getSession() → syncRemoteProfile() when signed in; then render App
+2a. Tauri desktop setup initializes the updater plugin and checks the GitHub Release `latest.json`; signed updates install and restart quietly when available.
 3. View: home by default
 4. Home / Documents: useSearchableDocuments (Home shows recent 10 when search empty)
 5. New note / open row → activeFileId → EditorView
