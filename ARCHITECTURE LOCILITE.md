@@ -60,6 +60,7 @@ loci-lite/
 │       └── release.yml            # Draft GitHub Release build for signed Windows Tauri bundles + latest.json
 ├── public/
 │   └── loci-notebook-icon.png  # Web favicon copied from generated 256px icon
+├── pnpm-workspace.yaml         # pnpm supply-chain policy; allows esbuild's required Vite build script
 ├── src/
 │   │
 │   ├── main.tsx                  # React root; imports tokens.css, scrollbars.css, transitions.css
