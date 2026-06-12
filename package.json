@@ -9,6 +9,11 @@
     "preview": "vite preview",
     "tauri": "tauri"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
   "dependencies": {
     "@fabianlars/tauri-plugin-oauth": "2",
     "@fontsource/geist-sans": "^5.2.5",
