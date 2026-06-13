@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import HomeQuickActions from '../components/home/HomeQuickActions';
 import RecentFiles from '../components/home/RecentFiles';
 import WelcomeHeading from '../components/home/WelcomeHeading';
+import { useDocumentContextMenu } from '../hooks/useDocumentContextMenu';
 import { useSearchableDocuments } from '../hooks/useSearchableDocuments';
 import { useSearchStagger } from '../hooks/useSearchStagger';
 import { matchesSearch } from '../lib/searchMatch';
@@ -30,6 +31,10 @@ export default function HomeView({
   const canCreate = isTauri();
   const [searchQuery, setSearchQuery] = useState('');
   const { documents, status, refresh } = useSearchableDocuments();
+  const documentMenu = useDocumentContextMenu({
+    onChanged: refresh,
+    onOpenDocument: onOpenEditor,
+  });
   const hasActiveSearch = searchQuery.trim().length > 0;
 
   const visibleFiles = useMemo(() => {
@@ -79,12 +84,14 @@ export default function HomeView({
         hasActiveSearch={hasActiveSearch}
         hasLibrary={documents.length > 0}
         listStaggerLeaving={listStaggerLeaving}
+        onDocumentContextMenu={documentMenu.openMenu}
         onOpenDocuments={onOpenDocuments}
         onOpenEditor={onOpenEditor}
         onSearchChange={setSearchQuery}
         searchQuery={searchQuery}
         status={status}
       />
+      {documentMenu.element}
     </main>
   );
 }

@@ -12,6 +12,9 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
   httpClient: Stripe.createFetchHttpClient(),
 });
 
+const MODERN_WRITER_PRICE_ID =
+  Deno.env.get('STRIPE_MODERN_WRITER_PRICE_ID') ?? 'price_1ThUjD1SXTCBxmoB4tvCFiA9';
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -23,7 +26,11 @@ function cleanReturnUrl(value: unknown, fallback: string): string {
   if (typeof value !== 'string') return fallback;
   try {
     const url = new URL(value);
-    if (url.protocol === 'http:' || url.protocol === 'https:') return url.toString();
+    const isLocalReturn =
+      url.protocol === 'http:' &&
+      url.hostname === 'localhost' &&
+      (url.port === '49329' || url.port === '5173');
+    if (isLocalReturn) return url.toString();
   } catch {
     return fallback;
   }
@@ -43,10 +50,9 @@ serve(async (req) => {
   if (authError || !authData.user) return json({ error: 'Unauthorized' }, 401);
 
   const body = await req.json().catch(() => ({}));
-  const priceId = typeof body.priceId === 'string'
-    ? body.priceId
-    : Deno.env.get('STRIPE_MODERN_WRITER_PRICE_ID');
-  if (!priceId) return json({ error: 'Missing price id' }, 400);
+  if (typeof body.priceId === 'string' && body.priceId !== MODERN_WRITER_PRICE_ID) {
+    return json({ error: 'Invalid price id' }, 400);
+  }
 
   const returnUrl = cleanReturnUrl(body.returnUrl, 'http://localhost:5173');
   const successUrl = cleanReturnUrl(body.successUrl, returnUrl);
@@ -69,7 +75,7 @@ serve(async (req) => {
     customer: existing?.stripe_customer_id ?? undefined,
     customer_email: existing?.stripe_customer_id ? undefined : email,
     client_reference_id: userId,
-    line_items: [{ price: priceId, quantity: 1 }],
+    line_items: [{ price: MODERN_WRITER_PRICE_ID, quantity: 1 }],
     metadata: { user_id: userId },
     subscription_data: { metadata: { user_id: userId } },
     success_url: successUrl,

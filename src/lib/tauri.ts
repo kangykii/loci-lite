@@ -27,6 +27,18 @@ export async function deleteFile(path: string): Promise<void> {
   return invoke('delete_file', { path });
 }
 
+export async function duplicateFile(path: string): Promise<string> {
+  return invoke<string>('duplicate_file', { path });
+}
+
+export async function revealFile(path: string): Promise<void> {
+  return invoke('reveal_file', { path });
+}
+
+export async function lookupWord(text: string): Promise<boolean> {
+  return invoke<boolean>('lookup_word', { text });
+}
+
 export async function minimizeWindow(): Promise<void> {
   if (!isTauri()) {
     return;

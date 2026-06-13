@@ -20,6 +20,9 @@ type PortalResponse = {
 const STRIPE_RETURN_PORT = 49329;
 
 function billingReturnUrl(): string {
+  if (isTauri()) {
+    return `http://localhost:${STRIPE_RETURN_PORT}/stripe-return?status=portal`;
+  }
   return window.location.href;
 }
 
@@ -49,6 +52,7 @@ export async function openCustomerPortal(): Promise<StripeFlowResult> {
   });
   if (error || !data?.url) return { error: 'Could not open portal' };
   await openUrl(data.url);
+  await waitForCheckoutReturn();
   return { error: null };
 }
 

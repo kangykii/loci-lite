@@ -5,7 +5,7 @@
 
 ## What Loci Lite is
 
-Loci Lite is a local-first markdown editor for students. The user writes in `.md` files stored on disk. The app adds on top of raw markdown: focus mode (paragraph dimming), authorship mode (paste provenance wash — AI reserved), manual **atom bookmarks** (definition / note / reminder slices saved from selected text), and future **atomisation** (AI-generated flashcard Q&A from selection). There is no sync, no collaboration, no image support, no heavy tables. The editor is the product.
+Loci Lite is a local-first markdown editor for students. The user writes in `.md` files stored on disk. The app adds on top of raw markdown: focus mode (paragraph dimming), authorship mode (paste provenance wash — AI reserved), manual atoms with separate behaviours (definitions become Bookmarks flashcards, notes become editor-only wiki annotations, reminders resurface notes later), and future **atomisation** (AI-generated flashcard Q&A from selection). There is no sync, no collaboration, no image support, no heavy tables. The editor is the product.
 
 UI colours are token-driven from `src/styles/tokens.css`. Dark mode follows the Charcoal Claude palette in `DESIGN LOCILITE.md`. Components never hardcode palette hex values. Shell layout widths are tokenized (`--shell-inset-x`, `--shell-content-max`, `--editor-col-w`); components must not hardcode browse or titlebar `rem` caps.
 
@@ -76,7 +76,7 @@ loci-lite/
 │   │   ├── search-field.css        # Shared browse search field shell + Lucide clear control
 │   │   ├── home.css              # Homepage shell and recent file cards
 │   │   ├── documents.css         # Documents list and search styles
-│   │   ├── atoms.css             # Bookmarks flashcard grid, filter popover, tooltip
+│   │   ├── atoms.css             # Definition flashcard grid, legacy filter styles, tooltip
 │   │   ├── bookmark-stack-folder.css  # Stack folder tile (tab, pocket, fringes, rename)
 │   │   ├── atom-popup.css        # Bookmark creation popup
 │   │   ├── bookmark-stack-popup.css  # Stack folder popup card + navigation
@@ -88,7 +88,7 @@ loci-lite/
 │   ├── views/
 │   │   ├── HomeView.tsx          # Welcome + recent/search via useSearchableDocuments
 │   │   ├── DocumentsView.tsx     # All files list + live global search
-│   │   ├── AtomsView.tsx         # Bookmark browse; live sourceText search + type filter
+│   │   ├── AtomsView.tsx         # Bookmark browse; definitions only + live sourceText search
 │   │   ├── SettingsView.tsx      # App settings, including local OpenAI key receiver
 │   │   ├── AccountView.tsx       # Full account page; welcome + notebook theme picker
 │   │   └── EditorView.tsx        # Editor + atom/authorship bridges, popup, outline, BottomBar
@@ -163,7 +163,7 @@ loci-lite/
 │   │   │   ├── AtomPanel.tsx       # Grid: solo flashcards + stack folders
 │   │   │   ├── AtomPopup.tsx       # Create + edit bookmark popup
 │   │   │   ├── AtomTooltip.tsx     # Hover tooltip on decorated editor spans
-│   │   │   ├── BookmarkFilterMenu.tsx  # Filter popover for bookmark types
+│   │   │   ├── BookmarkFilterMenu.tsx  # Legacy type filter component; not mounted in definitions-only Bookmarks
 │   │   │   ├── BookmarkFlashcardFaces.tsx  # Shared front/back faces for card + stack popup
 │   │   │   ├── BookmarkStackFolder.tsx  # CSS folder tile (click popup, dblclick rename)
 │   │   │   ├── BookmarkStackNameEditor.tsx  # Shared inline stack name rename (grid + popup)
@@ -242,7 +242,9 @@ loci-lite/
 │   │   │   ├── 001_initial.sql     # Schema: files, atoms, annotations, settings
 │   │   │   ├── 002_atom_type.sql   # atoms.type column (definition/note/reminder)
 │   │   │   ├── 003_file_edited_at.sql # files.edited_at for latest edited source
-│   │   │   └── 004_onboarding.sql # onboarding install date + learned feature flags
+│   │   │   ├── 004_onboarding.sql # onboarding install date + learned feature flags
+│   │   │   ├── 005_file_pinned.sql # files.pinned for recent list ordering
+│   │   │   └── 006_atom_reminder_timing.sql # reminder due/surfaced timestamps
 │   │   ├── files.store.ts          # File registry queries
 │   │   ├── atoms.store.ts          # Atom CRUD queries
 │   │   ├── stackNames.store.ts     # Stack display names in settings KV
@@ -277,6 +279,7 @@ loci-lite/
 │       ├── browseDragGhost.ts      # Full-opacity drag follower panel (blank native ghost)
 │       ├── bookmarkStacks.ts       # Stack merge plan + grid grouping by group_label
 │       ├── seedDocuments.ts        # First-run welcome docs (Tauri only)
+│       ├── resurfaceReminders.ts   # One-shot due reminder bump for Recent notes
 │       ├── formatRelativeTime.ts   # opened_at + created_at relative labels
 │       ├── welcomeWritingSource.ts # Markdown heuristic for writing-like documents
 │       ├── aiWelcomeSource.ts      # Latest writing-like source selection for AI welcome
@@ -285,7 +288,8 @@ loci-lite/
 │       ├── atomTypes.ts            # AtomType, AtomRecord, CreateAtomInput
 │       ├── atomRecord.ts           # buildAtomRecord + saveAtomRecord (popup + shortcut)
 │       ├── definitionShortcutSave.ts  # persistDefinitionShortcut for bridge handler
-│       ├── atomLabels.ts           # Type labels and filter pill options
+│       ├── atomLabels.ts           # Atom type labels
+│       ├── reminderPresets.ts      # Reminder preset delays and due timestamp helper
 │       ├── atomSpans.ts            # Find selection offsets in markdown export
 │       ├── atomDecorations.ts      # AtomRecord → AtomEditorContext item
 │       ├── theme.ts                # Notebook theme registry + resolve/apply on documentElement
@@ -361,6 +365,8 @@ CREATE TABLE atoms (
   group_label  TEXT,              -- bookmark stack UUID (null = solo); no separate stack table in v1
   span_start   INTEGER,           -- character offset in .md source (nullable)
   span_end     INTEGER,
+  reminder_due_at INTEGER,         -- 006_atom_reminder_timing.sql; reminders only
+  reminder_surfaced_at INTEGER,    -- set after first Recent resurface
   created_at   INTEGER NOT NULL
 );
 
@@ -422,14 +428,26 @@ Remote Postgres only. Apply migrations `001` → `007` in order (Supabase SQL ed
 
 ### Document registry and disk I/O (implemented — Stages 1–2)
 
-- **Tauri commands** ([`src-tauri/src/commands/file.rs`](src-tauri/src/commands/file.rs)): `get_notes_dir`, `create_note`, `read_file`, `write_file`, `delete_file`. Notes directory: `{appDataDir}/notes/`. `create_note` slugifies paths (aligned with [`src/lib/documentMeta.ts`](src/lib/documentMeta.ts)). `delete_file` validates path is under notes dir before `fs::remove_file`.
+- **Tauri commands** ([`src-tauri/src/commands/file.rs`](src-tauri/src/commands/file.rs)): `get_notes_dir`, `create_note`, `read_file`, `write_file`, `delete_file`. Notes directory: `{appDataDir}/notes/`. `create_note` slugifies paths (aligned with [`src/lib/documentMeta.ts`](src/lib/documentMeta.ts)). Read/write/delete/duplicate/reveal validate canonical `.md` paths under notes dir before touching disk.
+- **External URL opening** ([`src-tauri/src/commands/window.rs`](src-tauri/src/commands/window.rs)): `open_url` is allowlisted to Stripe Checkout/Billing HTTPS URLs only; renderer code cannot use it to open arbitrary files, custom schemes, or unrelated websites.
 - **Frontend bridge** ([`src/lib/tauri.ts`](src/lib/tauri.ts)): sole `invoke()` and `@tauri-apps/api/window` site; exports `isTauri`.
 - **SQLite** ([`src/store/db.ts`](src/store/db.ts)): `initDb()` loads `sqlite:loci.db`; migrations v1-v4 from [`src/store/migrations/`](src/store/migrations/) registered in [`src-tauri/src/lib.rs`](src-tauri/src/lib.rs).
 - **File registry** ([`src/store/files.store.ts`](src/store/files.store.ts)): `insertFile`, `getFileById`, `touchOpenedAt`, `touchEditedAt`, `updateTitle`, `listRecentFiles`, `listAllFiles`, `listFilesByEditedAt`, `deleteFile` — metadata only; `.md` body on disk is source of truth.
 - **List refresh:** `App.tsx` `libraryRevision` counter bumps on create/delete; passed as `listRefreshKey` to browse views (replaces using `activeFileId` as refresh signal).
 - **`App.tsx`** calls `initDb()` once when `isTauri()` (not in Vite-only browser).
 - **Stage 4 (browse UI):** [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts) loads all registry files + markdown haystack via `readFile`; [`matchesSearch`](src/lib/searchMatch.ts) filters client-side on keystroke. **Home:** AI-cached prose welcome via [`useAiWelcomeMessages.ts`](src/hooks/useAiWelcomeMessages.ts), recent 10 when search empty, global title+body search when query present ([`HomeView.tsx`](src/views/HomeView.tsx) + [`RecentFiles.tsx`](src/components/home/RecentFiles.tsx)); [`HomeQuickActions.tsx`](src/components/home/HomeQuickActions.tsx) for New note + Bookmarks; **View all** opens Documents via `App.tsx` `onOpenDocuments`. **Documents:** live global search ([`DocumentsView.tsx`](src/views/DocumentsView.tsx)); Filter button remains UI shell. `App.tsx` `handleOpenEditor(fileId)`; previews via [`excerptFromMarkdown`](src/lib/documentMeta.ts). List rows use [`useSearchStagger.ts`](src/hooks/useSearchStagger.ts) + `data-stagger` / `--stagger-index` ([`transitions.css`](src/styles/transitions.css)).
+- **Atom behaviours:** definitions are the only atoms loaded by the Bookmarks tab, where they render as flashcards/stacks and search by `sourceText`. Definitions also participate in cross-file editor scanning. Notes load only for their source file and decorate as wiki-style underlined editor annotations with the existing hover tooltip. Reminders do not decorate text and do not appear in Bookmarks; [`resurfaceReminders.ts`](src/lib/resurfaceReminders.ts) finds due, unsurfaced reminder atoms on boot and before Home/Documents list refresh, bumps the parent file `opened_at`, then sets `reminder_surfaced_at` so each reminder resurfaces once.
 - **First-run seed:** [`seedDocuments.ts`](src/lib/seedDocuments.ts) — after `initDb()`, if `settings.seed.docs_v1` is unset and the file registry is empty, writes two onboarding `.md` notes (`welcome-to-loci-lite`, `what-works-today`) via `create_note` + `insertFile`. Skipped when the user already has registry rows.
+- **Boot screen:** [`BootScreen.tsx`](src/components/shell/BootScreen.tsx) renders immediately from [`main.tsx`](src/main.tsx) before local DB init/seed completes, then React swaps to `App`. It has no store or Tauri access.
+
+### Context menus (implemented)
+
+- **Shared menu:** [`ContextMenu.tsx`](src/components/ui/ContextMenu.tsx) renders item/separator entries, hidden/disabled/destructive states, Escape dismissal, and viewport clamping. Styling lives in [`shell.css`](src/styles/shell.css).
+- **Editor menu:** [`ContextMenuPlugin.tsx`](src/editor/plugins/ContextMenuPlugin.tsx) owns only the Lexical right-click shell. Range helpers live in [`contextMenuRanges.ts`](src/editor/lib/contextMenuRanges.ts); authorship intersection helpers live in [`contextMenuAnnotations.ts`](src/editor/lib/contextMenuAnnotations.ts). The plugin emits bookmark/authorship callbacks through editor contexts and opens [`SearchInNotesModal.tsx`](src/components/editor/SearchInNotesModal.tsx) for cross-note matches.
+- **Note row menu:** [`useDocumentContextMenu.tsx`](src/hooks/useDocumentContextMenu.tsx) is used by Home recent rows and Documents rows only. It calls store/native bridges for pin, rename, duplicate, reveal, and confirmed delete. Rename/duplicate update markdown H1 via [`noteMarkdownTitle.ts`](src/lib/noteMarkdownTitle.ts); rename UI uses [`RenameNoteDialog.tsx`](src/components/documents/RenameNoteDialog.tsx). Sidebar library remains open-only.
+- **Bookmark menu:** [`useBookmarkContextMenu.tsx`](src/hooks/useBookmarkContextMenu.tsx) is used by bookmark cards/folders. Solo cards expose Edit/Delete; stack folders expose Rename/Delete stack. There are no note actions on bookmarks.
+- **Pinned notes:** migration [`005_file_pinned.sql`](src/store/migrations/005_file_pinned.sql) adds `files.pinned`; [`files.store.ts`](src/store/files.store.ts) maps it and sorts pinned rows before recent rows.
+- **Native file helpers:** [`src-tauri/src/commands/note_paths.rs`](src-tauri/src/commands/note_paths.rs) centralizes notes-dir validation and unique note paths. [`file.rs`](src-tauri/src/commands/file.rs) exposes duplicate, reveal, and macOS dictionary lookup through [`tauri.ts`](src/lib/tauri.ts).
 
 ### Network infrastructure (implemented — Phases 2–4)
 
@@ -437,7 +455,7 @@ Remote Postgres only. Apply migrations `001` → `007` in order (Supabase SQL ed
 - **Supabase client** ([`src/lib/supabase.ts`](src/lib/supabase.ts)): sole `@supabase/supabase-js` import site; lazy `getSupabaseClient()` returns `null` when `!hasRemote`; `invokeRemoteFunction()` is the only app-side path to Supabase Edge Functions.
 - **Remote calls:** `remoteCall()` wraps all Supabase usage — unconfigured state returns `{ data: null, error: null }`; thrown errors are caught, logged with `console.warn`, and never propagate to UI.
 - **Remote schema** ([`supabase/migrations/`](supabase/migrations/)): `profiles`, `cosmetics`, `plugin_entitlements`, `subscriptions` + RLS + auth signup trigger.
-- **Stripe payment gate:** [`src/lib/stripe.ts`](src/lib/stripe.ts) starts hosted Checkout or the Billing Portal via `create-checkout` / `create-portal-session`. Desktop checkout opens in the system browser via [`openUrl`](src/lib/tauri.ts), sends separate local success/cancel callback URLs, waits on `waitForLocalCallback()`, then refreshes the account profile. Edge Functions verify the Supabase bearer token, use Stripe secret keys from Supabase secrets only, and never trust the client to set tier. [`stripe-webhook`](supabase/functions/stripe-webhook/index.ts) is the source of truth: Stripe subscription events upsert `subscriptions` and set `profiles.tier` to `modern_writer` only while status is active.
+- **Stripe payment gate:** [`src/lib/stripe.ts`](src/lib/stripe.ts) starts hosted Checkout or the Billing Portal via `create-checkout` / `create-portal-session`. Desktop checkout opens in the system browser via [`openUrl`](src/lib/tauri.ts), sends separate local success/cancel callback URLs, waits on `waitForLocalCallback()`, then refreshes the account profile. Edge Functions verify the Supabase bearer token, use Stripe secret keys from Supabase secrets only, clamp return URLs to local desktop/dev callbacks, and server-own the Modern Writer price ID. [`stripe-webhook`](supabase/functions/stripe-webhook/index.ts) is the source of truth: Stripe subscription events upsert `subscriptions` and set `profiles.tier` to `modern_writer` only while status is active.
 - **Remote store** ([`src/store/remote.store.ts`](src/store/remote.store.ts)): `getRemoteProfile`, `ensureRemoteProfile`, `getUnlockedCosmetics`, `getPluginEntitlements` (active rows only: `revoked_at` null, `expires_at` null or future) — all via `remoteCall()`; null/empty when offline or unsigned-in. Hooks consume this file; components never import it directly.
 - **Remote session** ([`useRemoteSession.ts`](src/hooks/useRemoteSession.ts) + [`remoteSessionCache.ts`](src/lib/remoteSessionCache.ts) + [`syncRemoteProfile.ts`](src/lib/syncRemoteProfile.ts)): boot + hook refresh profile/entitlements/cosmetics into cache; [`App.tsx`](src/App.tsx) mounts the hook.
 - **Plugin registry** ([`src/plugins/registry.ts`](src/plugins/registry.ts)): `LociPlugin` contract, `registerPlugin`, `getInstalledPlugins`, `dispatchHook` — lifecycle hooks for Modern Writer extensions; errors in hooks are logged, never thrown. [`pluginLifecycle.ts`](src/lib/pluginLifecycle.ts) dispatches from editor open/close ([`EditorView.tsx`](src/views/EditorView.tsx)) and bookmark create ([`useAtomCreation.ts`](src/hooks/useAtomCreation.ts), [`useEditorAtomBridge.ts`](src/hooks/useEditorAtomBridge.ts)).
@@ -587,8 +605,8 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 **Bookmarks tab (browse):**
 - [`AtomsView.tsx`](src/views/AtomsView.tsx) — always `listAllAtoms()` on mount/refresh; ignores `activeFileId` for loading (App may still pass it for other views). `searchQuery` state on controlled `.atoms-search` input.
 - [`useDocumentTitles.ts`](src/hooks/useDocumentTitles.ts) — resolves `files.title` for unique `atom.fileId` values; passed to cards as sole attribution.
-- [`BookmarkFilterMenu.tsx`](src/components/atoms/BookmarkFilterMenu.tsx) — filter popover (All · Definitions · Notes · Reminders).
-- [`AtomPanel.tsx`](src/components/atoms/AtomPanel.tsx) — solo bookmarks → [`AtomCard.tsx`](src/components/atoms/AtomCard.tsx) (click-to-flip); stacks (count ≥ 2) → [`BookmarkStackFolder.tsx`](src/components/atoms/BookmarkStackFolder.tsx) (click opens popup, double-click renames). Live search and type filter match if **any** stack member matches (`sourceText` / type). Draggable cells + bin delete confirm in [`AtomsView.tsx`](src/views/AtomsView.tsx); card-back pen opens edit popup.
+- [`BookmarkFilterMenu.tsx`](src/components/atoms/BookmarkFilterMenu.tsx) — legacy type filter component retained on disk but not mounted; Bookmarks is definitions-only.
+- [`AtomPanel.tsx`](src/components/atoms/AtomPanel.tsx) — solo definition bookmarks → [`AtomCard.tsx`](src/components/atoms/AtomCard.tsx) (click-to-flip); stacks (count ≥ 2) → [`BookmarkStackFolder.tsx`](src/components/atoms/BookmarkStackFolder.tsx) (click opens popup, double-click renames). Live search includes a stack when **any** definition member matches `sourceText`. Draggable cells + bin delete confirm in [`AtomsView.tsx`](src/views/AtomsView.tsx); card-back pen opens edit popup.
 - **Stacks:** drop onto card/folder → [`computeStackMerge`](src/lib/bookmarkStacks.ts) + [`updateAtomsGroupLabel`](src/store/atoms.store.ts); stack-on-stack merges all members into target’s `group_label`. [`BookmarkStackFolder.tsx`](src/components/atoms/BookmarkStackFolder.tsx) — tab/pocket/fringe strips (golden-ratio tokens; no icon); double-click name renames via [`BookmarkStackNameEditor.tsx`](src/components/atoms/BookmarkStackNameEditor.tsx). Display names via [`stackNames.store.ts`](src/store/stackNames.store.ts) (`settings` key `bookmark_stack_name:{uuid}`), default `"Stack"` ([`useStackDisplayNames.ts`](src/hooks/useStackDisplayNames.ts)). Click folder → [`BookmarkStackPopup.tsx`](src/components/atoms/BookmarkStackPopup.tsx) + [`BookmarkStackPopupCard.tsx`](src/components/atoms/BookmarkStackPopupCard.tsx) (`data-stack-enter` card switch on prev/next/shuffle; fluid `--bookmark-popup-card-w`; double-click-renamable header; prev/next/**Shuffle** session order via `shuffleAtomRecords`; flip + back-face pen edit). After delete, [`clearSingletonGroupLabel`](src/store/atoms.store.ts) when one member remains; popup closes when stack dissolves.
 - Styling per [`DESIGN LOCILITE.md`](DESIGN%20LOCILITE.md) **Bookmarks tab** section ([`atoms.css`](src/styles/atoms.css), [`bookmark-stack-folder.css`](src/styles/bookmark-stack-folder.css), [`bookmark-stack-popup.css`](src/styles/bookmark-stack-popup.css)).
 

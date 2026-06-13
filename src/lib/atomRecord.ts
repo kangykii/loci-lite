@@ -16,6 +16,8 @@ export function buildAtomRecord(input: CreateAtomInput): AtomRecord {
     groupLabel: null,
     spanStart: input.spanStart,
     spanEnd: input.spanEnd,
+    reminderDueAt: input.type === 'reminder' ? input.reminderDueAt ?? null : null,
+    reminderSurfacedAt: null,
     createdAt: Date.now(),
   };
 }
@@ -30,7 +32,8 @@ export async function updateAtomRecord(
   type: AtomRecord['type'],
   answer: string,
   sourceText?: string,
+  reminderDueAt?: number | null,
 ): Promise<void> {
   await initDb();
-  await updateAtom(id, { type, answer, sourceText });
+  await updateAtom(id, { type, answer, sourceText, reminderDueAt });
 }

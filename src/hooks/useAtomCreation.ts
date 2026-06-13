@@ -73,6 +73,7 @@ export function useAtomCreation(onCreated?: (atom: AtomRecord) => void) {
           answer,
           spanStart: popup.spanStart,
           spanEnd: popup.spanEnd,
+          reminderDueAt: payload.reminderDueAt,
         });
 
         await saveAtomRecord(atom);

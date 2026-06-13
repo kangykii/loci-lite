@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import type { AtomFilter } from '../../lib/atomLabels';
+import { useMemo, type MouseEvent } from 'react';
 import {
   buildBookmarkGridItems,
   resolveStackDisplayName,
@@ -12,7 +11,6 @@ import BookmarkStackFolder from './BookmarkStackFolder';
 
 type AtomPanelProps = {
   atoms: AtomRecord[];
-  filter: AtomFilter;
   searchQuery: string;
   status: 'idle' | 'loading' | 'ready' | 'error';
   error: string | null;
@@ -23,18 +21,16 @@ type AtomPanelProps = {
   onRenameStack: (groupLabel: string, name: string) => void;
   onStackDrop?: (draggedId: string, targetId: string) => void;
   onOpenStack?: (item: BookmarkGridItem) => void;
-};
-
-const EMPTY_MESSAGES: Record<AtomFilter, string> = {
-  all: 'No bookmarks yet.',
-  definition: 'No definitions yet.',
-  note: 'No notes yet.',
-  reminder: 'No reminders yet.',
+  onContextMenuAtom?: (event: MouseEvent, atom: AtomRecord) => void;
+  onContextMenuStack?: (
+    event: MouseEvent,
+    item: BookmarkGridItem,
+    displayName: string,
+  ) => void;
 };
 
 export default function AtomPanel({
   atoms,
-  filter,
   searchQuery,
   status,
   error,
@@ -45,25 +41,22 @@ export default function AtomPanel({
   onRenameStack,
   onStackDrop,
   onOpenStack,
+  onContextMenuAtom,
+  onContextMenuStack,
 }: AtomPanelProps) {
   const hasActiveSearch = searchQuery.trim().length > 0;
 
   const filteredGridItems = useMemo(() => {
     const items = buildBookmarkGridItems(atoms);
 
-    const typeFiltered =
-      filter === 'all'
-        ? items
-        : items.filter((item) => item.members.some((member) => member.type === filter));
-
     if (!hasActiveSearch) {
-      return typeFiltered;
+      return items;
     }
 
-    return typeFiltered.filter((item) =>
+    return items.filter((item) =>
       item.members.some((member) => matchesSearch(member.sourceText, searchQuery)),
     );
-  }, [atoms, filter, hasActiveSearch, searchQuery]);
+  }, [atoms, hasActiveSearch, searchQuery]);
 
   return (
     <section aria-label="Bookmark list" className="atom-panel">
@@ -75,7 +68,7 @@ export default function AtomPanel({
       ) : null}
       {status === 'ready' && filteredGridItems.length === 0 ? (
         <p className="atom-list-empty">
-          {hasActiveSearch ? 'No bookmarks match your search.' : EMPTY_MESSAGES[filter]}
+          {hasActiveSearch ? 'No definitions match your search.' : 'No definitions yet.'}
         </p>
       ) : null}
       {status === 'ready' && filteredGridItems.length > 0 ? (
@@ -94,6 +87,7 @@ export default function AtomPanel({
                   draggable={draggable}
                   item={item}
                   key={key}
+                  onContextMenu={onContextMenuStack}
                   onOpenStack={() => onOpenStack(item)}
                   onRenameStack={onRenameStack}
                   onStackDrop={onStackDrop}
@@ -107,6 +101,7 @@ export default function AtomPanel({
                 documentTitle={documentTitles[item.representative.fileId] ?? 'Untitled'}
                 draggable={draggable}
                 key={key}
+                onContextMenu={onContextMenuAtom}
                 onRequestEdit={onRequestEdit}
                 onStackDrop={onStackDrop}
               />

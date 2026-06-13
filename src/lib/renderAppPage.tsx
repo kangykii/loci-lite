@@ -46,6 +46,7 @@ export function renderAppPage(view: ViewName, props: AppPageProps): ReactNode {
         <EditorView
           fileId={activeFileId}
           onDocumentDeleted={(fileId) => onDocumentDeleted(fileId, 'editor')}
+          onOpenDocument={onOpenEditor}
         />
       ) : (
         <main className="app-shell editor-view">

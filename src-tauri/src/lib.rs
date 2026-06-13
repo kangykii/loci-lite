@@ -33,6 +33,18 @@ fn migrations() -> Vec<Migration> {
             sql: include_str!("../../src/store/migrations/004_onboarding.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 5,
+            description: "file_pinned",
+            sql: include_str!("../../src/store/migrations/005_file_pinned.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 6,
+            description: "atom_reminder_timing",
+            sql: include_str!("../../src/store/migrations/006_atom_reminder_timing.sql"),
+            kind: MigrationKind::Up,
+        },
     ]
 }
 
@@ -51,6 +63,9 @@ pub fn run() {
             commands::file::read_file,
             commands::file::write_file,
             commands::file::delete_file,
+            commands::file::duplicate_file,
+            commands::file::reveal_file,
+            commands::file::lookup_word,
             commands::window::open_url,
             commands::window::wait_for_local_callback,
             commands::window::wait_for_oauth_callback,

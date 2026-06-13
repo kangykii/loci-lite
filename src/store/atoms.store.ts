@@ -13,6 +13,8 @@ type AtomRow = {
   group_label: string | null;
   span_start: number | null;
   span_end: number | null;
+  reminder_due_at: number | null;
+  reminder_surfaced_at: number | null;
   created_at: number;
 };
 
@@ -27,6 +29,8 @@ function mapAtom(row: AtomRow): AtomRecord {
     groupLabel: row.group_label,
     spanStart: row.span_start,
     spanEnd: row.span_end,
+    reminderDueAt: row.reminder_due_at,
+    reminderSurfacedAt: row.reminder_surfaced_at,
     createdAt: row.created_at,
   };
 }
@@ -36,8 +40,9 @@ export async function createAtom(atom: AtomRecord): Promise<void> {
   await db.execute(
     `INSERT INTO atoms (
       id, file_id, type, question, answer, source_text,
-      group_label, span_start, span_end, created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      group_label, span_start, span_end, reminder_due_at,
+      reminder_surfaced_at, created_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
     [
       atom.id,
       atom.fileId,
@@ -48,6 +53,8 @@ export async function createAtom(atom: AtomRecord): Promise<void> {
       atom.groupLabel,
       atom.spanStart,
       atom.spanEnd,
+      atom.reminderDueAt,
+      atom.reminderSurfacedAt,
       atom.createdAt,
     ],
   );
@@ -57,6 +64,15 @@ export async function getAtomsForFile(fileId: string): Promise<AtomRecord[]> {
   const db = await getDb();
   const rows = await db.select<AtomRow[]>(
     'SELECT * FROM atoms WHERE file_id = $1 ORDER BY created_at DESC',
+    [fileId],
+  );
+  return rows.map(mapAtom);
+}
+
+export async function getVisibleAtomsForFile(fileId: string): Promise<AtomRecord[]> {
+  const db = await getDb();
+  const rows = await db.select<AtomRow[]>(
+    "SELECT * FROM atoms WHERE file_id = $1 AND type IN ('definition', 'note') ORDER BY created_at DESC",
     [fileId],
   );
   return rows.map(mapAtom);
@@ -84,25 +100,36 @@ export async function deleteAtom(id: string): Promise<void> {
 
 export async function updateAtom(
   id: string,
-  patch: { type: AtomType; answer: string; sourceText?: string },
+  patch: {
+    type: AtomType;
+    answer: string;
+    sourceText?: string;
+    reminderDueAt?: number | null;
+  },
 ): Promise<void> {
   const db = await getDb();
   const answer = patch.answer.trim();
+  const reminderDueAt = patch.type === 'reminder' ? patch.reminderDueAt ?? null : null;
+  const reminderSurfacedAt = null;
 
   if (patch.sourceText !== undefined) {
     const sourceText = patch.sourceText.trim();
     await db.execute(
-      'UPDATE atoms SET type = $1, answer = $2, question = $3, source_text = $4 WHERE id = $5',
-      [patch.type, answer, sourceText, sourceText, id],
+      `UPDATE atoms
+       SET type = $1, answer = $2, question = $3, source_text = $4,
+           reminder_due_at = $5, reminder_surfaced_at = $6
+       WHERE id = $7`,
+      [patch.type, answer, sourceText, sourceText, reminderDueAt, reminderSurfacedAt, id],
     );
     return;
   }
 
-  await db.execute('UPDATE atoms SET type = $1, answer = $2 WHERE id = $3', [
-    patch.type,
-    answer,
-    id,
-  ]);
+  await db.execute(
+    `UPDATE atoms
+     SET type = $1, answer = $2, reminder_due_at = $3, reminder_surfaced_at = $4
+     WHERE id = $5`,
+    [patch.type, answer, reminderDueAt, reminderSurfacedAt, id],
+  );
 }
 
 export async function updateAtomsGroupLabel(
@@ -148,4 +175,34 @@ export async function listAllAtoms(): Promise<AtomRecord[]> {
   const db = await getDb();
   const rows = await db.select<AtomRow[]>('SELECT * FROM atoms ORDER BY created_at DESC');
   return rows.map(mapAtom);
+}
+
+export async function listDueUnsurfacedReminders(now: number): Promise<AtomRecord[]> {
+  const db = await getDb();
+  const rows = await db.select<AtomRow[]>(
+    `SELECT * FROM atoms
+     WHERE type = 'reminder'
+       AND reminder_due_at IS NOT NULL
+       AND reminder_due_at <= $1
+       AND reminder_surfaced_at IS NULL
+     ORDER BY reminder_due_at ASC`,
+    [now],
+  );
+  return rows.map(mapAtom);
+}
+
+export async function markRemindersSurfaced(
+  ids: string[],
+  surfacedAt: number,
+): Promise<void> {
+  if (ids.length === 0) {
+    return;
+  }
+
+  const db = await getDb();
+  const placeholders = ids.map((_, index) => `$${index + 2}`).join(', ');
+  await db.execute(
+    `UPDATE atoms SET reminder_surfaced_at = $1 WHERE id IN (${placeholders})`,
+    [surfacedAt, ...ids],
+  );
 }

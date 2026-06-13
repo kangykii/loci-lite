@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from 'react';
+import { useRef, type KeyboardEvent, type MouseEvent } from 'react';
 
 import {
   consumeBrowseDragClick,
@@ -14,6 +14,7 @@ type BookmarkStackFolderProps = {
   displayName: string;
   draggable?: boolean;
   onOpenStack: () => void;
+  onContextMenu?: (event: MouseEvent, item: BookmarkGridItem, displayName: string) => void;
   onRenameStack: (groupLabel: string, name: string) => void;
   onStackDrop?: (draggedId: string, targetId: string) => void;
 };
@@ -25,6 +26,7 @@ export default function BookmarkStackFolder({
   displayName,
   draggable = false,
   onOpenStack,
+  onContextMenu,
   onRenameStack,
   onStackDrop,
 }: BookmarkStackFolderProps) {
@@ -74,6 +76,7 @@ export default function BookmarkStackFolder({
 
         onOpenStack();
       }}
+      onContextMenu={(event) => onContextMenu?.(event, item, displayName)}
       onDragEnd={endBrowseDrag}
       onDragStart={
         draggable

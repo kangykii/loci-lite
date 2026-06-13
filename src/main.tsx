@@ -4,12 +4,14 @@ import './lib/env';
 import { getSession } from './lib/auth';
 import { hasRemote } from './lib/env';
 import { seedBaseDocumentsIfNeeded } from './lib/seedDocuments';
+import { resurfaceDueReminders } from './lib/resurfaceReminders';
 import { syncRemoteProfile } from './lib/syncRemoteProfile';
 import { isTauri } from './lib/tauri';
 import { initDb } from './store/db';
 import { initInstallDate } from './store/onboarding.store';
 import './plugins/index';
 import App from './App';
+import BootScreen from './components/shell/BootScreen';
 import '@fontsource/geist-sans/400.css';
 import '@fontsource/geist-sans/500.css';
 import '@fontsource/geist-sans/600.css';
@@ -38,12 +40,21 @@ if (isTauri()) {
   document.documentElement.classList.add('is-tauri');
 }
 
+const root = createRoot(document.getElementById('root') as HTMLElement);
+
+root.render(
+  <StrictMode>
+    <BootScreen />
+  </StrictMode>,
+);
+
 async function boot() {
   if (isTauri()) {
     try {
       await initDb();
       await initInstallDate();
       await seedBaseDocumentsIfNeeded();
+      await resurfaceDueReminders();
     } catch (error) {
       console.error('Failed to initialize local database', error);
     }
@@ -61,7 +72,7 @@ async function boot() {
       });
   }
 
-  createRoot(document.getElementById('root') as HTMLElement).render(
+  root.render(
     <StrictMode>
       <App />
     </StrictMode>,

@@ -104,6 +104,7 @@ export async function seedBaseDocumentsIfNeeded(): Promise<void> {
       openedAt: timestamp,
       createdAt: timestamp,
       editedAt: timestamp,
+      pinned: false,
     });
   }
 

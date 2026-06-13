@@ -100,6 +100,8 @@ If the architecture disagrees with a solution you are about to implement, **stop
 - All `invoke()` calls live in `src/lib/tauri.ts` — nowhere else, ever
 - All Tauri commands are registered in `src-tauri/src/lib.rs`
 - Rust commands live in `src-tauri/src/commands/` — one file per concern (`file.rs`, `window.rs`)
+- File commands must canonicalize and stay inside the app notes directory; read/write/delete/reveal/duplicate must never accept arbitrary renderer-provided paths.
+- URL-opening commands must be allowlisted by destination and scheme. Do not add generic external URL openers.
 - Never use `@tauri-apps/api` imports outside of `lib/tauri.ts`
 - Use Tauri 2 API shapes — not Tauri 1. They are not the same. If uncertain, check the Tauri 2 docs before writing
 
@@ -119,7 +121,7 @@ If the architecture disagrees with a solution you are about to implement, **stop
 ## Browse search rules
 
 - **Home / Documents:** [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts) loads registry rows + markdown haystack; views filter with [`matchesSearch`](src/lib/searchMatch.ts) in `useMemo` on every keystroke. Home shows recent 10 when query is empty.
-- **Bookmarks:** client-side filter on `atom.sourceText` only in [`AtomPanel.tsx`](src/components/atoms/AtomPanel.tsx); composes with type filter popover. No `useSearchableDocuments` on Bookmarks.
+- **Bookmarks:** load definition atoms only; client-side filter on `atom.sourceText` only in [`AtomPanel.tsx`](src/components/atoms/AtomPanel.tsx). Notes and reminders never appear in Bookmarks. No `useSearchableDocuments` on Bookmarks.
 - **Match semantics v1:** case-insensitive substring only — no fuzzy, regex, or Enter-to-search.
 - **Layer:** `readFile` and `listAllFiles` stay in hooks; components hold `searchQuery` state only.
 
@@ -130,6 +132,7 @@ If the architecture disagrees with a solution you are about to implement, **stop
 - **Confirm first:** every delete (note or bookmark) opens [`ConfirmDialog.tsx`](src/components/ui/ConfirmDialog.tsx) before any store or Tauri call. No `window.confirm`.
 - **Note delete:** [`useDeleteDocument.ts`](src/hooks/useDeleteDocument.ts) only — disk via [`delete_file`](src/lib/tauri.ts), registry via [`files.store`](src/store/files.store.ts) `deleteFile`. Components never call these directly.
 - **Bookmark delete:** `useAtoms.removeAtom` only after `ConfirmDialog` (card X, bin drop, editor tooltip).
+- **Context menus:** destructive delete entries must be separated from reveal/open/navigation entries by a visible separator. `Reveal in Finder` and `Delete` must never be adjacent.
 - **Layer:** `invoke('delete_file')` only in `lib/tauri.ts`; no delete logic in Lexical plugins.
 - **Drag payload:** `writeDragPayload` / `readDragPayload` in [`deletePayload.ts`](src/lib/deletePayload.ts) only; MIME `application/x-loci-delete` + `text/plain` fallback.
 - **Drag sources:** whole `.document-row` / `.bookmark-flashcard` body (`div` / `article`) — never `draggable` on `<button>`; no grip handles.
@@ -320,7 +323,7 @@ A task is not done until all of these are true:
 - [ ] `TransitionShell` applies `data-view` / `data-state` / `data-transition` only — no timing logic
 - [ ] Home `.recent-list` and Documents `.documents-list` use `data-stagger`, `--stagger-index`, and `useSearchStagger` on query change
 - [ ] Home/Documents search filters live on keystroke via `useSearchableDocuments` + `matchesSearch`
-- [ ] Bookmarks search filters `sourceText` only; composes with type filter popover
+- [ ] Bookmarks load definitions only and search filters `sourceText` only
 - [ ] Home View all opens Documents; Documents Filter button remains disabled shell
 - [ ] Note delete uses `ConfirmDialog` + `useDeleteDocument` (editor menu or Documents bin drop)
 - [ ] Bookmark delete uses `ConfirmDialog` before `useAtoms.removeAtom` (bin drop on Bookmarks, editor tooltip — not card back)

@@ -7,6 +7,7 @@ export type FileRecord = {
   openedAt: number;
   createdAt: number;
   editedAt: number;
+  pinned: boolean;
 };
 
 type FileRow = {
@@ -16,6 +17,7 @@ type FileRow = {
   opened_at: number;
   created_at: number;
   edited_at: number;
+  pinned?: number;
 };
 
 function mapFile(row: FileRow): FileRecord {
@@ -26,14 +28,23 @@ function mapFile(row: FileRow): FileRecord {
     openedAt: row.opened_at,
     createdAt: row.created_at,
     editedAt: row.edited_at,
+    pinned: row.pinned === 1,
   };
 }
 
 export async function insertFile(record: FileRecord): Promise<void> {
   const db = await getDb();
   await db.execute(
-    'INSERT INTO files (id, path, title, opened_at, created_at, edited_at) VALUES ($1, $2, $3, $4, $5, $6)',
-    [record.id, record.path, record.title, record.openedAt, record.createdAt, record.editedAt],
+    'INSERT INTO files (id, path, title, opened_at, created_at, edited_at, pinned) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    [
+      record.id,
+      record.path,
+      record.title,
+      record.openedAt,
+      record.createdAt,
+      record.editedAt,
+      record.pinned ? 1 : 0,
+    ],
   );
 }
 
@@ -59,10 +70,15 @@ export async function updateTitle(id: string, title: string | null): Promise<voi
   await db.execute('UPDATE files SET title = $1 WHERE id = $2', [title, id]);
 }
 
+export async function setFilePinned(id: string, pinned: boolean): Promise<void> {
+  const db = await getDb();
+  await db.execute('UPDATE files SET pinned = $1 WHERE id = $2', [pinned ? 1 : 0, id]);
+}
+
 export async function listRecentFiles(limit: number): Promise<FileRecord[]> {
   const db = await getDb();
   const rows = await db.select<FileRow[]>(
-    'SELECT * FROM files ORDER BY opened_at DESC LIMIT $1',
+    'SELECT * FROM files ORDER BY pinned DESC, opened_at DESC LIMIT $1',
     [limit],
   );
   return rows.map(mapFile);
@@ -70,7 +86,9 @@ export async function listRecentFiles(limit: number): Promise<FileRecord[]> {
 
 export async function listAllFiles(): Promise<FileRecord[]> {
   const db = await getDb();
-  const rows = await db.select<FileRow[]>('SELECT * FROM files ORDER BY opened_at DESC');
+  const rows = await db.select<FileRow[]>(
+    'SELECT * FROM files ORDER BY pinned DESC, opened_at DESC',
+  );
   return rows.map(mapFile);
 }
 

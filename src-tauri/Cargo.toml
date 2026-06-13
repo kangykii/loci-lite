@@ -1,6 +1,6 @@
 [package]
 name = "loci-lite"
-version = "0.1.0"
+version = "0.1.1"
 description = "Loci Lite"
 authors = ["Loci"]
 edition = "2021"

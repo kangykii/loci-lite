@@ -71,7 +71,7 @@ export function resolveTheme(): Theme {
   if (stored === 'light' || stored === 'dark') {
     return legacyThemeMap[stored];
   }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'default_dark' : 'default_white';
+  return 'default_white';
 }
 
 export function applyTheme(theme: Theme) {

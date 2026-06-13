@@ -503,9 +503,12 @@
 }
 
 .context-menu {
+  --context-menu-w: calc(var(--u) * 13);
   position: fixed;
   display: grid;
-  min-width: 10rem;
+  width: var(--context-menu-w);
+  max-height: calc(100vh - 2 * var(--space-2));
+  overflow-y: auto;
   border-radius: var(--radius-md);
   background: var(--surface-strong);
   box-shadow: var(--shadow-md);
@@ -532,8 +535,163 @@
   width: 100%;
 }
 
-.context-menu-item:hover {
+.context-menu-item:hover:not(:disabled) {
   background: color-mix(in srgb, var(--shell-chrome-bg) 70%, var(--shell-chrome-bg-strong));
   color: var(--text-primary);
+}
+
+.context-menu-item:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.context-menu-item.is-destructive {
+  color: var(--destructive);
+}
+
+.context-menu-separator {
+  height: 1px;
+  margin: var(--space-1) var(--space-2);
+  background: var(--border);
+}
+
+.rename-note-layer,
+.search-notes-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg-deep) 52%, transparent);
+}
+
+.rename-note-dialog,
+.search-notes-modal {
+  width: min(calc(var(--u) * 24), calc(100vw - 2 * var(--shell-inset-x)));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  padding: var(--space-4);
+}
+
+.rename-note-dialog {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.rename-note-dialog h2,
+.search-notes-header h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.rename-note-dialog label {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.rename-note-dialog input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+}
+
+.rename-note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.rename-note-actions button,
+.search-notes-close,
+.search-notes-result {
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.rename-note-actions button {
+  padding: var(--space-2) var(--space-3);
+}
+
+.rename-note-actions button[type='submit'] {
+  background: var(--accent);
+  color: var(--destructive-on);
+}
+
+.rename-note-actions button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.search-notes-modal {
+  display: grid;
+  gap: var(--space-3);
+  max-height: min(calc(var(--u) * 30), calc(100vh - 2 * var(--space-8)));
+}
+
+.search-notes-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.search-notes-header p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.search-notes-close {
+  padding: var(--space-1) var(--space-2);
+}
+
+.search-notes-results {
+  display: grid;
+  gap: var(--space-2);
+  overflow-y: auto;
+}
+
+.search-notes-result {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  text-align: left;
+}
+
+.search-notes-result:hover {
+  background: var(--surface);
+}
+
+.search-notes-result strong {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.search-notes-result span,
+.search-notes-result p,
+.search-notes-empty {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.search-notes-result p,
+.search-notes-empty {
+  margin: 0;
 }
 

@@ -253,16 +253,20 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   border-top: 1px solid var(--border-strong);
 }
 
-.editor-root .atom-definition,
-.editor-root .atom-note,
-.editor-root .atom-reminder {
-  text-decoration: none;
+.editor-root .atom-definition {
   cursor: help;
+  text-decoration: none;
 }
 
-.editor-root.bookmark-highlight-on .atom-definition,
-.editor-root.bookmark-highlight-on .atom-note,
-.editor-root.bookmark-highlight-on .atom-reminder {
+.editor-root .atom-note {
+  cursor: help;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+.editor-root.bookmark-highlight-on .atom-definition {
   -webkit-box-decoration-break: clone;
   background-image: linear-gradient(
     to bottom,
@@ -277,14 +281,6 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
 
 .editor-root.bookmark-highlight-on .atom-definition {
   --atom-highlight-fill: var(--atom-highlight-definition);
-}
-
-.editor-root.bookmark-highlight-on .atom-note {
-  --atom-highlight-fill: var(--atom-highlight-note);
-}
-
-.editor-root.bookmark-highlight-on .atom-reminder {
-  --atom-highlight-fill: var(--atom-highlight-reminder);
 }
 
 /* ── Authorship mode — range overlay ── */

@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { AtomType } from '../../lib/atomTypes';
+import {
+  getReminderDueAt,
+  REMINDER_PRESETS,
+  type ReminderPresetId,
+} from '../../lib/reminderPresets';
 import SegmentedControl from '../ui/SegmentedControl';
 
 export type AtomSavePayload = {
   type: AtomType;
   sourceText: string;
   content: string;
+  reminderDueAt: number | null;
 };
 
 export type AtomPopupMode = 'create' | 'edit';
@@ -17,6 +23,7 @@ type AtomPopupProps = {
   initialContent?: string;
   headerLabel?: string;
   saveLabel?: string;
+  typeOptions?: AtomType[];
   isSaving?: boolean;
   onSave: (payload: AtomSavePayload) => void;
   onClose: () => void;
@@ -41,6 +48,7 @@ export default function AtomPopup({
   initialContent = '',
   headerLabel,
   saveLabel,
+  typeOptions,
   isSaving = false,
   onSave,
   onClose,
@@ -48,6 +56,7 @@ export default function AtomPopup({
   const [type, setType] = useState<AtomType>(initialType);
   const [content, setContent] = useState(initialContent);
   const [sourceDraft, setSourceDraft] = useState(selectedText);
+  const [reminderPreset, setReminderPreset] = useState<ReminderPresetId>('tomorrow');
   const [isEditingSource, setIsEditingSource] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const sourceInputRef = useRef<HTMLInputElement>(null);
@@ -55,6 +64,9 @@ export default function AtomPopup({
   const titleId = useId();
   const resolvedHeader = headerLabel ?? 'Bookmark';
   const resolvedSaveLabel = saveLabel ?? (mode === 'edit' ? 'Save changes' : 'Save');
+  const availableTypeOptions = TYPE_OPTIONS.filter((option) =>
+    typeOptions ? typeOptions.includes(option.type) : true,
+  );
 
   useEffect(() => {
     if (mode === 'edit') {
@@ -65,9 +77,18 @@ export default function AtomPopup({
       setContent('');
     }
 
+    setReminderPreset('tomorrow');
     setSourceDraft(selectedText);
     setIsEditingSource(false);
   }, [initialContent, initialType, mode, selectedText]);
+
+  useEffect(() => {
+    if (availableTypeOptions.some((option) => option.type === type)) {
+      return;
+    }
+
+    setType(availableTypeOptions[0]?.type ?? 'note');
+  }, [availableTypeOptions, type]);
 
   useEffect(() => {
     if (isEditingSource) {
@@ -138,6 +159,7 @@ export default function AtomPopup({
       type,
       sourceText: trimmedSource,
       content: trimmedContent,
+      reminderDueAt: type === 'reminder' ? getReminderDueAt(reminderPreset) : null,
     });
   };
 
@@ -186,16 +208,37 @@ export default function AtomPopup({
           />
         </div>
 
-        <SegmentedControl
-          aria-label="Atom type"
-          fullWidth
-          onChange={setType}
-          options={TYPE_OPTIONS.map((option) => ({
-            label: option.label,
-            value: option.type,
-          }))}
-          value={type}
-        />
+        {availableTypeOptions.length > 1 ? (
+          <SegmentedControl
+            aria-label="Atom type"
+            fullWidth
+            onChange={setType}
+            options={availableTypeOptions.map((option) => ({
+              label: option.label,
+              value: option.type,
+            }))}
+            value={type}
+          />
+        ) : null}
+
+        {type === 'reminder' ? (
+          <label className="atom-popup-reminder">
+            <span className="atom-popup-reminder-label">Resurface</span>
+            <select
+              className="atom-popup-reminder-select"
+              onChange={(event) =>
+                setReminderPreset(event.target.value as ReminderPresetId)
+              }
+              value={reminderPreset}
+            >
+              {REMINDER_PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <label className="atom-popup-content-wrap">
           <span className="visually-hidden">Atom content</span>

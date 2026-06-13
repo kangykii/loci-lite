@@ -27,6 +27,7 @@ import { isTauri } from '../lib/tauri';
 type EditorViewProps = {
   fileId: string;
   onDocumentDeleted: (fileId: string) => void;
+  onOpenDocument: (fileId: string) => void;
 };
 
 type PendingBookmarkDelete = {
@@ -34,7 +35,7 @@ type PendingBookmarkDelete = {
   sourceText: string;
 };
 
-export default function EditorView({ fileId, onDocumentDeleted }: EditorViewProps) {
+export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }: EditorViewProps) {
   const [isOutlineOpen, setIsOutlineOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [pendingBookmarkDelete, setPendingBookmarkDelete] =
@@ -104,8 +105,9 @@ export default function EditorView({ fileId, onDocumentDeleted }: EditorViewProp
     () => ({
       ...baseEditorChrome,
       isFocusMode,
+      onOpenDocument,
     }),
-    [baseEditorChrome, isFocusMode],
+    [baseEditorChrome, isFocusMode, onOpenDocument],
   );
 
   const handleSave = useCallback(

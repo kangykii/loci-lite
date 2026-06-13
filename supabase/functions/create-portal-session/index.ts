@@ -23,7 +23,11 @@ function cleanReturnUrl(value: unknown, fallback: string): string {
   if (typeof value !== 'string') return fallback;
   try {
     const url = new URL(value);
-    if (url.protocol === 'http:' || url.protocol === 'https:') return url.toString();
+    const isLocalReturn =
+      url.protocol === 'http:' &&
+      url.hostname === 'localhost' &&
+      (url.port === '49329' || url.port === '5173');
+    if (isLocalReturn) return url.toString();
   } catch {
     return fallback;
   }

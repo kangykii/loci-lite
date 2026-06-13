@@ -10,6 +10,8 @@ export type AtomRecord = {
   groupLabel: string | null;
   spanStart: number | null;
   spanEnd: number | null;
+  reminderDueAt: number | null;
+  reminderSurfacedAt: number | null;
   createdAt: number;
 };
 
@@ -20,5 +22,6 @@ export type CreateAtomInput = {
   answer: string;
   spanStart: number | null;
   spanEnd: number | null;
+  reminderDueAt?: number | null;
   id?: string;
 };

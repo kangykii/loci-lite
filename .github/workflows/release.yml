@@ -45,7 +45,7 @@ jobs:
           tagName: app-v__VERSION__
           releaseName: Loci Notepad v__VERSION__
           releaseBody: See the assets below to download and install Loci Notepad.
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
           updaterJsonPreferNsis: true

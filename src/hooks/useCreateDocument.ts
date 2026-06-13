@@ -31,6 +31,7 @@ export function useCreateDocument() {
         openedAt: now,
         createdAt: now,
         editedAt: now,
+        pinned: false,
       });
 
       return id;
