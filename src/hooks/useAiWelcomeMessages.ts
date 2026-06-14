@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react';
 
 import { writeWelcomeMessages } from '../ai/actions/writeWelcomeMessages';
-import { displayTitleForFile } from '../lib/documentMeta';
-import { isTauri, readFile } from '../lib/tauri';
-import { isLikelyWritingMarkdown } from '../lib/welcomeWritingSource';
-import { listFilesByEditedAt } from '../store/files.store';
+import { latestWritingSource } from '../lib/aiWelcomeSource';
+import {
+  getAmbientGreeting,
+  getTimeOfDay,
+  selectLetter,
+} from '../lib/fallbackLetters';
+import { isTauri } from '../lib/tauri';
+import {
+  getDaysSinceInstall,
+  getLearnedFeatures,
+  initInstallDate,
+} from '../store/onboarding.store';
 import {
   getAiWelcomeCache,
   getOpenAIKey,
@@ -16,53 +24,51 @@ type AiWelcomeStatus = 'loading' | 'ready' | 'missing-key' | 'error';
 
 type AiWelcomeState = {
   message: string;
+  greeting: string | null;
+  sign: string | null;
   status: AiWelcomeStatus;
 };
 
-const FALLBACK_MESSAGE =
-  'Start here. Let the page collect the first true sentence, then the next one, until the thought has enough weight to stand on its own.';
-
-async function latestWritingSource(): Promise<{
-  fileId: string | null;
-  markdown: string;
-  title: string;
-}> {
-  const files = await listFilesByEditedAt();
-
-  for (const file of files) {
-    let markdown = '';
-    try {
-      markdown = await readFile(file.path);
-    } catch {
-      continue;
-    }
-
-    if (isLikelyWritingMarkdown(markdown)) {
-      return {
-        fileId: file.id,
-        markdown,
-        title: displayTitleForFile(file.title, file.path),
-      };
-    }
-  }
+async function loadFallbackState(): Promise<AiWelcomeState> {
+  const [daysSinceInstall, learnedFeatures] = await Promise.all([
+    getDaysSinceInstall(),
+    getLearnedFeatures(),
+  ]);
+  const letter = selectLetter(
+    daysSinceInstall,
+    new Set(learnedFeatures),
+    getTimeOfDay(),
+  );
 
   return {
-    fileId: null,
-    markdown: 'No writing-like document was available. Write generic welcome prompts.',
-    title: 'Writing desk',
+    message: letter.body,
+    greeting: letter.greeting,
+    sign: letter.sign,
+    status: 'ready',
+  };
+}
+
+function createAmbientFallbackState(): AiWelcomeState {
+  return {
+    message: getAmbientGreeting(),
+    greeting: null,
+    sign: null,
+    status: 'ready',
   };
 }
 
 export function useAiWelcomeMessages() {
   const { notifyError } = useNotifications();
   const [state, setState] = useState<AiWelcomeState>({
-    message: FALLBACK_MESSAGE,
+    message: '',
+    greeting: null,
+    sign: null,
     status: 'loading',
   });
 
   useEffect(() => {
     if (!isTauri()) {
-      setState({ message: FALLBACK_MESSAGE, status: 'ready' });
+      setState(createAmbientFallbackState());
       return;
     }
 
@@ -70,12 +76,20 @@ export function useAiWelcomeMessages() {
 
     const load = async () => {
       try {
+        await initInstallDate();
+        const fallbackState = await loadFallbackState();
+
         const cache = await getAiWelcomeCache();
         const cachedMessage = cache.messages[cache.index];
 
         if (cachedMessage) {
           if (!cancelled) {
-            setState({ message: cachedMessage, status: 'ready' });
+            setState({
+              message: cachedMessage,
+              greeting: null,
+              sign: null,
+              status: 'ready',
+            });
           }
 
           await setAiWelcomeCache({ ...cache, index: cache.index + 1 });
@@ -85,11 +99,7 @@ export function useAiWelcomeMessages() {
         const apiKey = await getOpenAIKey();
         if (!apiKey) {
           if (!cancelled) {
-            notifyError('OpenAI key required for AI welcome.');
-            setState({
-              message: FALLBACK_MESSAGE,
-              status: 'missing-key',
-            });
+            setState({ ...fallbackState, status: 'missing-key' });
           }
           return;
         }
@@ -101,7 +111,7 @@ export function useAiWelcomeMessages() {
           title: source.title,
         });
 
-        const firstMessage = result.messages[0] ?? FALLBACK_MESSAGE;
+        const firstMessage = result.messages[0] ?? fallbackState.message;
         await setAiWelcomeCache({
           messages: result.messages,
           index: 1,
@@ -111,6 +121,8 @@ export function useAiWelcomeMessages() {
         if (!cancelled) {
           setState({
             message: firstMessage,
+            greeting: null,
+            sign: null,
             status: 'ready',
           });
         }
@@ -119,10 +131,7 @@ export function useAiWelcomeMessages() {
           const message =
             cause instanceof Error ? cause.message : 'Failed to generate welcome message.';
           notifyError(message);
-          setState({
-            message: FALLBACK_MESSAGE,
-            status: 'error',
-          });
+          setState({ ...createAmbientFallbackState(), status: 'error' });
         }
       }
     };

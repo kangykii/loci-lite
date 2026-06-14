@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loci Notepad</title>
+    <link rel="icon" type="image/png" href="/loci-notebook-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,13 +15,22 @@
       (function () {
         var key = 'loci-lite-theme';
         var stored = localStorage.getItem(key);
-        var theme =
-          stored === 'light' || stored === 'dark'
-            ? stored
-            : window.matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light';
-        document.documentElement.dataset.theme = theme;
+        var modes = {
+          default_white: 'light',
+          default_dark: 'dark',
+          anthracite_grey: 'light',
+          ochre_black: 'dark',
+          light: 'light',
+          dark: 'dark',
+        };
+        var mode = modes[stored] || 'light';
+        var notebook = stored && modes[stored] && stored !== 'light' && stored !== 'dark'
+          ? stored
+          : mode === 'dark'
+            ? 'default_dark'
+            : 'default_white';
+        document.documentElement.dataset.theme = mode;
+        document.documentElement.dataset.notebookTheme = notebook;
       })();
     </script>
   </head>

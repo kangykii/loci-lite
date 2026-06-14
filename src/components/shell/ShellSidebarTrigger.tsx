@@ -8,6 +8,8 @@ type ShellSidebarTriggerProps = {
 export default function ShellSidebarTrigger({ isOpen, onOpen }: ShellSidebarTriggerProps) {
   return (
     <div aria-label="Loci Notepad app menu" className="shell-sidebar-trigger">
+      <div aria-hidden="true" className="shell-sidebar-edge-pull shell-sidebar-edge-pull-left" />
+      <div aria-hidden="true" className="shell-sidebar-edge-pull shell-sidebar-edge-pull-right" />
       <button
         aria-expanded={isOpen}
         aria-label="Open library sidebar"

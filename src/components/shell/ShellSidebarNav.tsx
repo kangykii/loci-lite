@@ -1,5 +1,5 @@
 import { Bookmark, Moon, Plus, Settings, Sun, UserCircle } from 'lucide-react';
-import type { Theme } from '../../lib/theme';
+import { getNotebookTheme, type Theme } from '../../lib/theme';
 import type { ViewName } from '../../hooks/useViewTransition';
 
 type ShellSidebarNavProps = {
@@ -29,6 +29,8 @@ export default function ShellSidebarNav({
   onOpenSettings,
   onThemeToggle,
 }: ShellSidebarNavProps) {
+  const themeMode = getNotebookTheme(theme).mode;
+
   if (placement === 'secondary') {
     return (
       <nav aria-label="App settings" className="shell-sidebar-nav-secondary">
@@ -41,14 +43,18 @@ export default function ShellSidebarNav({
           <span>Settings</span>
         </button>
         <button className="shell-sidebar-nav-item" onClick={onThemeToggle} type="button">
-          {theme === 'dark' ? (
+          {themeMode === 'dark' ? (
             <Sun size={16} strokeWidth={1.5} />
           ) : (
             <Moon size={16} strokeWidth={1.5} />
           )}
-          <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+          <span>{themeMode === 'dark' ? 'Light mode' : 'Dark mode'}</span>
         </button>
-        <button className="shell-sidebar-nav-item" onClick={onOpenProfile} type="button">
+        <button
+          className={`shell-sidebar-nav-item${activeView === 'account' ? ' active' : ''}`}
+          onClick={onOpenProfile}
+          type="button"
+        >
           {profileName ? (
             <span aria-hidden="true" className="shell-sidebar-avatar">
               {profileName.charAt(0).toUpperCase()}
@@ -56,7 +62,7 @@ export default function ShellSidebarNav({
           ) : (
             <UserCircle size={16} strokeWidth={1.5} />
           )}
-          <span className="shell-sidebar-profile-name">{profileName ?? 'Profile'}</span>
+          <span className="shell-sidebar-profile-name">{profileName ? 'Account' : 'Profile'}</span>
         </button>
       </nav>
     );

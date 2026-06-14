@@ -24,6 +24,7 @@ export type EditorChromeContextValue = {
   isFocusMode: boolean;
   onBookmarkRequest: (detail: BookmarkRequestDetail) => void;
   onDefinitionShortcut: (detail: DefinitionShortcutDetail) => void | Promise<void>;
+  onOpenDocument: (fileId: string) => void;
   onSelectionChange: (detail: SelectionDetail) => void;
 };
 
@@ -31,6 +32,7 @@ export const emptyEditorChromeContext: EditorChromeContextValue = {
   isFocusMode: false,
   onBookmarkRequest: () => undefined,
   onDefinitionShortcut: () => undefined,
+  onOpenDocument: () => undefined,
   onSelectionChange: () => undefined,
 };
 

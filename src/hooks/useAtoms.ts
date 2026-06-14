@@ -7,9 +7,8 @@ import {
   deleteAtom,
   getAtomById,
   updateAtom as updateAtomInStore,
-  getAtomsForFile,
   getDefinitionAtoms,
-  listAllAtoms,
+  getVisibleAtomsForFile,
   type AtomRecord,
 } from '../store/atoms.store';
 
@@ -39,7 +38,7 @@ export function useAtoms() {
 
     try {
       await initDb();
-      const rows = await getAtomsForFile(fileId);
+      const rows = await getVisibleAtomsForFile(fileId);
       setAtoms(rows);
       setStatus('ready');
       bumpRefresh();
@@ -82,7 +81,7 @@ export function useAtoms() {
 
     try {
       await initDb();
-      const rows = await listAllAtoms();
+      const rows = await getDefinitionAtoms();
       setAtoms(rows);
       setStatus('ready');
       bumpRefresh();
@@ -124,7 +123,15 @@ export function useAtoms() {
   );
 
   const updateAtom = useCallback(
-    async (id: string, patch: { type: AtomType; answer: string; sourceText?: string }) => {
+    async (
+      id: string,
+      patch: {
+        type: AtomType;
+        answer: string;
+        sourceText?: string;
+        reminderDueAt?: number | null;
+      },
+    ) => {
       if (!isTauri()) {
         return;
       }
@@ -147,6 +154,9 @@ export function useAtoms() {
             answer: patch.answer.trim(),
             question: nextSource,
             sourceText: nextSource,
+            reminderDueAt:
+              patch.type === 'reminder' ? patch.reminderDueAt ?? null : null,
+            reminderSurfacedAt: null,
           };
         };
 

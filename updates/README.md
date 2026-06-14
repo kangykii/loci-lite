@@ -32,10 +32,11 @@ tauri signer extract-public-key -private-key private.key -output public.key
 {
   "plugins": {
     "updater": {
-      "active": true,
-      "dialog": true,
-      "endpoints": ["https://raw.githubusercontent.com/kangykii/loci-lite/main/updates/latest.json"],
-      "pubkey": "YOUR_PUBLIC_KEY_HERE"
+      "endpoints": ["https://raw.githubusercontent.com/kangykii/loci-lite/master/updates/latest.json"],
+      "pubkey": "YOUR_PUBLIC_KEY_HERE",
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }
@@ -70,7 +71,7 @@ Tag and push to trigger the workflow:
 git add src-tauri/tauri.conf.json src-tauri/Cargo.toml
 git commit -m "Bump version to 0.1.2"
 git tag app-v0.1.2
-git push origin main --tags
+git push origin master --tags
 ```
 
 The GitHub Actions workflow will:
@@ -79,10 +80,12 @@ The GitHub Actions workflow will:
 - Auto-generate and commit `updates/latest.json`
 - Users' apps will prompt to update on next startup
 
+Local builds keep `bundle.createUpdaterArtifacts` disabled so `pnpm tauri build` can produce the setup EXE without requiring signing secrets. The release workflow temporarily enables updater artifacts in CI after `TAURI_SIGNING_PRIVATE_KEY` is available.
+
 ### 5. Testing Auto-Updates Locally
 
 ```bash
-# Build locally with updater enabled
+# Build locally without updater artifacts
 pnpm tauri build
 
 # Test by checking the app console (should download latest.json)
@@ -110,7 +113,7 @@ scripts/
 **Cause:** `updates/latest.json` is malformed or unreachable.
 
 **Fix:**
-- Check the file exists at `https://raw.githubusercontent.com/kangykii/loci-lite/main/updates/latest.json`
+- Check the file exists at `https://raw.githubusercontent.com/kangykii/loci-lite/master/updates/latest.json`
 - Validate JSON syntax
 - Ensure the repo is public (not private)
 
@@ -143,6 +146,8 @@ If GitHub Actions fails:
 ```bash
 # 1. Build locally
 pnpm build
+
+# Enable bundle.createUpdaterArtifacts first if you need a signed updater manifest.
 pnpm tauri build
 
 # 2. Sign the executable

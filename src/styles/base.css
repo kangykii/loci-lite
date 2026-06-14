@@ -17,6 +17,7 @@
 html {
   min-height: 100%;
   background: var(--bg);
+  overscroll-behavior-x: none;
 }
 
 html[data-theme='light'] {
@@ -33,6 +34,8 @@ body {
   background: var(--bg);
   color: var(--text-primary);
   font-family: var(--font-sans);
+  overflow-x: clip;
+  overscroll-behavior-x: none;
 }
 
 button,
@@ -47,6 +50,61 @@ button {
 
 #root {
   min-height: 100vh;
+  overscroll-behavior-x: none;
+}
+
+.boot-screen {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+}
+
+.boot-screen-copy {
+  position: fixed;
+  right: var(--shell-inset-x);
+  bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.boot-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.boot-dots span {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  opacity: 0.45;
+  animation: boot-dot-bounce 900ms var(--ease-out) infinite;
+}
+
+.boot-dots span:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.boot-dots span:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+@keyframes boot-dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+
+  40% {
+    transform: translateY(calc(var(--space-1) * -1));
+    opacity: 0.9;
+  }
 }
 
 .app-shell {

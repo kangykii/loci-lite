@@ -23,8 +23,7 @@ if [ ! -f "$PRIVATE_KEY" ]; then
   exit 1
 fi
 
-# Sign the executable using OpenSSL
-openssl dgst -sha256 -sign "$PRIVATE_KEY" "$EXE_PATH" | openssl base64 -A > "${EXE_PATH}.sig"
+corepack pnpm tauri signer sign "$EXE_PATH" --private-key-path "$PRIVATE_KEY" > "${EXE_PATH}.sig"
 
 echo "Signature created: ${EXE_PATH}.sig"
 cat "${EXE_PATH}.sig"

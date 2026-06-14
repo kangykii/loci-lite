@@ -11,13 +11,13 @@ This is not Canvas. Canvas is a document *engine*. Lite is a writing *room*.
 
 ### Colour direction — Light mode (Washi paper)
 
-Light mode uses a **washed washi paper** palette: warm hued off-white base (`#F5F2EA`), deeper fibre shadow (`#ECE6DC`), lifted sheet surfaces (`#FAF7F0`), and softened warm sumi ink text (`#3A3128` / `#342B22` prose). Slightly warmer and more fibrous than iA Writer’s neutral `#F5F6F6` — not pure white, not grey UI white. The page background is flat `--bg` only; no atmospheric gradients on `html` or `body`.
+Light mode uses a **warm high-contrast paper** palette: warm hued off-white base (`#F7F2E8`), deeper fibre shadow (`#EFE7D9`), darker fibrous sheet surfaces (`#EEE5D8` / `#F4EDE3`), and warm sumi ink text (`#1D150E`). Slightly warmer and more fibrous than iA Writer’s neutral `#F5F6F6` — not pure white, not grey UI white. The page background is flat `--bg` only; no atmospheric gradients on `html` or `body`.
 
 ### Colour direction — Dark mode (Charcoal Claude)
 
 Dark mode uses the **Charcoal Claude** palette: near-neutral charcoal base (`#171615`), warm surface (`#1F1D1C`), cream text (`#EDE6DC`), muted brown-gray chrome (`#443E38`), and a burnt-orange accent (`#B86830`). Warmth lives in the accent only — closest to iA dark, editorial not neon. The page background is flat `--bg` only; no atmospheric gradients on `html` or `body`. Accent colour appears on one primary action per view only.
 
-**Theme control:** Light tokens live on `:root`. Charcoal Claude applies when the OS prefers dark (`:root:not([data-theme='light'])`) or when the user sets `html[data-theme='dark']`. Explicit light choice uses `html[data-theme='light']`. The titlebar theme button persists preference in `localStorage`.
+**Theme control:** Light tokens live on `:root`. Charcoal Claude applies when the OS prefers dark (`:root:not([data-theme='light'])`) or when the user sets `html[data-theme='dark']`. Explicit light choice uses `html[data-theme='light']`. Account → Notebooks stores a notebook theme id in the same persisted `localStorage` preference; applying a notebook sets the mode-compatible `data-theme` plus `data-notebook-theme` for palette variants.
 
 ---
 
@@ -131,31 +131,31 @@ Implemented in `src/styles/tokens.css`. Every value a component needs already ex
   --editor-font-family: "IBM Plex Mono", "GeistMono", "SF Mono", monospace;  /* editor body — overridden by Settings */
 
   /* ── Light mode colours (washi paper) ── */
-  --bg:               #F5F2EA;
-  --bg-deep:          #ECE6DC;          /* scrims, depth behind overlays */
-  --surface:          rgba(250, 247, 240, 0.86);
-  --surface-strong:   rgba(250, 247, 240, 0.96);
-  --surface-solid:    #FAF7F0;
+  --bg:               #F7F2E8;
+  --bg-deep:          #EFE7D9;          /* scrims, depth behind overlays */
+  --surface:          #EEE5D8;
+  --surface-strong:   #F4EDE3;
+  --surface-solid:    #EEE5D8;
 
   /* ── Shell chrome (transparent glass + backdrop-filter) ── */
-  --shell-chrome-bg:         rgba(250, 247, 240, 0.48);
-  --shell-chrome-bg-strong:  rgba(250, 247, 240, 0.70);
-  --shell-chrome-border:     transparent;
+  --shell-chrome-bg:         rgba(247, 242, 232, 0.82);
+  --shell-chrome-bg-strong:  rgba(239, 231, 217, 0.92);
+  --shell-chrome-border:     rgba(29, 21, 14, 0.10);
   --shell-chrome-blur:       20px;
 
-  --text-primary:     #3A3128;
-  --text-secondary:   rgba(58, 49, 40, 0.54);
-  --text-tertiary:    rgba(58, 49, 40, 0.34);
+  --text-primary:     #1D150E;
+  --text-secondary:   rgba(29, 21, 14, 0.70);
+  --text-tertiary:    rgba(29, 21, 14, 0.48);
 
   --accent:           #A85F32;          /* muted terracotta — one accent, used sparingly */
   --accent-subtle:    rgba(168, 95, 50, 0.11);
   --accent-text:      #7A3F1D;          /* accent on light paper — passes AA */
 
   --destructive:      #B42020;          /* delete confirm, context menu — not accent */
-  --destructive-on:   #FAF7F0;          /* label on solid destructive buttons */
+  --destructive-on:   #EDE6DA;          /* label on solid destructive buttons */
 
-  --border:           rgba(58, 49, 40, 0.08);
-  --border-strong:    rgba(58, 49, 40, 0.14);
+  --border:           rgba(29, 21, 14, 0.12);
+  --border-strong:    rgba(29, 21, 14, 0.22);
 
   /* ── Dark mode colours (Charcoal Claude) ── */
   --bg-dark:            #171615;
@@ -260,7 +260,7 @@ Applied app-wide on boot via [`useDefaultEditorFontSetting.ts`](src/hooks/useDef
 --editor-small:     0.875rem;   /* 14px — footnotes, captions */
 --editor-line-height: 1.85;     /* wide leading — writer default */
 --editor-heading-line-height: 1.3;
---editor-prose: #342B22;       /* solid full-opacity softened warm prose — writing surface only */
+--editor-prose: #1D150E;       /* solid full-opacity warm prose — writing surface only */
 --editor-scroll-target-ratio: 0.4; /* find + outline scroll anchor — matches typewriter lock line */
 --dur-editor-scroll: 280ms;      /* find + outline navigation scroll */
 
@@ -522,7 +522,7 @@ Global save/error feedback via [`NotificationProvider`](src/hooks/useNotificatio
 - **Stack:** column, `gap: var(--space-2)`, **max 3** visible; newest first; coalesce same tone + message (timer resets); overflow evicts oldest success first.
 - **Chip:** frosted pill — `var(--shell-chrome-bg)`, `var(--shell-chrome-border)`, `var(--radius-pill)`, `backdrop-filter: blur(var(--shell-chrome-blur))`, `font-family: var(--font-sans)`, `font-size: var(--text-sm)`, `max-width: min(18rem, calc(100vw - 2 * var(--shell-inset-x)))`; label ellipsis for long errors.
 - **Success tone:** Lucide `Check` + label (`Saved`, `Bookmark`); `var(--text-primary)`; auto-dismiss ~3.2s.
-- **Error tone:** Lucide `CircleAlert` + caller message; `var(--destructive)` on icon/label only — no solid destructive fill; auto-dismiss ~6s; inline form errors remain in context.
+- **Error tone:** Lucide `CircleAlert` + caller message; `var(--destructive)` on icon/label only — no solid destructive fill; auto-dismiss ~6s. Auth dialog errors use notification chips via `useNotifications().notifyError`, never inline copy.
 - **Dismiss:** Lucide `X`; manual dismiss always available.
 
 **Forbidden:** toast libraries; modal scrim; accent fill on chips; document autosave chips; full-width error banners; more than 3 visible chips; `window.alert` for save ack.
@@ -533,15 +533,21 @@ Global save/error feedback via [`NotificationProvider`](src/hooks/useNotificatio
 
 Contents are the former titlebar controls plus the document library: enlarged **Loci**, **New note**, **Bookmarks**, bottom utility rows for **Settings**, **Theme**, **Profile**, and a searchable notes list with no document-row icons. Full **Documents** browse remains via Library **View all**. Opening a document dismisses the sidebar immediately. Bookmarks and Settings still use their full browse/settings views; bookmark flashcards, stack drag/drop, and document delete do not move into the sidebar.
 
-**Profile row:** the only visible sign of an account. Signed out — `UserCircle` icon + "Profile". Signed in — `.shell-sidebar-avatar` initial chip (`calc(var(--u) * 1.25)` circle, `--accent-subtle` fill, `--accent-text` initial) + display name, ellipsized. Clicking it dismisses the sidebar and opens the profile dialog (same dismiss-first rule as opening a document). No account state ever appears in the titlebar, editor, or browse views.
+**Profile row:** the only visible sign of an account. Signed out — `UserCircle` icon + "Profile" opens the auth dialog. Signed in — `.shell-sidebar-avatar` initial chip (`calc(var(--u) * 1.25)` circle, `--accent-subtle` fill, `--accent-text` initial) + **Account**, ellipsized; click dismisses the sidebar and opens the full Account view. No account state ever appears in the titlebar, editor, or browse views.
 
-## Profile dialog — account modal
+### Boot screen
+
+Long startup uses `.boot-screen`: flat `--bg`, no card, no scrim, no header. A single paper-related line and three bouncing dots sit bottom-right at `right: var(--shell-inset-x)` / `bottom: var(--space-6)`. First launch defaults to light mode; stored notebook themes still apply before paint.
+
+## Profile dialog and account page
 
 Follows the ConfirmDialog shape: fixed `.profile-dialog-layer` at z-index 130, `color-mix` scrim on `--bg-deep` (no blur), centered `.profile-dialog` panel — `min(24rem, …)` wide, `--surface-strong`, `--radius-lg`, `--space-6` padding, title `--text-base` 600. Portaled to `document.body`; Escape and scrim close.
 
-Signed out ("Unlock cosmetics"): bordered `.profile-input` email field (`--surface` fill, `--radius-md`, min-height `calc(var(--u) * 2.25)`), accent **Send magic link** primary (same recipe as `.atom-popup-save`), then a code-entry step for the emailed 6-digit code, an `or` divider (`--text-xs` tertiary between 1px `--border` rules), and a bordered secondary **Continue with Google**. Errors render inline in `--destructive` `--text-sm` — never a toast.
+Signed out ("Unlock cosmetics"): the popup starts in account creation with a bordered email field and accent **Send code** primary. The code step accepts the emailed 8-digit code with neutral **Resend code** / **Use a different email** text actions. A bordered secondary **Log into existing account** switches to password login; **Use login code** switches existing-account login to an 8-digit code with `shouldCreateUser: false`; **Create new account** returns to signup. Send-code, resend, password-login, wrong-code, setup, and unexpected auth failures surface through notification chips via `useNotifications().notifyError`; no inline auth error copy in the dialog.
 
-Signed in ("Account"): identity row — `.profile-avatar` circle (`calc(var(--u) * 2.25)`, accent-subtle/accent-text initial), name + email stacked (`--text-sm` 600 / `--text-xs` tertiary), `.profile-tier` pill chip (Standard / Modern Writer). Below: editable display name (`.profile-input` + accent Save appearing only when dirty; saves via notification "Saved"), then a top-ruled action row with bordered **Sign out** in `--destructive` text. Weight never exceeds 600.
+First signup setup: after the signup code creates a session, an empty `profiles.display_name` keeps the user in the popup. [`ProfileSetup`](src/components/profile/ProfileSetup.tsx) asks for **Name** and **Password** (minimum 8 characters), saves password first, then name, and only then opens Account.
+
+Full Account view: `.account-view` / `.account-stack` uses the same shell browse width as Settings. Top welcome copy reads **Welcome, {name}**. Identity row uses `.profile-avatar` circle (`calc(var(--u) * 2.25)`, accent-subtle/accent-text initial), name/email stack, and `.profile-tier` pill chip. The editable **Name** field saves through the profile notification pattern. **Modern Writer** appears as a restrained premium account section: Standard users see one accent **Upgrade** button for the $2.99/month Stripe Checkout flow; active subscribers see **Manage billing** for Stripe Billing Portal. **Notebooks** renders long rectangular cover buttons from the notebook theme registry: sharp left cover corners, subtly rounded right corners, a left spine, no folded/bookmark corner, and a quiet selected check inside the cover. Free notebooks are selectable; Modern Writer / owned cosmetic notebooks remain visible but locked until subscription or matching `cosmetics.slug` ownership. Then a top-ruled action row with bordered **Sign out** in `--destructive` text. Weight never exceeds 600.
 
 Gesture and shortcut behavior: `Ctrl/Cmd+Shift+L` toggles the sidebar instantly. Trackpad swipes use an accumulated horizontal delta with direction lock in [`shellSidebarGesture.ts`](src/lib/shellSidebarGesture.ts) / [`useShellSidebarGesture.ts`](src/hooks/useShellSidebarGesture.ts):
 
@@ -554,9 +560,10 @@ Gesture and shortcut behavior: `Ctrl/Cmd+Shift+L` toggles the sidebar instantly.
 | `GESTURE_ACCUM_WINDOW_MS` | 480ms | Gesture window before full reset |
 | `GESTURE_COOLDOWN_MS` | 1100ms | Blocks stacked commits after one fires |
 
-`preventDefault()` runs only after a commit threshold is crossed. Commits are blocked while the sidebar is animating (`entering` / `leaving` phase). Gesture handling must ignore form fields, dialogs, modifier-wheel gestures, and active text selection.
+`preventDefault()` runs as soon as a valid horizontal gesture is recognized so Windows Tauri / WebView2 cannot pan the page while the edge pull accumulates. Commits still occur only after the threshold is crossed. Commits are blocked while the sidebar is animating (`entering` / `leaving` phase). Gesture handling must ignore form fields, dialogs, modifier-wheel gestures, and active text selection.
 
-While open, the editor/page column does not reflow or shift — the sidebar slides over a static `.view-stage`. Editor↔home always uses horizontal close transitions (`--swipe-shift-close`). Home recent list uses `data-stagger="horizontal"`.
+While open, the editor/page column does not reflow or shift — the sidebar slides over a static `.view-stage`.
+Horizontal page translations on swipe navigation are replaced by a neutral edge-pull affordance: `html[data-sidebar-gesture='right']` reveals `.shell-sidebar-edge-pull-left` for sidebar open, and `html[data-sidebar-gesture='left']` reveals `.shell-sidebar-edge-pull-right` for quick nav. Gesture progress uses `--sidebar-gesture-progress` and `--sidebar-gesture-pull-x`; the affordance uses neutral shell tokens only (`--shell-chrome-bg-strong`, `--border`, `--text-secondary`, `--radius-pill`, `--space-*`, `--dur-fast`, `--ease-out`) and never `--accent`. `html`, `body`, `#root`, `.view-stage`, and `[data-view]` suppress horizontal overscroll; close/open view transitions are opacity-only; no full-page translate occurs. Home recent list uses `data-stagger="horizontal"`.
 
 Sidebar search follows the Home/Documents browse rule: live case-insensitive substring search through `useSearchableDocuments` + `matchesSearch`; no fuzzy, regex, or Enter-submit search.
 
@@ -635,11 +642,11 @@ Shared bookmark create/edit modal ([`AtomPopup.tsx`](src/components/atoms/AtomPo
 Opened from the sidebar Settings row (`SettingsView`). Not a persistent left-nav tab. Uses `.app-shell.settings-view` with `.settings-stack` capped at `--shell-content-max` (same shell browse width as documents/atoms).
 
 - **Page title:** `.settings-page-title` uses `--text-xl` — same scale step as the sidebar heading. `--text-2xl` and above belong to the Home welcome heading only.
-- **Sections:** `.settings-section` + `.settings-section-title` (Appearance, Editor, Keyboard shortcuts, AI, Data, About).
+- **Sections:** `.settings-section` + `.settings-section-title` (Editor, Keyboard shortcuts, AI, Data, About).
 - **Rows:** `.settings-row` — label and optional `.settings-row-description` on the left; control or hint on the right. Frosted row background uses `var(--shell-chrome-bg)` like document search panels.
 - **Placeholders:** `.settings-coming-soon`, `.settings-hint`, disabled `.settings-input`, disabled `.settings-text-button` — `--text-tertiary` only; no accent on this view.
 - **Live controls:** **Editor font** — Classic / Modern / Typewriter via shared [`SegmentedControl`](src/components/ui/SegmentedControl.tsx); app-wide default via [`useDefaultEditorFontSetting.ts`](src/hooks/useDefaultEditorFontSetting.ts); applied on boot and on each selection. **Default font size** — up/down stepper (14–24px) in Editor section; app-wide default via [`useDefaultFontSizeSetting.ts`](src/hooks/useDefaultFontSizeSetting.ts); per-note overrides from editor bar arrows persist as `font_size_{fileId}`. **Default focus mode**, **Default authorship highlights**, and **Default bookmark highlight** — `AppleToggle` rows wired via [`useEditorModeDefaultSettings.ts`](src/hooks/useEditorModeDefaultSettings.ts); each applies when a note opens; editor overflow menu toggles override for the current note only. **Typewriter sounds** — `AppleToggle` (`layout="switch-only"`) in Editor section; description “Subtle keyclick feedback while typing”; default off; wired via [`useTypewriterSoundSetting.ts`](src/hooks/useTypewriterSoundSetting.ts) (no `settings.store` import in the view).
-- **Theme:** controlled from the sidebar sun/moon row until a settings row owns persistence.
+- **Theme:** not shown on Settings; Account → Notebooks owns explicit notebook theme selection, including locked Modern Writer / owned cosmetic covers.
 - **Forbidden:** modal settings drawer; per-view `rem` width caps; accent on disabled rows or placeholder actions.
 
 ### Floating editor bar
@@ -950,7 +957,7 @@ Browse view for saved bookmarks. Uses `.app-shell.atoms-view` with `.atoms-stack
 **Library:** All bookmarks load in one grid — no `activeFileId` filtering and no scope header (“From {title}”).
 
 **Controls:**
-- Search ([`SearchField.tsx`](src/components/ui/SearchField.tsx)) — live filter on keystroke; matches `sourceText` (highlighted phrase) only; case-insensitive substring. Composes with type filter popover. Placeholder “Bookmark search…”.
+- Search ([`SearchField.tsx`](src/components/ui/SearchField.tsx)) — live filter on keystroke; matches definition `sourceText` (highlighted phrase) only; case-insensitive substring. Placeholder “Bookmark search…”.
 - **Filter** (`.bookmark-filter-menu`) — opens Apple-style `.bookmark-filter-panel` vertical menu (`.bookmark-filter-item` rows, checkmark on active). Options: **All · Definitions · Notes · Reminders**. Button label is “Filter” when All; otherwise the active filter name. No inline filter chips on the browse surface.
 - **Delete bin** (`.browse-delete-bin`, shared with Documents) — after Filter; drop target for draggable flashcards; confirms before delete.
 
@@ -961,11 +968,11 @@ Browse view for saved bookmarks. Uses `.app-shell.atoms-view` with `.atoms-stack
 - **Front:** centered source text in `.bookmark-flashcard-body` (`.bookmark-flashcard-source` — `var(--font-sans)`, `var(--text-base)`, `var(--text-primary)`); footer (`.bookmark-flashcard-footer`) with type pill + document title.
 - **Back:** centered answer in `.bookmark-flashcard-body` (`.bookmark-flashcard-content` — `var(--font-sans)`, `var(--text-lg)`), same footer, edit (`.bookmark-flashcard-edit` — Lucide `Pencil`, 14px, absolute top-right, neutral tertiary hover). Pen opens shared [`AtomPopup`](src/components/atoms/AtomPopup.tsx) in edit mode (type, answer, and double-click-editable source). Browse delete is **bin only** — drop to `.browse-delete-bin` opens confirm dialog before removal.
 - **Drag:** whole `.bookmark-flashcard` body is `draggable` in Tauri (no grip handle); `cursor: grab`; payload via `writeDragPayload`; compact drag ghost (sourceText + type · doc title). Flip click suppressed after drag via `consumeBrowseDragClick`.
-- **Stack folder (`.bookmark-stack-folder`):** drop one bookmark onto another card or folder (not the bin) merges via `atoms.group_label` (stack UUID); drag-over uses neutral `.is-stack-drop-target` (`--border-strong` outline only — not destructive, not accent). Stacks (count ≥ 2) render as a **minimal flat tile** in [`bookmark-stack-folder.css`](src/styles/bookmark-stack-folder.css) — single `--surface` card shell (`--shell-chrome-border`, `--radius-lg`, optional backdrop blur like flashcard faces; **no** box-shadow); up to two **thin horizontal stack rules** (`.bookmark-stack-folder-fringe` — `border-top: 1px solid var(--border)` only, no bordered mini-cards) + footer row with name (`--bookmark-stack-folder-name-size`, default `var(--text-base)`) and plain tertiary count text — **no icon**. Default name `"Stack"`; **double-click name** via shared [`BookmarkStackNameEditor.tsx`](src/components/atoms/BookmarkStackNameEditor.tsx) → inline rename (persisted in `settings` as `bookmark_stack_name:{uuid}`); label row click does not open the popup. **Single click** folder body → `.bookmark-stack-popup-layer` ([`BookmarkStackPopup.tsx`](src/components/atoms/BookmarkStackPopup.tsx)) — header shows double-click-renamable folder name; card shell in [`BookmarkStackPopupCard.tsx`](src/components/atoms/BookmarkStackPopupCard.tsx); popup card scales via `--bookmark-popup-card-w` (fluid to viewport); body/meta type scale via `--bookmark-popup-body-size` / `--bookmark-popup-meta-size`; **card switch** (prev/next/shuffle only — not initial open) via asymmetric `data-stack-leave` then `data-stack-enter` + `--dur-stack-card-leave` / `--dur-stack-card-enter` / `--stack-card-shift` in [`transitions.css`](src/styles/transitions.css); flip uses `--bookmark-popup-perspective`, `--dur-slow`, and solid `--surface-solid` faces (no backdrop blur during 3D); prev/counter/**Shuffle icon** (borderless Lucide, session-only reorder via [`shuffleAtomRecords`](src/lib/bookmarkStacks.ts))/next; in-popup flip + back-face pen edit (same `AtomPopup` edit mode), `z-index: 120`. Search/type filter include a stack when **any** member matches.
+- **Stack folder (`.bookmark-stack-folder`):** drop one definition bookmark onto another card or folder (not the bin) merges via `atoms.group_label` (stack UUID); drag-over uses neutral `.is-stack-drop-target` (`--border-strong` outline only — not destructive, not accent). Stacks (count ≥ 2) render as a **minimal flat tile** in [`bookmark-stack-folder.css`](src/styles/bookmark-stack-folder.css) — single `--surface` card shell (`--shell-chrome-border`, `--radius-lg`, optional backdrop blur like flashcard faces; **no** box-shadow); up to two **thin horizontal stack rules** (`.bookmark-stack-folder-fringe` — `border-top: 1px solid var(--border)` only, no bordered mini-cards) + footer row with name (`--bookmark-stack-folder-name-size`, default `var(--text-base)`) and plain tertiary count text — **no icon**. Default name `"Stack"`; **double-click name** via shared [`BookmarkStackNameEditor.tsx`](src/components/atoms/BookmarkStackNameEditor.tsx) → inline rename (persisted in `settings` as `bookmark_stack_name:{uuid}`); label row click does not open the popup. **Single click** folder body → `.bookmark-stack-popup-layer` ([`BookmarkStackPopup.tsx`](src/components/atoms/BookmarkStackPopup.tsx)) — header shows double-click-renamable folder name; card shell in [`BookmarkStackPopupCard.tsx`](src/components/atoms/BookmarkStackPopupCard.tsx); popup card scales via `--bookmark-popup-card-w` (fluid to viewport); body/meta type scale via `--bookmark-popup-body-size` / `--bookmark-popup-meta-size`; **card switch** (prev/next/shuffle only — not initial open) via asymmetric `data-stack-leave` then `data-stack-enter` + `--dur-stack-card-leave` / `--dur-stack-card-enter` / `--stack-card-shift` in [`transitions.css`](src/styles/transitions.css); flip uses `--bookmark-popup-perspective`, `--dur-slow`, and solid `--surface-solid` faces (no backdrop blur during 3D); prev/counter/**Shuffle icon** (borderless Lucide, session-only reorder via [`shuffleAtomRecords`](src/lib/bookmarkStacks.ts))/next; in-popup flip + back-face pen edit (same `AtomPopup` edit mode), `z-index: 120`. Search includes a stack when **any** definition member matches.
 - Attribution: document title only (`files.title` via `atom.fileId`) — no created/relative timestamps on card faces.
 - Flip transition on `transform` only — grid: `--dur-base` + `--ease-out`; popup: `--dur-slow` + `--ease-out` with scaled `--bookmark-popup-perspective`.
 
-**Empty:** `.atom-list-empty` — one muted line per type filter when search is empty; `No bookmarks match your search.` when search is active and nothing matches; no illustration.
+**Empty:** `.atom-list-empty` — one muted line when no definitions exist; `No definitions match your search.` when search is active and nothing matches; no illustration.
 
 **Forbidden on Bookmarks tab:** full-width stretched cards; scope headers; timestamps on cards; layout reflow on flip; inline filter chip row on the page; Sparkles icon cards; creation cards; accent on delete/bin/stack drop; destructive **X** on browse flashcard back (delete is bin-only); accent on edit pen; instant delete without confirm; confirm dialog on stack merge; second accent CTA; searching `answer`, document title, or type label in v1; fuzzy/regex search; Enter-to-search submit.
 
@@ -1004,6 +1011,14 @@ Browse view for saved bookmarks. Uses `.app-shell.atoms-view` with `.atoms-stack
 ```
 
 ### Context menu
+
+App-native context menus use the shared `.context-menu` surface (`--surface-strong`) and Lucide icons. Separators are structural: they separate clipboard/open actions, constructive metadata actions, reveal/navigation actions, and destructive actions. **Reveal in Finder and Delete must never be adjacent without a separator.**
+
+**Editor grouping:** Cut, Copy, Paste / Bookmark, Mark as mine / Look up "{word}", Search in notes. Bookmark appears only with selected text. Mark as mine appears only on authorship-marked text. Look up appears on macOS only.
+
+**Note row grouping:** Pin or Unpin / Rename, Duplicate / Reveal in Finder / Delete. Delete is destructive and still opens `ConfirmDialog`. These menus appear on Home recent rows and Documents rows only, never in the sidebar.
+
+**Bookmark grouping:** solo cards use Edit / Delete. Stack folders use Rename / Delete stack. Bookmark menus never show note-only actions such as pin, duplicate, or reveal. The Bookmarks tab shows definition atoms only; notes stay inside their source document as underlined wiki annotations, and reminders have no text decoration.
 
 ```css
 .context-menu {
@@ -1082,13 +1097,13 @@ UI-agnostic orchestration for view swaps, search lists, and (CSS-ready) surfaces
 
 ### View names
 
-`'home' | 'editor' | 'documents' | 'atoms' | 'settings'` — TitleBar label **Bookmarks** maps to `atoms`.
+`'home' | 'editor' | 'documents' | 'atoms' | 'settings' | 'account'` — Sidebar label **Bookmarks** maps to `atoms`.
 
 ### Transition types
 
 | Type | When | Leave ms | Enter ms | Easing |
 |---|---|---|---|---|
-| `tab` | Home ↔ Documents ↔ Bookmarks ↔ Settings | 180 (`--dur-tab-leave`) | 220 (`--dur-tab-enter`) | out / in |
+| `tab` | Home ↔ Documents ↔ Bookmarks ↔ Settings ↔ Account | 180 (`--dur-tab-leave`) | 220 (`--dur-tab-enter`) | out / in |
 | `open` | Any view → editor | 200 (`--dur-open-leave`) | 280 (`--dur-open-enter`) | out / in |
 | `close` | Editor → any view | 160 (`--dur-close-leave`) | 240 (`--dur-close-enter`) | out / in |
 | `none` | Instant (override only) | 0 | — | — |
@@ -1115,7 +1130,7 @@ UI-agnostic orchestration for view swaps, search lists, and (CSS-ready) surfaces
 - Panel: `--sidebar-shift-enter` (16px) / `--sidebar-shift-leave` (8px); enter `--dur-sidebar-enter` (400ms, `--ease-out`); leave `--dur-sidebar-leave` (240ms, `--ease-in`)
 - Scrim: fade tied to `.shell-sidebar-layer[data-state]` — `--dur-sidebar-scrim-enter` / `--dur-sidebar-scrim-leave`
 - Underlay: none — `.view-stage` stays fixed; sidebar overlays without shifting page content
-- Close note: horizontal `--swipe-shift-close`; enter 300ms / leave 200ms
+- Close note: opacity-only close transition; enter 300ms / leave 200ms
 
 ### Files
 
@@ -1149,6 +1164,8 @@ import { Focus, Feather, Atom, ChevronRight, File } from 'lucide-react'
 ```
 
 Never use custom filled SVGs, emoji, or icon fonts.
+
+**Product logo exception:** `loci notebook logo.png` is the original raster brand artwork. `loci notebook icon.png` is the cleaned transparent icon source for the browser favicon and generated native Tauri app icons. Do not reuse either asset as in-app decoration or as a replacement for Lucide action icons.
 
 ---
 

@@ -27,6 +27,18 @@ export async function deleteFile(path: string): Promise<void> {
   return invoke('delete_file', { path });
 }
 
+export async function duplicateFile(path: string): Promise<string> {
+  return invoke<string>('duplicate_file', { path });
+}
+
+export async function revealFile(path: string): Promise<void> {
+  return invoke('reveal_file', { path });
+}
+
+export async function lookupWord(text: string): Promise<boolean> {
+  return invoke<boolean>('lookup_word', { text });
+}
+
 export async function minimizeWindow(): Promise<void> {
   if (!isTauri()) {
     return;
@@ -82,4 +94,14 @@ export function waitForOAuthCallback(port: number): Promise<string> {
     return Promise.reject(new Error('OAuth callback requires the desktop app'));
   }
   return invoke<string>('wait_for_oauth_callback', { port });
+}
+
+export function waitForLocalCallback(port: number): Promise<string> {
+  if (!isTauri()) {
+    return Promise.reject(new Error('Local callback requires the desktop app'));
+  }
+  return invoke<string>('wait_for_local_callback', {
+    port,
+    responseHtml: '<html><body>Payment check complete. You can close this window.</body></html>',
+  });
 }

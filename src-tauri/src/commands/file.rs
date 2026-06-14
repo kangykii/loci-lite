@@ -1,157 +1,23 @@
 use std::fs;
+use std::process::Command;
 
-use std::path::{Path, PathBuf};
+use tauri::AppHandle;
 
-
-
-use tauri::{AppHandle, Manager};
-
-
-
-fn notes_dir(app: &AppHandle) -> Result<PathBuf, String> {
-
-    let base = app
-
-        .path()
-
-        .app_data_dir()
-
-        .map_err(|error| error.to_string())?;
-
-    let notes = base.join("notes");
-
-    fs::create_dir_all(&notes).map_err(|error| error.to_string())?;
-
-    Ok(notes)
-
-}
-
-
-
-fn slugify(slug: &str) -> String {
-
-    let mut out = String::new();
-
-
-
-    for character in slug.trim().to_lowercase().chars() {
-
-        if character.is_ascii_alphanumeric() {
-
-            out.push(character);
-
-        } else if character == '-' {
-
-            if !out.ends_with('-') {
-
-                out.push('-');
-
-            }
-
-        } else if !out.is_empty() && !out.ends_with('-') {
-
-            out.push('-');
-
-        }
-
-    }
-
-
-
-    let trimmed = out.trim_matches('-');
-
-    if trimmed.is_empty() {
-
-        "untitled".to_string()
-
-    } else {
-
-        trimmed.chars().take(60).collect()
-
-    }
-
-}
-
-
-
-fn unique_note_path(notes: &Path, slug: &str) -> Result<PathBuf, String> {
-
-    let sanitized = slugify(slug);
-
-    if sanitized.is_empty() {
-
-        return Err("Slug must not be empty.".into());
-
-    }
-
-
-
-    let mut candidate = notes.join(format!("{sanitized}.md"));
-
-    if !candidate.exists() {
-
-        return Ok(candidate);
-
-    }
-
-
-
-    let mut suffix = 2;
-
-    loop {
-
-        candidate = notes.join(format!("{sanitized}-{suffix}.md"));
-
-        if !candidate.exists() {
-
-            return Ok(candidate);
-
-        }
-
-        suffix += 1;
-
-    }
-
-}
-
-
-
-fn ensure_notes_path(app: &AppHandle, path: &str) -> Result<PathBuf, String> {
-
-    let notes = notes_dir(app)?;
-
-    let file_path = PathBuf::from(path);
-
-
-
-    if !file_path.starts_with(&notes) {
-
-        return Err("Path is outside the notes directory.".into());
-
-    }
-
-
-
-    Ok(file_path)
-
-}
-
-
+use super::note_paths::{ensure_notes_path, notes_dir, unique_note_path};
 
 #[tauri::command]
 
 pub fn get_notes_dir(app: AppHandle) -> Result<String, String> {
-
     notes_dir(&app).map(|path| path.to_string_lossy().into_owned())
-
 }
-
-
 
 #[tauri::command]
 
-pub fn create_note(app: AppHandle, slug: String, initial_contents: String) -> Result<String, String> {
-
+pub fn create_note(
+    app: AppHandle,
+    slug: String,
+    initial_contents: String,
+) -> Result<String, String> {
     let notes = notes_dir(&app)?;
 
     let path = unique_note_path(&notes, &slug)?;
@@ -159,57 +25,99 @@ pub fn create_note(app: AppHandle, slug: String, initial_contents: String) -> Re
     fs::write(&path, initial_contents).map_err(|error| error.to_string())?;
 
     Ok(path.to_string_lossy().into_owned())
-
 }
-
-
 
 #[tauri::command]
 
-pub fn read_file(path: String) -> Result<String, String> {
-
-    fs::read_to_string(path).map_err(|error| error.to_string())
-
+pub fn read_file(app: AppHandle, path: String) -> Result<String, String> {
+    let file_path = ensure_notes_path(&app, &path)?;
+    fs::read_to_string(file_path).map_err(|error| error.to_string())
 }
-
-
 
 #[tauri::command]
 
-pub fn write_file(path: String, contents: String) -> Result<(), String> {
-
-    let file_path = Path::new(&path);
-
-    if let Some(parent) = file_path.parent() {
-
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-
-    }
-
+pub fn write_file(app: AppHandle, path: String, contents: String) -> Result<(), String> {
+    let file_path = ensure_notes_path(&app, &path)?;
     fs::write(file_path, contents).map_err(|error| error.to_string())
-
 }
-
-
 
 #[tauri::command]
 
 pub fn delete_file(app: AppHandle, path: String) -> Result<(), String> {
-
     let file_path = ensure_notes_path(&app, &path)?;
 
-
-
     if !file_path.exists() {
-
         return Err("File not found.".into());
-
     }
 
-
-
     fs::remove_file(file_path).map_err(|error| error.to_string())
-
 }
 
+#[tauri::command]
+pub fn duplicate_file(app: AppHandle, path: String) -> Result<String, String> {
+    let source = ensure_notes_path(&app, &path)?;
+    if !source.exists() {
+        return Err("File not found.".into());
+    }
 
+    let notes = notes_dir(&app)?;
+    let stem = source
+        .file_stem()
+        .and_then(|name| name.to_str())
+        .unwrap_or("untitled");
+    let target = unique_note_path(&notes, &format!("{stem}-copy"))?;
+    fs::copy(&source, &target).map_err(|error| error.to_string())?;
+    Ok(target.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub fn reveal_file(app: AppHandle, path: String) -> Result<(), String> {
+    let file_path = ensure_notes_path(&app, &path)?;
+    if !file_path.exists() {
+        return Err("File not found.".into());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("explorer")
+            .arg(format!("/select,{}", file_path.to_string_lossy()))
+            .spawn()
+            .map_err(|error| error.to_string())?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg("-R")
+            .arg(&file_path)
+            .spawn()
+            .map_err(|error| error.to_string())?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let parent = file_path.parent().ok_or("File has no parent directory.")?;
+        open::that(parent).map_err(|error| error.to_string())?;
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn lookup_word(text: String) -> Result<bool, String> {
+    #[cfg(target_os = "macos")]
+    {
+        let word = text.trim();
+        if word.is_empty() {
+            return Ok(false);
+        }
+        open::that(format!("dict://{word}")).map_err(|error| error.to_string())?;
+        return Ok(true);
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = text;
+        Ok(false)
+    }
+}

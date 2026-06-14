@@ -1,0 +1,11 @@
+{
+  "version": "0.1.1",
+  "notes": "https://github.com/kangykii/loci-lite/releases/tag/app-v0.1.1",
+  "pub_date": "2026-06-14T03:41:03Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "",
+      "url": "https://github.com/kangykii/loci-lite/releases/download/app-v0.1.1/Loci.Notepad_0.1.1_x64-setup.exe"
+    }
+  }
+}

@@ -70,7 +70,7 @@
 }
 
 .shell-sidebar-panel {
-  position: absolute; top: 0; bottom: 0; left: 0; display: grid; width: max(var(--sidebar-w), calc(var(--u) * 20)); max-width: calc(100vw - var(--shell-inset-x)); grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--space-6); border: 1px solid var(--shell-chrome-border); border-left: 0; border-radius: 0 var(--radius-lg) var(--radius-lg) 0; background: var(--shell-chrome-bg-strong); color: var(--text-primary); overflow: hidden; padding: var(--space-6) var(--space-4); pointer-events: auto; outline: none; backdrop-filter: blur(var(--shell-chrome-blur)); -webkit-backdrop-filter: blur(var(--shell-chrome-blur));
+  position: absolute; top: 0; bottom: 0; left: 0; display: grid; width: max(var(--sidebar-w), calc(var(--u) * 20)); max-width: calc(100vw - var(--shell-inset-x)); grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--space-8); border: 1px solid var(--shell-chrome-border); border-left: 0; border-radius: 0 var(--radius-lg) var(--radius-lg) 0; background: var(--shell-chrome-bg-strong); color: var(--text-primary); overflow: hidden; padding: var(--space-4) var(--space-4) var(--space-6); pointer-events: auto; outline: none; backdrop-filter: blur(var(--shell-chrome-blur)); -webkit-backdrop-filter: blur(var(--shell-chrome-blur));
 }
 
 .shell-sidebar-nav, .shell-sidebar-nav-secondary, .shell-sidebar-library, .shell-sidebar-documents, .shell-sidebar-document-copy {
@@ -78,7 +78,7 @@
 }
 
 .shell-sidebar-nav, .shell-sidebar-nav-secondary {
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .shell-sidebar-nav-secondary {
@@ -86,19 +86,19 @@
 }
 
 .shell-sidebar-nav-item {
-  min-height: calc(var(--u) * 2.25); display: flex; align-items: center; gap: var(--space-3); border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 500; padding: var(--space-2) var(--space-3); text-align: left;
+  min-height: calc(var(--u) * 2.35); display: flex; align-items: center; gap: var(--space-3); border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 500; padding: var(--space-2) var(--space-3); text-align: left;
 }
 
 .shell-sidebar-heading {
-  display: block; width: 100%; border-radius: var(--radius-md); color: var(--text-primary); cursor: pointer; font-size: var(--text-xl); font-weight: 600; line-height: var(--editor-heading-line-height); padding: var(--space-1) var(--space-3); text-align: left;
+  display: block; width: 100%; border-radius: var(--radius-md); color: var(--text-primary); cursor: pointer; font-size: var(--text-xl); font-weight: 600; line-height: var(--editor-heading-line-height); padding: 0 var(--space-3) var(--space-1); text-align: left;
 }
 
 .shell-sidebar-heading:hover, .shell-sidebar-heading.active {
-  background: color-mix(in srgb, var(--shell-chrome-bg) 70%, var(--shell-chrome-bg-strong));
+  background: transparent;
 }
 
 .shell-sidebar-new-note {
-  display: flex; align-items: center; justify-content: center; gap: var(--space-2); border-radius: var(--radius-md); background: var(--accent-subtle); color: var(--accent-text); font-size: var(--text-sm); font-weight: 500; padding: var(--space-2) var(--space-3);
+  display: flex; min-height: calc(var(--u) * 2.4); align-items: center; justify-content: center; gap: var(--space-2); border-radius: var(--radius-md); background: var(--accent-subtle); color: var(--accent-text); font-size: var(--text-sm); font-weight: 500; padding: var(--space-2) var(--space-3);
 }
 
 .shell-sidebar-new-note:disabled {

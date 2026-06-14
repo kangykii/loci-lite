@@ -7,6 +7,10 @@ import {
   GESTURE_COMMIT_OPEN,
   isHorizontalWheelEvent,
   resetGestureAccumulator,
+  isBlockedTarget,
+  hasTextSelection,
+  setSidebarGestureVisual,
+  clearSidebarGestureVisual,
 } from '../lib/shellSidebarGesture';
 import type { ViewName } from './useViewTransition';
 
@@ -19,29 +23,6 @@ type ShellSidebarGestureOptions = {
   onGoHome: () => void;
   onOpenLastDocument: () => void;
 };
-
-function isBlockedTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-
-  return Boolean(
-    target.closest(
-      [
-        'input',
-        'textarea',
-        'select',
-        '[role="dialog"]',
-        '.context-menu-layer',
-        '.confirm-dialog-layer',
-        '.atom-popup-layer',
-        '.bookmark-stack-popup-layer',
-      ].join(','),
-    ),
-  );
-}
-
-function hasTextSelection(): boolean {
-  return (document.getSelection()?.toString().trim().length ?? 0) > 0;
-}
 
 export function useShellSidebarGesture({
   activeView,
@@ -77,17 +58,37 @@ export function useShellSidebarGesture({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      clearSidebarGestureVisual();
+      resetGestureAccumulator(accumRef.current);
+    };
   }, [isSidebarOpen, onCloseSidebar, onOpenSidebar]);
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
       const now = window.performance.now();
 
-      if (now < cooldownUntilRef.current || isGestureLocked) return;
-      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
-      if (isBlockedTarget(event.target) || hasTextSelection()) return;
-      if (!isHorizontalWheelEvent(event.deltaX, event.deltaY)) return;
+      if (now < cooldownUntilRef.current || isGestureLocked) {
+        clearSidebarGestureVisual();
+        return;
+      }
+
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+        clearSidebarGestureVisual();
+        resetGestureAccumulator(accumRef.current);
+        return;
+      }
+      if (isBlockedTarget(event.target) || hasTextSelection()) {
+        clearSidebarGestureVisual();
+        resetGestureAccumulator(accumRef.current);
+        return;
+      }
+      if (!isHorizontalWheelEvent(event.deltaX, event.deltaY)) {
+        clearSidebarGestureVisual();
+        resetGestureAccumulator(accumRef.current);
+        return;
+      }
 
       const direction = accumulateHorizontalWheel(
         accumRef.current,
@@ -95,17 +96,23 @@ export function useShellSidebarGesture({
         event.deltaY,
         now,
       );
-      if (!direction) return;
+      if (!direction) {
+        clearSidebarGestureVisual();
+        return;
+      }
 
       const threshold = direction === 'right' ? GESTURE_COMMIT_OPEN : GESTURE_COMMIT_NAV;
+
+      event.preventDefault();
+      setSidebarGestureVisual(direction, accumRef.current.sum, threshold);
 
       if (accumRef.current.sum < threshold) {
         return;
       }
 
-      event.preventDefault();
       cooldownUntilRef.current = now + GESTURE_COOLDOWN_MS;
       resetGestureAccumulator(accumRef.current);
+      clearSidebarGestureVisual();
 
       if (direction === 'right') {
         onOpenSidebar();
@@ -124,8 +131,12 @@ export function useShellSidebarGesture({
       }
     };
 
-    window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => window.removeEventListener('wheel', handleWheel);
+    window.addEventListener('wheel', handleWheel, { capture: true, passive: false });
+    return () => {
+      window.removeEventListener('wheel', handleWheel, { capture: true });
+      clearSidebarGestureVisual();
+      resetGestureAccumulator(accumRef.current);
+    };
   }, [
     activeView,
     isGestureLocked,

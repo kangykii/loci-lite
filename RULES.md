@@ -100,8 +100,13 @@ If the architecture disagrees with a solution you are about to implement, **stop
 - All `invoke()` calls live in `src/lib/tauri.ts` — nowhere else, ever
 - All Tauri commands are registered in `src-tauri/src/lib.rs`
 - Rust commands live in `src-tauri/src/commands/` — one file per concern (`file.rs`, `window.rs`)
+- File commands must canonicalize and stay inside the app notes directory; read/write/delete/reveal/duplicate must never accept arbitrary renderer-provided paths.
+- URL-opening commands must be allowlisted by destination and scheme. Do not add generic external URL openers.
 - Never use `@tauri-apps/api` imports outside of `lib/tauri.ts`
 - Use Tauri 2 API shapes — not Tauri 1. They are not the same. If uncertain, check the Tauri 2 docs before writing
+
+- Windows release builds must target NSIS only (`"targets": ["nsis"]`) so the app produces the setup `.exe` and does not generate MSI installers.
+- Local Windows release builds keep `createUpdaterArtifacts` disabled unless a signing private key is intentionally supplied for an updater release.
 
 ---
 
@@ -119,7 +124,7 @@ If the architecture disagrees with a solution you are about to implement, **stop
 ## Browse search rules
 
 - **Home / Documents:** [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts) loads registry rows + markdown haystack; views filter with [`matchesSearch`](src/lib/searchMatch.ts) in `useMemo` on every keystroke. Home shows recent 10 when query is empty.
-- **Bookmarks:** client-side filter on `atom.sourceText` only in [`AtomPanel.tsx`](src/components/atoms/AtomPanel.tsx); composes with type filter popover. No `useSearchableDocuments` on Bookmarks.
+- **Bookmarks:** load definition atoms only; client-side filter on `atom.sourceText` only in [`AtomPanel.tsx`](src/components/atoms/AtomPanel.tsx). Notes and reminders never appear in Bookmarks. No `useSearchableDocuments` on Bookmarks.
 - **Match semantics v1:** case-insensitive substring only — no fuzzy, regex, or Enter-to-search.
 - **Layer:** `readFile` and `listAllFiles` stay in hooks; components hold `searchQuery` state only.
 
@@ -130,6 +135,7 @@ If the architecture disagrees with a solution you are about to implement, **stop
 - **Confirm first:** every delete (note or bookmark) opens [`ConfirmDialog.tsx`](src/components/ui/ConfirmDialog.tsx) before any store or Tauri call. No `window.confirm`.
 - **Note delete:** [`useDeleteDocument.ts`](src/hooks/useDeleteDocument.ts) only — disk via [`delete_file`](src/lib/tauri.ts), registry via [`files.store`](src/store/files.store.ts) `deleteFile`. Components never call these directly.
 - **Bookmark delete:** `useAtoms.removeAtom` only after `ConfirmDialog` (card X, bin drop, editor tooltip).
+- **Context menus:** destructive delete entries must be separated from reveal/open/navigation entries by a visible separator. `Reveal in Finder` and `Delete` must never be adjacent.
 - **Layer:** `invoke('delete_file')` only in `lib/tauri.ts`; no delete logic in Lexical plugins.
 - **Drag payload:** `writeDragPayload` / `readDragPayload` in [`deletePayload.ts`](src/lib/deletePayload.ts) only; MIME `application/x-loci-delete` + `text/plain` fallback.
 - **Drag sources:** whole `.document-row` / `.bookmark-flashcard` body (`div` / `article`) — never `draggable` on `<button>`; no grip handles.
@@ -215,6 +221,15 @@ Shell browse views (home, workspace, documents, atoms, settings) share `--shell-
 
 ---
 
+## Auth rules
+
+- Email login is an 8-digit Supabase OTP code flow. Do not add `emailRedirectTo` to `signInWithOtp`; existing-account login must use `shouldCreateUser: false`.
+- Existing accounts can log in with either Supabase password auth or an email code; password login should be the default existing-account path to avoid wasting OTP emails.
+- First signup setup must collect name and password in the auth popup before opening the full Account view.
+- User-facing auth dialog errors must go through `useNotifications().notifyError`; never render inline auth error copy inside `ProfileSignIn`.
+
+---
+
 ## React rules
 
 - React 19 only — do not use patterns that were deprecated in React 18 or earlier
@@ -285,6 +300,7 @@ A task is not done until all of these are true:
 - [ ] Outline panel uses `--outline-panel-w` and `--outline-panel-max-h` (no hardcoded outline rem widths)
 - [ ] Outline panel header uses document title, not the word "Outline"
 - [ ] Theme uses dual-layer tokens (`data-theme` + `prefers-color-scheme` fallback); DESIGN updated
+- [ ] Notebook themes store ids, set `data-theme` mode + `data-notebook-theme` variant, and gate paid covers through Modern Writer or `cosmetics.slug`
 - [ ] Editor bar has prompt field; no Focus/Authorship/Atoms text buttons
 - [ ] Mode toggles use `AppleToggle` in overflow menu only
 - [ ] Focus mode toggle wired via `useFocusMode` + overflow `AppleToggle` (not a bar text button)
@@ -301,6 +317,8 @@ A task is not done until all of these are true:
 - [ ] Editor `.editor-bar` and `FocusExitButton` portaled to `document.body` — not DOM descendants of `[data-view]`
 - [ ] Note entry uses `chrome-offstage` + `useEditorChromeEntry`; editor bar reveals after document `ready` — shell header not offstaged
 - [ ] Editor `[data-view]` open/close transitions are opacity-only — no shell transform during load
+- [ ] Swipe quick-nav must not translate `.view-stage` or `[data-view]`; horizontal gesture feedback belongs in the sidebar edge-pull affordance only
+- [ ] Recognized horizontal wheel gestures call `preventDefault()` during accumulation so Tauri/WebView2 cannot native-pan the page before commit
 - [ ] View navigation goes through `useViewTransition` in `App.tsx` only — views never import the hook
 - [ ] `scrollbars.css` imported in `main.tsx` after `tokens.css`; shell scrollbars hidden; document Cursor-style 3px overlay thumb (`--scrollbar-thumb`, `--scrollbar-thumb-hover`, dual-theme tokens) via `useDocumentScrollbar` + `html.is-scrolling`; no `scrollbar-gutter: stable`
 - [ ] `transitions.css` imported in `main.tsx` after `scrollbars.css`; no hardcoded transition ms in components
@@ -308,7 +326,7 @@ A task is not done until all of these are true:
 - [ ] `TransitionShell` applies `data-view` / `data-state` / `data-transition` only — no timing logic
 - [ ] Home `.recent-list` and Documents `.documents-list` use `data-stagger`, `--stagger-index`, and `useSearchStagger` on query change
 - [ ] Home/Documents search filters live on keystroke via `useSearchableDocuments` + `matchesSearch`
-- [ ] Bookmarks search filters `sourceText` only; composes with type filter popover
+- [ ] Bookmarks load definitions only and search filters `sourceText` only
 - [ ] Home View all opens Documents; Documents Filter button remains disabled shell
 - [ ] Note delete uses `ConfirmDialog` + `useDeleteDocument` (editor menu or Documents bin drop)
 - [ ] Bookmark delete uses `ConfirmDialog` before `useAtoms.removeAtom` (bin drop on Bookmarks, editor tooltip — not card back)
@@ -331,6 +349,7 @@ A task is not done until all of these are true:
 - [ ] TypeScript has no `any` types unless explicitly justified in a comment
 - [ ] Notification host portaled from `NotificationProvider` in `App.tsx` — max 3 chips top-right
 - [ ] Save/error ack via `useNotifications()` in hooks (not `settings.store` in views); no third-party toast libraries
+- [ ] Auth dialog errors use `useNotifications().notifyError`; no inline auth error copy in `ProfileSignIn`
 - [ ] Error notification tone uses `--destructive` on icon/label only — no accent or solid destructive fill on chips
 
 ---

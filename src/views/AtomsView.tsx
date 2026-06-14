@@ -2,17 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import AtomPanel from '../components/atoms/AtomPanel';
 import AtomPopup from '../components/atoms/AtomPopup';
-import BookmarkFilterMenu from '../components/atoms/BookmarkFilterMenu';
 import BookmarkStackPopup from '../components/atoms/BookmarkStackPopup';
 import BrowseDeleteBin from '../components/ui/BrowseDeleteBin';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import SearchField from '../components/ui/SearchField';
 import { useAtoms } from '../hooks/useAtoms';
+import { useBookmarkContextMenu } from '../hooks/useBookmarkContextMenu';
 import { useNotifications } from '../hooks/useNotifications';
 import { useBookmarkStacks } from '../hooks/useBookmarkStacks';
 import { useDocumentTitles } from '../hooks/useDocumentTitles';
 import { useStackDisplayNames } from '../hooks/useStackDisplayNames';
-import type { AtomFilter } from '../lib/atomLabels';
 import type { AtomRecord } from '../lib/atomTypes';
 import {
   buildBookmarkGridItems,
@@ -34,7 +33,6 @@ type PendingBookmarkDelete = {
 export default function AtomsView({ listRefreshKey }: AtomsViewProps) {
   const { notifyBookmark } = useNotifications();
   const canDelete = isTauri();
-  const [filter, setFilter] = useState<AtomFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingDelete, setPendingDelete] = useState<PendingBookmarkDelete | null>(null);
   const [editingAtom, setEditingAtom] = useState<AtomRecord | null>(null);
@@ -113,7 +111,15 @@ export default function AtomsView({ listRefreshKey }: AtomsViewProps) {
   );
 
   const handleUpdateAtom = useCallback(
-    (id: string, payload: { type: AtomRecord['type']; content: string; sourceText: string }) => {
+    (
+      id: string,
+      payload: {
+        type: AtomRecord['type'];
+        content: string;
+        sourceText: string;
+        reminderDueAt: number | null;
+      },
+    ) => {
       setIsUpdating(true);
       setUpdateError(null);
 
@@ -121,6 +127,7 @@ export default function AtomsView({ listRefreshKey }: AtomsViewProps) {
         type: payload.type,
         answer: payload.content,
         sourceText: payload.sourceText,
+        reminderDueAt: payload.reminderDueAt,
       })
         .then(() => {
           setEditingAtom(null);
@@ -173,6 +180,38 @@ export default function AtomsView({ listRefreshKey }: AtomsViewProps) {
       });
   }, [loadAll, pendingDelete, removeAtom]);
 
+  const handleDeleteStack = useCallback(
+    (ids: string[]) => {
+      setIsRemoving(true);
+      setDeleteError(null);
+
+      void Promise.all(ids.map((id) => removeAtom(id)))
+        .then(() => {
+          void loadAll();
+        })
+        .catch((cause: unknown) => {
+          const message = cause instanceof Error ? cause.message : 'Failed to delete stack';
+          setDeleteError(message);
+        })
+        .finally(() => {
+          setIsRemoving(false);
+        });
+    },
+    [loadAll, removeAtom],
+  );
+
+  const bookmarkMenu = useBookmarkContextMenu({
+    deleteError,
+    isRemoving,
+    onClearDeleteError: () => setDeleteError(null),
+    onDeleteAtom: openDeleteConfirm,
+    onDeleteStack: handleDeleteStack,
+    onEditAtom: openEdit,
+    onRenameStack: (groupLabel, name) => {
+      void renameStack(groupLabel, name);
+    },
+  });
+
   const handleStackDrop = useCallback(
     (draggedId: string, targetId: string) => {
       void stackBookmarks(draggedId, targetId);
@@ -190,7 +229,6 @@ export default function AtomsView({ listRefreshKey }: AtomsViewProps) {
             placeholder="Bookmark search..."
             value={searchQuery}
           />
-          <BookmarkFilterMenu filter={filter} onFilterChange={setFilter} />
           <BrowseDeleteBin
             acceptKind="bookmark"
             disabled={!canDelete}
@@ -209,8 +247,9 @@ export default function AtomsView({ listRefreshKey }: AtomsViewProps) {
           documentTitles={documentTitles}
           draggable={canDelete}
           error={error}
-          filter={filter}
           onOpenStack={setOpenStack}
+          onContextMenuAtom={bookmarkMenu.openAtomMenu}
+          onContextMenuStack={bookmarkMenu.openStackMenu}
           onRenameStack={(groupLabel, name) => {
             void renameStack(groupLabel, name);
           }}
@@ -252,6 +291,7 @@ export default function AtomsView({ listRefreshKey }: AtomsViewProps) {
           onSave={(payload) => handleUpdateAtom(editingAtom.id, payload)}
           saveLabel="Save changes"
           selectedText={editingAtom.sourceText}
+          typeOptions={['definition']}
         />
       ) : null}
 
@@ -277,6 +317,7 @@ export default function AtomsView({ listRefreshKey }: AtomsViewProps) {
         onConfirm={handleConfirmDelete}
         title="Delete bookmark?"
       />
+      {bookmarkMenu.element}
     </main>
   );
 }

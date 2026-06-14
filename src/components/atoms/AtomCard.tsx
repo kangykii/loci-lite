@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useState, type KeyboardEvent, type MouseEvent } from 'react';
 
 import { ATOM_TYPE_LABELS } from '../../lib/atomLabels';
 import {
@@ -15,6 +15,7 @@ type AtomCardProps = {
   documentTitle: string;
   draggable?: boolean;
   onRequestEdit: (id: string) => void;
+  onContextMenu?: (event: MouseEvent, atom: AtomRecord) => void;
   onStackDrop?: (draggedId: string, targetId: string) => void;
 };
 
@@ -23,6 +24,7 @@ export default function AtomCard({
   documentTitle,
   draggable = false,
   onRequestEdit,
+  onContextMenu,
   onStackDrop,
 }: AtomCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -59,6 +61,7 @@ export default function AtomCard({
 
         toggleFlip();
       }}
+      onContextMenu={(event) => onContextMenu?.(event, atom)}
       onDragEnd={endBrowseDrag}
       onDragStart={
         draggable

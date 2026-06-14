@@ -1,171 +1,55 @@
 import { $convertToMarkdownString } from '@lexical/markdown';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { Bookmark, Check } from 'lucide-react';
+import { Bookmark, Check, Copy, Scissors, Search, Sparkles, Clipboard } from 'lucide-react';
 import { $getSelection, $isRangeSelection } from 'lexical';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import ContextMenu from '../../components/ui/ContextMenu';
-import type { ContextMenuItem } from '../../components/ui/ContextMenu';
+import SearchInNotesModal from '../../components/editor/SearchInNotesModal';
+import ContextMenu, { type ContextMenuEntry } from '../../components/ui/ContextMenu';
 import { findSpanInMarkdown } from '../../lib/atomSpans';
+import { lookupWord } from '../../lib/tauri';
+import { useSearchableDocuments } from '../../hooks/useSearchableDocuments';
 import { markdownTransformers } from '../config/markdownTransformers';
-import {
-  type AuthorshipAnnotationItem,
-  useAuthorshipEditorContext,
-} from '../context/AuthorshipEditorContext';
+import { useAuthorshipEditorContext } from '../context/AuthorshipEditorContext';
 import { useEditorChromeContext } from '../context/EditorChromeContext';
+import {
+  findIntersectingAnnotation,
+  intersectionRange,
+} from '../lib/contextMenuAnnotations';
+import {
+  clickedMarkdownOffset,
+  selectedMarkdownRange,
+  textForRange,
+  wordRangeAtOffset,
+  type MarkdownRange,
+} from '../lib/contextMenuRanges';
 
 type MenuState = {
   x: number;
   y: number;
   selectedText: string;
+  lookupText: string;
   annotationId: string | null;
-  markSpanStart: number | null;
-  markSpanEnd: number | null;
+  markRange: MarkdownRange | null;
 };
 
-type MarkdownRange = {
-  spanStart: number;
-  spanEnd: number;
-};
-
-type DocumentWithCaret = Document & {
-  caretPositionFromPoint?: (x: number, y: number) => {
-    offsetNode: Node;
-    offset: number;
-  } | null;
-  caretRangeFromPoint?: (x: number, y: number) => Range | null;
-};
-
-function nodeTextLength(node: Node): number {
-  return node.textContent?.length ?? 0;
-}
-
-function domPointToMarkdownOffset(root: HTMLElement, target: Node, offset: number): number | null {
-  let currentOffset = 0;
-  let found: number | null = null;
-  let previousBlockHadText = false;
-
-  function walk(node: Node): void {
-    if (found !== null) {
-      return;
-    }
-
-    if (node === target) {
-      found = currentOffset + offset;
-      return;
-    }
-
-    if (node.nodeType === Node.TEXT_NODE) {
-      currentOffset += nodeTextLength(node);
-      return;
-    }
-
-    for (const child of Array.from(node.childNodes)) {
-      walk(child);
-    }
-  }
-
-  for (const child of Array.from(root.childNodes)) {
-    if (!nodeTextLength(child)) {
-      continue;
-    }
-
-    if (previousBlockHadText) {
-      currentOffset += 2;
-    }
-
-    walk(child);
-    previousBlockHadText = true;
-  }
-
-  return found;
-}
-
-function selectedMarkdownRange(root: HTMLElement): MarkdownRange | null {
-  const selection = window.getSelection();
-  if (!selection || selection.isCollapsed || !selection.anchorNode || !selection.focusNode) {
-    return null;
-  }
-
-  if (!root.contains(selection.anchorNode) || !root.contains(selection.focusNode)) {
-    return null;
-  }
-
-  const anchor = domPointToMarkdownOffset(root, selection.anchorNode, selection.anchorOffset);
-  const focus = domPointToMarkdownOffset(root, selection.focusNode, selection.focusOffset);
-  if (anchor === null || focus === null || anchor === focus) {
-    return null;
-  }
-
-  return {
-    spanStart: Math.min(anchor, focus),
-    spanEnd: Math.max(anchor, focus),
-  };
-}
-
-function clickedMarkdownOffset(root: HTMLElement, event: MouseEvent): number | null {
-  const doc = document as DocumentWithCaret;
-  const position = doc.caretPositionFromPoint?.(event.clientX, event.clientY);
-  if (position) {
-    return domPointToMarkdownOffset(root, position.offsetNode, position.offset);
-  }
-
-  const range = doc.caretRangeFromPoint?.(event.clientX, event.clientY);
-  if (!range) {
-    return null;
-  }
-
-  return domPointToMarkdownOffset(root, range.startContainer, range.startOffset);
-}
-
-function wordRangeAtOffset(markdown: string, offset: number): MarkdownRange {
-  let start = Math.max(0, Math.min(offset, markdown.length));
-  let end = start;
-
-  while (start > 0 && /\S/.test(markdown[start - 1])) {
-    start -= 1;
-  }
-
-  while (end < markdown.length && /\S/.test(markdown[end])) {
-    end += 1;
-  }
-
-  return start === end
-    ? { spanStart: start, spanEnd: Math.min(markdown.length, start + 1) }
-    : { spanStart: start, spanEnd: end };
-}
-
-function findIntersectingAnnotation(
-  annotations: AuthorshipAnnotationItem[],
-  range: MarkdownRange,
-): AuthorshipAnnotationItem | null {
-  const matches = annotations.filter(
-    (annotation) =>
-      annotation.spanStart < range.spanEnd && range.spanStart < annotation.spanEnd,
-  );
-
-  return matches.sort(
-    (left, right) =>
-      left.spanEnd - left.spanStart - (right.spanEnd - right.spanStart),
-  )[0] ?? null;
-}
+const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
 
 export default function ContextMenuPlugin() {
   const [editor] = useLexicalComposerContext();
-  const { onBookmarkRequest } = useEditorChromeContext();
+  const { onBookmarkRequest, onOpenDocument } = useEditorChromeContext();
   const { annotations, onMarkAsMine } = useAuthorshipEditorContext();
+  const { documents, refresh } = useSearchableDocuments();
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string | null>(null);
 
   useEffect(() => {
     const root = editor.getRootElement();
-    if (!root) {
-      return;
-    }
+    if (!root) return;
 
     const handleContextMenu = (event: MouseEvent) => {
       let selectedText = '';
       let markdown = '';
-
       editor.getEditorState().read(() => {
         markdown = $convertToMarkdownString(markdownTransformers);
         const selection = $getSelection();
@@ -179,32 +63,16 @@ export default function ContextMenuPlugin() {
       const candidateRange =
         selectionRange ??
         (clickedOffset === null ? null : wordRangeAtOffset(markdown, clickedOffset));
-      const annotation =
-        candidateRange === null
-          ? null
-          : findIntersectingAnnotation(annotations, candidateRange);
-      const markSpanStart =
-        annotation && candidateRange
-          ? Math.max(annotation.spanStart, candidateRange.spanStart)
-          : null;
-      const markSpanEnd =
-        annotation && candidateRange
-          ? Math.min(annotation.spanEnd, candidateRange.spanEnd)
-          : null;
-
-      if (!annotation && !selectedText) {
-        setMenu(null);
-        return;
-      }
+      const annotation = findIntersectingAnnotation(annotations, candidateRange);
 
       event.preventDefault();
       setMenu({
         x: event.clientX,
         y: event.clientY,
         selectedText,
+        lookupText: selectedText || textForRange(markdown, candidateRange),
         annotationId: annotation?.id ?? null,
-        markSpanStart,
-        markSpanEnd,
+        markRange: intersectionRange(annotation, candidateRange),
       });
     };
 
@@ -213,84 +81,69 @@ export default function ContextMenuPlugin() {
   }, [annotations, editor]);
 
   const handleBookmark = useCallback(() => {
-    if (!menu?.selectedText) {
-      return;
-    }
-
+    if (!menu?.selectedText) return;
     editor.getEditorState().read(() => {
       const markdown = $convertToMarkdownString(markdownTransformers);
       const spans = findSpanInMarkdown(markdown, menu.selectedText);
-
       onBookmarkRequest({
         selectedText: menu.selectedText,
         spanStart: spans?.spanStart ?? null,
         spanEnd: spans?.spanEnd ?? null,
       });
     });
-
-    setMenu(null);
   }, [editor, menu, onBookmarkRequest]);
 
   const handleMarkAsMine = useCallback(() => {
-    if (
-      !menu?.annotationId ||
-      menu.markSpanStart === null ||
-      menu.markSpanEnd === null
-    ) {
-      return;
-    }
-
-    const annotationId = menu.annotationId;
-    const spanStart = menu.markSpanStart;
-    const spanEnd = menu.markSpanEnd;
-    setMenu(null);
-
+    if (!menu?.annotationId || !menu.markRange) return;
     void Promise.resolve(
       onMarkAsMine({
-        annotationId,
-        spanStart,
-        spanEnd,
+        annotationId: menu.annotationId,
+        spanStart: menu.markRange.spanStart,
+        spanEnd: menu.markRange.spanEnd,
       }),
     ).catch(() => undefined);
   }, [menu, onMarkAsMine]);
 
-  const menuItems = useMemo<ContextMenuItem[]>(() => {
-    if (!menu) {
-      return [];
-    }
+  const menuItems = useMemo<ContextMenuEntry[]>(() => {
+    if (!menu) return [];
+    const textLabel = menu.lookupText ? `"${menu.lookupText.slice(0, 28)}"` : 'selection';
+    return [
+      { label: 'Cut', icon: <Scissors size={16} strokeWidth={1.5} />, onClick: () => document.execCommand('cut') },
+      { label: 'Copy', icon: <Copy size={16} strokeWidth={1.5} />, onClick: () => document.execCommand('copy') },
+      { label: 'Paste', icon: <Clipboard size={16} strokeWidth={1.5} />, onClick: () => document.execCommand('paste') },
+      { kind: 'separator' },
+      { label: 'Bookmark', icon: <Bookmark size={16} strokeWidth={1.5} />, hidden: !menu.selectedText, onClick: handleBookmark },
+      { label: 'Mark as mine', icon: <Check size={16} strokeWidth={1.5} />, hidden: !menu.annotationId, onClick: handleMarkAsMine },
+      { kind: 'separator' },
+      { label: `Look up ${textLabel}`, icon: <Sparkles size={16} strokeWidth={1.5} />, hidden: !isMac || !menu.lookupText, onClick: () => void lookupWord(menu.lookupText) },
+      { label: 'Search in notes', icon: <Search size={16} strokeWidth={1.5} />, disabled: !menu.lookupText, onClick: () => { void refresh(); setSearchQuery(menu.lookupText); } },
+    ];
+  }, [handleBookmark, handleMarkAsMine, menu, refresh]);
 
-    const items: ContextMenuItem[] = [];
-
-    if (menu.annotationId) {
-      items.push({
-        label: 'Mark as mine',
-        icon: <Check size={16} strokeWidth={1.5} />,
-        onClick: handleMarkAsMine,
-      });
-    }
-
-    if (menu.selectedText) {
-      items.push({
-        label: 'Bookmark',
-        icon: <Bookmark size={16} strokeWidth={1.5} />,
-        onClick: handleBookmark,
-      });
-    }
-
-    return items;
-  }, [handleBookmark, handleMarkAsMine, menu]);
-
-  if (!menu) {
-    return null;
-  }
-
-  return createPortal(
-    <ContextMenu
-      items={menuItems}
-      onClose={() => setMenu(null)}
-      x={menu.x}
-      y={menu.y}
-    />,
-    document.body,
+  return (
+    <>
+      {menu
+        ? createPortal(
+            <ContextMenu
+              items={menuItems}
+              onClose={() => setMenu(null)}
+              x={menu.x}
+              y={menu.y}
+            />,
+            document.body,
+          )
+        : null}
+      {searchQuery
+        ? createPortal(
+            <SearchInNotesModal
+              documents={documents}
+              onClose={() => setSearchQuery(null)}
+              onOpenDocument={onOpenDocument}
+              query={searchQuery}
+            />,
+            document.body,
+          )
+        : null}
+    </>
   );
 }

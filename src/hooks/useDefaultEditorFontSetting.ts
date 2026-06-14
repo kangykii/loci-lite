@@ -7,6 +7,7 @@ import {
 } from '../lib/editorFont';
 import { isTauri } from '../lib/tauri';
 import { initDb } from '../store/db';
+import { markFeatureLearned } from '../store/onboarding.store';
 import { getDefaultEditorFont, setDefaultEditorFont } from '../store/settings.store';
 import { useNotifications } from './useNotifications';
 
@@ -54,6 +55,7 @@ export function useDefaultEditorFontSetting() {
     if (isTauri()) {
       await initDb();
       await setDefaultEditorFont(choice);
+      void markFeatureLearned('fonts');
       notifySaved();
     }
   }, [notifySaved]);

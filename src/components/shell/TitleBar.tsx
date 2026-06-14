@@ -1,5 +1,5 @@
 import { Moon, Settings, Sun } from 'lucide-react';
-import type { Theme } from '../../lib/theme';
+import { getNotebookTheme, type Theme } from '../../lib/theme';
 
 type TitleBarProps = {
   activeView: 'home' | 'editor' | 'documents' | 'atoms' | 'settings';
@@ -16,6 +16,8 @@ export default function TitleBar({
   onThemeToggle,
   theme,
 }: TitleBarProps) {
+  const themeMode = getNotebookTheme(theme).mode;
+
   return (
     <header aria-label="Loci Notepad title bar" className="titlebar">
       <nav className="titlebar-group" aria-label="Primary navigation">
@@ -51,12 +53,12 @@ export default function TitleBar({
           <Settings size={16} strokeWidth={1.5} />
         </button>
         <button
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           className="titlebar-icon-button"
           onClick={onThemeToggle}
           type="button"
         >
-          {theme === 'dark' ? (
+          {themeMode === 'dark' ? (
             <Sun size={16} strokeWidth={1.5} />
           ) : (
             <Moon size={16} strokeWidth={1.5} />

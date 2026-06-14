@@ -26,9 +26,9 @@
 
 .window-chrome-zone {
   position: fixed;
-  top: var(--space-2);
-  right: var(--shell-inset-x);
-  left: var(--shell-inset-x);
+  top: 0;
+  right: 0;
+  left: 0;
   z-index: 400;
   height: var(--window-chrome-hit-h);
 }
@@ -42,7 +42,11 @@
   display: flex;
   height: var(--window-chrome-h);
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
+  box-sizing: border-box;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-solid);
   opacity: 0;
   transform: translateY(calc(-1 * var(--window-chrome-h)));
   pointer-events: none;
@@ -62,11 +66,11 @@
   align-items: center;
   gap: var(--window-control-gap);
   flex-shrink: 0;
-  margin-inline-start: auto;
   -webkit-app-region: no-drag;
 }
 
 .window-control {
+  position: relative;
   display: grid;
   width: var(--window-control-size);
   height: var(--window-control-size);
@@ -75,7 +79,7 @@
   border: none;
   border-radius: var(--radius-pill);
   background: var(--window-control-rest);
-  color: transparent;
+  color: var(--window-control-icon);
   cursor: pointer;
   box-sizing: border-box;
   transition:
@@ -83,15 +87,59 @@
     color var(--dur-fast) ease;
 }
 
-.window-control svg {
+.window-control::before,
+.window-control::after {
+  position: absolute;
+  background: currentColor;
+  content: "";
   opacity: 0;
   transition: opacity var(--dur-fast) ease;
 }
 
-.window-chrome-zone:is(:hover, :focus-within, .is-revealed) .window-control svg,
-.window-chrome-controls:hover .window-control svg,
-.window-control:hover svg,
-.window-control:focus-visible svg {
+.window-control-close::before,
+.window-control-close::after {
+  width: 7px;
+  height: 1.25px;
+  border-radius: var(--radius-pill);
+}
+
+.window-control-close::before {
+  transform: rotate(45deg);
+}
+
+.window-control-close::after {
+  transform: rotate(-45deg);
+}
+
+.window-control-minimize::before {
+  width: 7px;
+  height: 1.25px;
+  border-radius: var(--radius-pill);
+}
+
+.window-control-maximize::before,
+.window-control-maximize::after {
+  width: 5px;
+  height: 1.25px;
+  border-radius: var(--radius-pill);
+}
+
+.window-control-maximize::before {
+  transform: translate(-1.75px, 1.75px) rotate(45deg);
+}
+
+.window-control-maximize::after {
+  transform: translate(1.75px, -1.75px) rotate(45deg);
+}
+
+.window-chrome-zone:is(:hover, :focus-within, .is-revealed) .window-control::before,
+.window-chrome-zone:is(:hover, :focus-within, .is-revealed) .window-control::after,
+.window-chrome-controls:hover .window-control::before,
+.window-chrome-controls:hover .window-control::after,
+.window-control:hover::before,
+.window-control:hover::after,
+.window-control:focus-visible::before,
+.window-control:focus-visible::after {
   opacity: 1;
 }
 
@@ -455,9 +503,12 @@
 }
 
 .context-menu {
+  --context-menu-w: calc(var(--u) * 13);
   position: fixed;
   display: grid;
-  min-width: 10rem;
+  width: var(--context-menu-w);
+  max-height: calc(100vh - 2 * var(--space-2));
+  overflow-y: auto;
   border-radius: var(--radius-md);
   background: var(--surface-strong);
   box-shadow: var(--shadow-md);
@@ -484,8 +535,163 @@
   width: 100%;
 }
 
-.context-menu-item:hover {
+.context-menu-item:hover:not(:disabled) {
   background: color-mix(in srgb, var(--shell-chrome-bg) 70%, var(--shell-chrome-bg-strong));
   color: var(--text-primary);
+}
+
+.context-menu-item:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.context-menu-item.is-destructive {
+  color: var(--destructive);
+}
+
+.context-menu-separator {
+  height: 1px;
+  margin: var(--space-1) var(--space-2);
+  background: var(--border);
+}
+
+.rename-note-layer,
+.search-notes-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg-deep) 52%, transparent);
+}
+
+.rename-note-dialog,
+.search-notes-modal {
+  width: min(calc(var(--u) * 24), calc(100vw - 2 * var(--shell-inset-x)));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  padding: var(--space-4);
+}
+
+.rename-note-dialog {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.rename-note-dialog h2,
+.search-notes-header h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.rename-note-dialog label {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.rename-note-dialog input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+}
+
+.rename-note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.rename-note-actions button,
+.search-notes-close,
+.search-notes-result {
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.rename-note-actions button {
+  padding: var(--space-2) var(--space-3);
+}
+
+.rename-note-actions button[type='submit'] {
+  background: var(--accent);
+  color: var(--destructive-on);
+}
+
+.rename-note-actions button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.search-notes-modal {
+  display: grid;
+  gap: var(--space-3);
+  max-height: min(calc(var(--u) * 30), calc(100vh - 2 * var(--space-8)));
+}
+
+.search-notes-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.search-notes-header p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.search-notes-close {
+  padding: var(--space-1) var(--space-2);
+}
+
+.search-notes-results {
+  display: grid;
+  gap: var(--space-2);
+  overflow-y: auto;
+}
+
+.search-notes-result {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  text-align: left;
+}
+
+.search-notes-result:hover {
+  background: var(--surface);
+}
+
+.search-notes-result strong {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.search-notes-result span,
+.search-notes-result p,
+.search-notes-empty {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.search-notes-result p,
+.search-notes-empty {
+  margin: 0;
 }
 

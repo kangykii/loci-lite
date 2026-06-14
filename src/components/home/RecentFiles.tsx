@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import type { MouseEvent } from 'react';
 
 import SearchField from '../ui/SearchField';
 import type { SearchableDocument } from '../../hooks/useSearchableDocuments';
@@ -12,6 +13,7 @@ type RecentFilesProps = {
   onSearchChange: (query: string) => void;
   onOpenEditor: (fileId: string) => void;
   onOpenDocuments: () => void;
+  onDocumentContextMenu?: (event: MouseEvent, document: SearchableDocument) => void;
   listStaggerLeaving?: boolean;
 };
 
@@ -24,6 +26,7 @@ export default function RecentFiles({
   onSearchChange,
   onOpenEditor,
   onOpenDocuments,
+  onDocumentContextMenu,
   listStaggerLeaving = false,
 }: RecentFilesProps) {
   return (
@@ -60,6 +63,7 @@ export default function RecentFiles({
             className="recent-row"
             key={file.id}
             onClick={() => onOpenEditor(file.id)}
+            onContextMenu={(event) => onDocumentContextMenu?.(event, file)}
             style={{ '--stagger-index': index } as CSSProperties}
             type="button"
           >

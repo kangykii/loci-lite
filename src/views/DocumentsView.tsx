@@ -9,6 +9,8 @@ import SearchField from '../components/ui/SearchField';
 
 import { useDeleteDocument } from '../hooks/useDeleteDocument';
 
+import { useDocumentContextMenu } from '../hooks/useDocumentContextMenu';
+
 import { useSearchableDocuments } from '../hooks/useSearchableDocuments';
 import { useSearchStagger } from '../hooks/useSearchStagger';
 
@@ -81,6 +83,12 @@ export default function DocumentsView({
   const { documents, status, refresh } = useSearchableDocuments();
 
   const { remove, isDeleting, error: deleteError, clearError } = useDeleteDocument();
+
+  const documentMenu = useDocumentContextMenu({
+    onChanged: refresh,
+    onDeleted: onDocumentDeleted,
+    onOpenDocument: onOpenEditor,
+  });
 
 
 
@@ -278,6 +286,8 @@ export default function DocumentsView({
 
               }}
 
+              onContextMenu={(event) => documentMenu.openMenu(event, document)}
+
               onDragEnd={endBrowseDrag}
 
               onDragStart={(event) => {
@@ -395,6 +405,8 @@ export default function DocumentsView({
         title="Delete note?"
 
       />
+
+      {documentMenu.element}
 
     </main>
 

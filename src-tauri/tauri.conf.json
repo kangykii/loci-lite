@@ -21,19 +21,21 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: https://asset.localhost data:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://checkout.stripe.com; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
     }
   },
   "plugins": {
-    "updater": {
-      "active": true,
-      "dialog": true,
-      "endpoints": [
-        "https://raw.githubusercontent.com/kangykii/loci-lite/main/updates/latest.json"
-      ]
-    },
     "sql": {
       "preload": ["sqlite:loci.db"]
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZEOEQyMzVCQzdGQkNDODYKUldTR3pQdkhXeU9OL1pad3JEKys4cHp3dUxBZWxSZmJRYzVrQWlnRXB3cCtFejlYcUtrcURmN0YK",
+      "endpoints": [
+        "https://raw.githubusercontent.com/kangykii/loci-lite/master/updates/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     },
     "oauth": {
       "ports": [54321]
@@ -41,7 +43,8 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "createUpdaterArtifacts": false,
+    "targets": ["nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

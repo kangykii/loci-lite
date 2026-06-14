@@ -18,7 +18,9 @@ import { updateRemoteDisplayName, type RemoteProfile } from '../store/remote.sto
 import { useAuth } from './useAuth';
 
 type AuthContextValue = ReturnType<typeof useAuth> & {
+  cosmetics: string[];
   profile: RemoteProfile | null;
+  profileReady: boolean;
   refreshProfile: () => Promise<void>;
   renameProfile: (displayName: string) => Promise<boolean>;
 };
@@ -30,20 +32,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<RemoteProfile | null>(
     () => getRemoteSessionSnapshot().profile,
   );
+  const [cosmetics, setCosmetics] = useState<string[]>(() => getRemoteSessionSnapshot().cosmetics);
+  const [profileReady, setProfileReady] = useState(false);
 
   const refreshProfile = useCallback(async () => {
     const next = await syncRemoteProfile();
     setProfile(next.profile);
+    setCosmetics(next.cosmetics);
+    setProfileReady(true);
   }, []);
 
   useEffect(() => {
     if (auth.state === 'authenticated') {
+      setProfileReady(false);
       void refreshProfile();
       return;
     }
     if (auth.state === 'anonymous') {
       setRemoteSessionSnapshot({ profile: null, entitlements: [], cosmetics: [] });
       setProfile(null);
+      setCosmetics([]);
+      setProfileReady(false);
     }
   }, [auth.state, auth.userId, refreshProfile]);
 
@@ -61,8 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...auth, profile, refreshProfile, renameProfile }),
-    [auth, profile, refreshProfile, renameProfile],
+    () => ({ ...auth, cosmetics, profile, profileReady, refreshProfile, renameProfile }),
+    [auth, cosmetics, profile, profileReady, refreshProfile, renameProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

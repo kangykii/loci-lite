@@ -32,7 +32,9 @@ export function useEditorAtomBridge(
 
   const handleAtomCreated = useCallback(
     (record: AtomRecord) => {
-      setCreatedAtom(atomRecordToDecoration(record));
+      if (record.type !== 'reminder') {
+        setCreatedAtom(atomRecordToDecoration(record));
+      }
       void atoms.loadForFile(fileId);
 
       if (record.type === 'definition') {
