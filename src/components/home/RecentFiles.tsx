@@ -67,8 +67,8 @@ export default function RecentFiles({
             style={{ '--stagger-index': index } as CSSProperties}
             type="button"
           >
-            {file.preview ? <div className="recent-preview">{file.preview}</div> : null}
             <div className="recent-name">{file.title}</div>
+            {file.preview ? <div className="recent-preview">{file.preview}</div> : null}
             <div className="recent-date">{file.meta}</div>
           </button>
         ))}

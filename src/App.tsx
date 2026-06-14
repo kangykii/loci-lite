@@ -209,7 +209,6 @@ function AppRoot() {
 
       onOpenDocuments: () => navigateTo('documents'),
 
-      onOpenBookmarks: () => navigateTo('atoms'),
       onOpenProfile: handleOpenAuthDialog,
 
       onDocumentDeleted: handleDocumentDeleted,
@@ -252,7 +251,14 @@ function AppRoot() {
       <div className="shell-header">
         <WindowChrome />
       </div>
-      <ShellSidebarTrigger isOpen={isSidebarOpen} onOpen={openSidebar} />
+      <ShellSidebarTrigger
+        canCreate={isTauri()}
+        isCreating={isCreating}
+        isOpen={isSidebarOpen}
+        onCreateNote={() => void handleCreateNote()}
+        onOpen={openSidebar}
+        onOpenBookmarks={() => navigateTo('atoms')}
+      />
       <ShellSidebar
         activeView={displayView}
         isOpen={isSidebarOpen}

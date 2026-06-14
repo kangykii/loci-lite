@@ -3,66 +3,58 @@
   padding-bottom: var(--space-12);
 }
 
-.home-view {
-  width: 100%;
-  max-width: var(--shell-content-max);
-  margin-inline: auto;
-}
+.home-view { width: 100%; max-width: var(--shell-content-max); margin-inline: auto; }
 
-.home-hero {
-  margin: 0 0 var(--space-12);
-  text-align: left;
+.home-hero { margin: 0 0 calc(var(--space-12) + var(--space-6)); text-align: left; }
+
+.home-hero-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-12);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .home-welcome {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
   max-width: 100%;
   margin: 0;
   color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: clamp(var(--text-xl), 2.4vw, var(--text-2xl));
+  font-family: var(--font-serif);
+  font-size: clamp(calc(var(--text-2xl) * 1.1), 4.2vw, calc(var(--text-2xl) * 1.65));
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   line-height: 1.05;
 }
 
-.home-welcome-greeting,
-.home-welcome-body,
-.home-welcome-sign {
-  white-space: pre-line;
+.home-welcome-greeting, .home-welcome-body, .home-welcome-sign { display: block; white-space: pre-line; }
+
+.home-welcome-body {
+  max-width: calc(var(--shell-content-max) * 0.9);
+  color: var(--text-secondary);
+  font-size: 0.72em;
+  font-style: italic;
+  font-weight: 500;
 }
 
 .home-welcome-sign {
+  display: block;
+  margin-top: var(--space-4);
   color: var(--text-secondary);
   font-size: var(--text-base);
   font-weight: 500;
   line-height: 1.4;
 }
 
-.home-actions {
-  display: grid;
-  grid-template-columns: 3fr 1fr;
-  gap: var(--space-4);
-  margin-bottom: var(--space-8);
-}
-
-.home-view .new-note-card,
-.home-view .bookmarks-quick-card {
-  width: auto;
-  margin-bottom: 0;
-  padding: calc(var(--space-4) + var(--space-1));
-}
-
-.bookmarks-quick-card .creation-copy span:not(strong) {
-  display: none;
-}
-
 .library-controls {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-2);
 }
 
 .view-all-button {
@@ -76,51 +68,47 @@
   transition: background var(--dur-fast) ease;
 }
 
-.view-all-button:hover {
-  background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
-}
-
-.recent-list {
-  display: grid;
-  gap: var(--space-3);
-}
+.view-all-button:hover { background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong)); }
+.recent-list { display: grid; gap: 0; }
 
 .recent-row {
   display: grid;
-  min-height: calc(var(--u) * 5);
-  border: 1px solid var(--shell-chrome-border);
+  gap: var(--space-1);
+  min-height: calc(var(--u) * 4);
+  border: 1px solid transparent;
+  border-top-color: color-mix(in srgb, var(--border) 55%, transparent);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: transparent;
   box-shadow: none;
   cursor: pointer;
-  padding-block: var(--space-6);
+  padding-block: var(--space-3);
   padding-inline: var(--space-4);
   text-align: left;
-  transition: background var(--dur-fast) ease;
-  backdrop-filter: blur(var(--shell-chrome-blur));
-  -webkit-backdrop-filter: blur(var(--shell-chrome-blur));
+  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 
-.recent-row:hover {
+.recent-row:hover, .recent-row:focus-visible {
+  border-color: var(--border);
   background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
 }
 
+.recent-row:first-child { border-top-color: transparent; }
+
 .recent-preview {
-  margin-bottom: var(--space-2);
   color: var(--text-secondary);
   font-family: var(--font-serif);
   font-size: var(--editor-small);
-  line-height: 1.7;
+  line-height: 1.5;
 }
 
 .recent-name {
-  margin: 0 0 var(--space-1);
+  margin: 0;
   color: var(--text-primary);
   font-size: var(--text-base);
   font-weight: 600;
 }
 
-.recent-date {
+.recent-date, .library-status {
   color: var(--text-tertiary);
   font-size: var(--text-sm);
 }
@@ -128,17 +116,10 @@
 .library-status {
   margin: 0 0 var(--space-4);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
 }
 
-.library-status code {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-}
-
-.create-error {
-  color: var(--text-primary);
-}
+.library-status code { font-family: var(--font-sans); font-size: var(--text-xs); }
+.create-error { color: var(--text-primary); }
 
 .desktop-only-hint {
   padding: var(--space-3) var(--space-4);

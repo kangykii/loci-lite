@@ -27,7 +27,7 @@ Shell dimensions use viewport units, `rem`, or custom properties derived from vi
 
 Three width roles — do not conflate them:
 
-- **Editor column** (`--editor-col-w`): fluid `min(--editor-col-max, 100vw - 2 * --editor-gutter)`; grows with window up to soft max (`64rem`).
+- **Editor column** (`--editor-col-w`): fluid `min(--editor-col-max, 100vw - 2 * --editor-gutter)`; grows with window up to a prose max (`70ch`) with a 48-64px side-padding floor.
 - **Shell browse column** (`--shell-content-max`): home, workspace, documents, atoms, and settings; scales with viewport up to a cap.
 - **Chrome insets** (`--shell-inset-x`): shared horizontal gutter for the titlebar and `.app-shell` so nav and content align.
 
@@ -75,8 +75,8 @@ Implemented in `src/styles/tokens.css`. Every value a component needs already ex
   --window-control-maximize-hover: #28c840;
 
   /* ── Editor column ── */
-  --editor-gutter:   clamp(var(--space-4), 2vw, var(--space-6));
-  --editor-col-max:  64rem;
+  --editor-gutter:   clamp(3rem, 5vw, 4rem);
+  --editor-col-max:  70ch;
   --editor-col-w:    min(var(--editor-col-max), calc(100vw - 2 * var(--editor-gutter)));
   --editor-pad-v:    clamp(3rem, 6vh, 5rem);
   --editor-pad-h:    clamp(1rem, 4vw, 2.5rem);
@@ -216,13 +216,13 @@ Implemented in `src/styles/tokens.css`. Every value a component needs already ex
 
 ## Typography
 
-Shell UI uses Geist, including the Home welcome heading. The editor uses a user-selectable preset via `--editor-font-family` **inside `.editor-root` only**. Bookmark source text shown in UI (popup, flashcards, tooltips) uses Geist — never the editor preset or Newsreader.
+Shell UI uses Geist, except the decorative Home welcome heading uses Newsreader via `--font-serif`. The editor uses a user-selectable preset via `--editor-font-family` **inside `.editor-root` only**. Bookmark source text shown in UI (popup, flashcards, tooltips) uses Geist — never the editor preset or Newsreader.
 
 | Context | Typeface | Variable |
 |---|---|---|
 | Shell chrome (titlebar, sidebar, bottom bar, settings, browse) | Geist | `var(--font-sans)` |
 | Bookmark source text (AtomPopup, flashcard front, tooltip) | Geist | `var(--font-sans)` |
-| Home welcome heading | Geist | `var(--font-sans)` |
+| Home welcome heading | Newsreader | `var(--font-serif)` |
 | Editor body (all notes) | Classic / Modern / Typewriter preset | `var(--editor-font-family)` |
 
 **Forbidden:** `--editor-font-family` or `--font-serif` on bookmark UI surfaces (popups, flashcards, tooltips). Editor font presets apply only within `.editor-root`.
@@ -489,7 +489,7 @@ Native OS decorations are disabled on Windows only (`set_decorations(false)` in 
 
 ### Sidebar trigger
 
-The titlebar navigation is superseded by a fixed bottom-left `.shell-sidebar-trigger` (Lucide `PanelLeft`, `size={15}` / `strokeWidth={1.5}`) **outside** `.shell-header`. Window chrome remains separate: `.window-chrome-zone` stays at the top and keeps the Windows drag/traffic-light behavior.
+The titlebar navigation is superseded by a fixed bottom-left `.shell-sidebar-trigger` action strip **outside** `.shell-header`. It contains Lucide `PanelLeft`, `Plus`, and `Bookmark` icon buttons (`size={15}` / `strokeWidth={1.5}`): sidebar, New note, and Bookmarks. Window chrome remains separate: `.window-chrome-zone` stays at the top and keeps the Windows drag/traffic-light behavior.
 
 The trigger opens the slide-over sidebar. Do not put Documents, Bookmarks, Settings, Theme, or Profile buttons back in the header; those controls live in the sidebar.
 
@@ -793,11 +793,10 @@ Thin strip at rest. Expands on hover over the bottom quarter of the viewport.
 
 ### Home screen
 
-The home screen is a wide launch hub aligned with the titlebar content band (`--shell-content-max`). The welcome area is a longer AI-cached message in the original large Geist heading style: no kicker, no inline helper text, just the heading above the quick actions.
+The home screen is a wide launch hub aligned with the titlebar content band (`--shell-content-max`). The welcome area is a decorative AI-cached message in `var(--font-serif)`: a large primary greeting, a smaller italic secondary message, and an optional subdued sign line above search. Primary actions live in the persistent bottom-left action strip, so the Home content area stays focused on search and notes.
 
 - **Welcome** ([`WelcomeHeading.tsx`](src/components/home/WelcomeHeading.tsx)): `useAiWelcomeMessages` displays one message from a cached batch of five. Once all five messages have been shown, Home may request a new batch from the latest edited writing-like document. Missing key and generation errors surface as notifications, never inline Home copy.
 
-- **Quick actions** ([`HomeQuickActions.tsx`](src/components/home/HomeQuickActions.tsx)): `.home-actions` grid `3fr 1fr` — **New note** (primary, `.new-note-card`) + **Bookmarks** (`.bookmarks-quick-card` → `atoms` view). Navigation via `App.tsx` callbacks only.
 - **Search** ([`SearchField.tsx`](src/components/ui/SearchField.tsx), `variant="pill"`): live filter on keystroke. Empty query shows the 10 most recently opened notes. Non-empty query searches **all** registry `.md` files (title + body); case-insensitive substring via `matchesSearch`.
 - **View all** (`.view-all-button`): navigates to Documents browse (replaces former disabled filter chips).
 

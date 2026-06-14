@@ -17,7 +17,6 @@ export type AppPageProps = {
   onCreateNote: () => void;
   onOpenEditor: (fileId: string) => void;
   onOpenDocuments: () => void;
-  onOpenBookmarks: () => void;
   onOpenProfile: () => void;
   onDocumentDeleted: (fileId: string, source: 'editor' | 'browse') => void;
   onThemeSelect: (theme: Theme) => void;
@@ -33,7 +32,6 @@ export function renderAppPage(view: ViewName, props: AppPageProps): ReactNode {
     onCreateNote,
     onOpenEditor,
     onOpenDocuments,
-    onOpenBookmarks,
     onOpenProfile,
     onDocumentDeleted,
     onThemeSelect,
@@ -66,10 +64,8 @@ export function renderAppPage(view: ViewName, props: AppPageProps): ReactNode {
     case 'home':
       return (
         <HomeView
-          isCreating={isCreating}
+          createError={createError}
           listRefreshKey={libraryRevision}
-          onCreateNote={onCreateNote}
-          onOpenBookmarks={onOpenBookmarks}
           onOpenDocuments={onOpenDocuments}
           onOpenEditor={onOpenEditor}
         />

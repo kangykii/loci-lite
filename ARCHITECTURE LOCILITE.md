@@ -7,7 +7,7 @@
 
 Loci Lite is a local-first markdown editor for students. The user writes in `.md` files stored on disk. The app adds on top of raw markdown: focus mode (paragraph dimming), authorship mode (paste provenance wash — AI reserved), manual atoms with separate behaviours (definitions become Bookmarks flashcards, notes become editor-only wiki annotations, reminders resurface notes later), and future **atomisation** (AI-generated flashcard Q&A from selection). There is no sync, no collaboration, no image support, no heavy tables. The editor is the product.
 
-UI colours are token-driven from `src/styles/tokens.css`. Dark mode follows the Charcoal Claude palette in `DESIGN LOCILITE.md`. Components never hardcode palette hex values. Shell layout widths are tokenized (`--shell-inset-x`, `--shell-content-max`, `--editor-col-w`); components must not hardcode browse or titlebar `rem` caps.
+UI colours are token-driven from `src/styles/tokens.css`. Dark mode follows the Charcoal Claude palette in `DESIGN LOCILITE.md`. Components never hardcode palette hex values. Shell layout widths are tokenized (`--shell-inset-x`, `--shell-content-max`, `--editor-col-w`); editor prose caps at `70ch` through tokens, and components must not hardcode browse or titlebar `rem` caps.
 
 ---
 
@@ -145,7 +145,7 @@ loci-lite/
 │   │   ├── shell/
 │   │   │   ├── WindowChrome.tsx    # Hover-revealed Windows drag strip + traffic-light controls
 │   │   │   ├── TitleBar.tsx        # Legacy titlebar nav component (superseded by sidebar)
-│   │   │   ├── ShellSidebarTrigger.tsx # Minimal app-menu trigger in shell header
+│   │   │   ├── ShellSidebarTrigger.tsx # Persistent bottom-left action strip: sidebar, new note, bookmarks
 │   │   │   ├── ShellSidebar.tsx    # Portaled slide-over sidebar overlay
 │   │   │   ├── ShellSidebarNav.tsx # Former titlebar actions in sidebar form
 │   │   │   ├── ShellSidebarLibrary.tsx # Searchable document list inside sidebar
@@ -156,7 +156,7 @@ loci-lite/
 │   │   │   └── FocusExitButton.tsx   # Focus mode exit control (‹)
 │   │   ├── home/
 │   │   │   ├── WelcomeHeading.tsx    # AI-cached prose welcome heading
-│   │   │   ├── HomeQuickActions.tsx  # New note + Bookmarks quick-action row
+│   │   │   ├── HomeQuickActions.tsx  # Superseded quick-action row (not mounted)
 │   │   │   └── RecentFiles.tsx       # Search, View all, recent/search result cards
 │   │   ├── atoms/
 │   │   │   ├── AtomCard.tsx        # Flip flashcard for solo bookmarks
@@ -435,7 +435,7 @@ Remote Postgres only. Apply migrations `001` → `007` in order (Supabase SQL ed
 - **File registry** ([`src/store/files.store.ts`](src/store/files.store.ts)): `insertFile`, `getFileById`, `touchOpenedAt`, `touchEditedAt`, `updateTitle`, `listRecentFiles`, `listAllFiles`, `listFilesByEditedAt`, `deleteFile` — metadata only; `.md` body on disk is source of truth.
 - **List refresh:** `App.tsx` `libraryRevision` counter bumps on create/delete; passed as `listRefreshKey` to browse views (replaces using `activeFileId` as refresh signal).
 - **`App.tsx`** calls `initDb()` once when `isTauri()` (not in Vite-only browser).
-- **Stage 4 (browse UI):** [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts) loads all registry files + markdown haystack via `readFile`; [`matchesSearch`](src/lib/searchMatch.ts) filters client-side on keystroke. **Home:** AI-cached prose welcome via [`useAiWelcomeMessages.ts`](src/hooks/useAiWelcomeMessages.ts), recent 10 when search empty, global title+body search when query present ([`HomeView.tsx`](src/views/HomeView.tsx) + [`RecentFiles.tsx`](src/components/home/RecentFiles.tsx)); [`HomeQuickActions.tsx`](src/components/home/HomeQuickActions.tsx) for New note + Bookmarks; **View all** opens Documents via `App.tsx` `onOpenDocuments`. **Documents:** live global search ([`DocumentsView.tsx`](src/views/DocumentsView.tsx)); Filter button remains UI shell. `App.tsx` `handleOpenEditor(fileId)`; previews via [`excerptFromMarkdown`](src/lib/documentMeta.ts). List rows use [`useSearchStagger.ts`](src/hooks/useSearchStagger.ts) + `data-stagger` / `--stagger-index` ([`transitions.css`](src/styles/transitions.css)).
+- **Stage 4 (browse UI):** [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts) loads all registry files + markdown haystack via `readFile`; [`matchesSearch`](src/lib/searchMatch.ts) filters client-side on keystroke. **Home:** AI-cached prose welcome via [`useAiWelcomeMessages.ts`](src/hooks/useAiWelcomeMessages.ts), recent 10 when search empty, global title+body search when query present ([`HomeView.tsx`](src/views/HomeView.tsx) + [`RecentFiles.tsx`](src/components/home/RecentFiles.tsx)); New note + Bookmarks live in the persistent [`ShellSidebarTrigger.tsx`](src/components/shell/ShellSidebarTrigger.tsx) action strip; **View all** opens Documents via `App.tsx` `onOpenDocuments`. **Documents:** live global search ([`DocumentsView.tsx`](src/views/DocumentsView.tsx)); Filter button remains UI shell. `App.tsx` `handleOpenEditor(fileId)`; previews via [`excerptFromMarkdown`](src/lib/documentMeta.ts). List rows use [`useSearchStagger.ts`](src/hooks/useSearchStagger.ts) + `data-stagger` / `--stagger-index` ([`transitions.css`](src/styles/transitions.css)).
 - **Atom behaviours:** definitions are the only atoms loaded by the Bookmarks tab, where they render as flashcards/stacks and search by `sourceText`. Definitions also participate in cross-file editor scanning. Notes load only for their source file and decorate as wiki-style underlined editor annotations with the existing hover tooltip. Reminders do not decorate text and do not appear in Bookmarks; [`resurfaceReminders.ts`](src/lib/resurfaceReminders.ts) finds due, unsurfaced reminder atoms on boot and before Home/Documents list refresh, bumps the parent file `opened_at`, then sets `reminder_surfaced_at` so each reminder resurfaces once.
 - **First-run seed:** [`seedDocuments.ts`](src/lib/seedDocuments.ts) — after `initDb()`, if `settings.seed.docs_v1` is unset and the file registry is empty, writes two onboarding `.md` notes (`welcome-to-loci-lite`, `what-works-today`) via `create_note` + `insertFile`. Skipped when the user already has registry rows.
 - **Boot screen:** [`BootScreen.tsx`](src/components/shell/BootScreen.tsx) renders immediately from [`main.tsx`](src/main.tsx) before local DB init/seed completes, then React swaps to `App`. It has no store or Tauri access.
@@ -646,7 +646,7 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 - Future AI atomise (`ai/actions/atomise.ts`) is not on the editor bar
 
 ### Sidebar navigation
-- `App.tsx` wraps [`WindowChrome.tsx`](src/components/shell/WindowChrome.tsx) + [`ShellSidebarTrigger.tsx`](src/components/shell/ShellSidebarTrigger.tsx) in `.shell-header` **outside** `.view-stage` (persistent during view transitions), then portals [`ShellSidebar.tsx`](src/components/shell/ShellSidebar.tsx) to `document.body`.
+- `App.tsx` renders [`WindowChrome.tsx`](src/components/shell/WindowChrome.tsx) in `.shell-header` and [`ShellSidebarTrigger.tsx`](src/components/shell/ShellSidebarTrigger.tsx) as a persistent bottom-left action strip **outside** `.view-stage`, then portals [`ShellSidebar.tsx`](src/components/shell/ShellSidebar.tsx) to `document.body`.
 - `WindowChrome.tsx` — hover-revealed `.window-chrome-zone` + traffic lights; reveal state in [`useWindowChrome.ts`](src/hooks/useWindowChrome.ts).
 - `ShellSidebar` is an edge-attached temporary slide-over overlay, not a `ViewName`. It never participates in [`useViewTransition.ts`](src/hooks/useViewTransition.ts), never reserves a layout column, and closes before document navigation.
 - Former titlebar actions live in [`ShellSidebarNav.tsx`](src/components/shell/ShellSidebarNav.tsx): `Loci Notebook` brand button → Home, **New note** → create/open editor, `Documents` focuses the sidebar library, `Bookmarks` → `AtomsView`, and bottom utility rows for **Settings**, **Theme**, and **Profile/Account**.
