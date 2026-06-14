@@ -3,6 +3,7 @@
 .env.production
 private.key
 public.key
+private.key.pub
 *.sig
 
 node_modules

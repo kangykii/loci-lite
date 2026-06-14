@@ -65,12 +65,12 @@ Tag and push to trigger the workflow:
 
 ```bash
 # Bump version in both:
-# - src-tauri/tauri.conf.json: "version": "0.1.2"
-# - src-tauri/Cargo.toml: version = "0.1.2"
+# - src-tauri/tauri.conf.json: "version": "0.2.0"
+# - src-tauri/Cargo.toml: version = "0.2.0"
 
 git add src-tauri/tauri.conf.json src-tauri/Cargo.toml
-git commit -m "Bump version to 0.1.2"
-git tag app-v0.1.2
+git commit -m "Bump version to 0.2.0"
+git tag app-v0.2.0
 git push origin master --tags
 ```
 
@@ -151,7 +151,7 @@ pnpm build
 pnpm tauri build
 
 # 2. Sign the executable
-./scripts/sign-release.sh "src-tauri/target/release/bundle/nsis/Loci.Notepad_0.1.2_x64-setup.exe" private.key
+./scripts/sign-release.sh "src-tauri/target/release/bundle/nsis/Loci.Notepad_0.2.0_x64-setup.exe" private.key
 
 # 3. Upload to GitHub Releases manually
 # 4. Update updates/latest.json with the URL and signature
@@ -163,9 +163,9 @@ Keep these in sync:
 
 | File | Field | Example |
 |------|-------|---------|
-| `src-tauri/tauri.conf.json` | `"version"` | `"0.1.2"` |
-| `src-tauri/Cargo.toml` | `version` | `0.1.2` |
-| Git tag | Tag name | `app-v0.1.2` |
-| `updates/latest.json` | `"version"` | `"0.1.2"` |
+| `src-tauri/tauri.conf.json` | `"version"` | `"0.2.0"` |
+| `src-tauri/Cargo.toml` | `version` | `0.2.0` |
+| Git tag | Tag name | `app-v0.2.0` |
+| `updates/latest.json` | `"version"` | `"0.2.0"` |
 
 **Pro tip:** Add a pre-commit hook to validate these match.

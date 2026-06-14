@@ -7,7 +7,7 @@
 
 Loci Lite is a local-first markdown editor for students. The user writes in `.md` files stored on disk. The app adds on top of raw markdown: focus mode (paragraph dimming), authorship mode (paste provenance wash — AI reserved), manual atoms with separate behaviours (definitions become Bookmarks flashcards, notes become editor-only wiki annotations, reminders resurface notes later), and future **atomisation** (AI-generated flashcard Q&A from selection). There is no sync, no collaboration, no image support, no heavy tables. The editor is the product.
 
-UI colours are token-driven from `src/styles/tokens.css`. Dark mode follows the Charcoal Claude palette in `DESIGN LOCILITE.md`. Components never hardcode palette hex values. Shell layout widths are tokenized (`--shell-inset-x`, `--shell-content-max`, `--editor-col-w`); components must not hardcode browse or titlebar `rem` caps.
+UI colours are token-driven from `src/styles/tokens.css`. Dark mode follows the Charcoal Claude palette in `DESIGN LOCILITE.md`. Components never hardcode palette hex values. Shell layout widths are tokenized (`--shell-inset-x`, `--shell-content-max`, `--editor-col-w`); editor prose caps at `70ch` through tokens, and components must not hardcode browse or titlebar `rem` caps.
 
 ---
 

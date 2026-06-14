@@ -27,7 +27,7 @@ Shell dimensions use viewport units, `rem`, or custom properties derived from vi
 
 Three width roles — do not conflate them:
 
-- **Editor column** (`--editor-col-w`): fluid `min(--editor-col-max, 100vw - 2 * --editor-gutter)`; grows with window up to soft max (`64rem`).
+- **Editor column** (`--editor-col-w`): fluid `min(--editor-col-max, 100vw - 2 * --editor-gutter)`; grows with window up to a prose max (`70ch`) with a 48-64px side-padding floor.
 - **Shell browse column** (`--shell-content-max`): home, workspace, documents, atoms, and settings; scales with viewport up to a cap.
 - **Chrome insets** (`--shell-inset-x`): shared horizontal gutter for the titlebar and `.app-shell` so nav and content align.
 
@@ -75,8 +75,8 @@ Implemented in `src/styles/tokens.css`. Every value a component needs already ex
   --window-control-maximize-hover: #28c840;
 
   /* ── Editor column ── */
-  --editor-gutter:   clamp(var(--space-4), 2vw, var(--space-6));
-  --editor-col-max:  64rem;
+  --editor-gutter:   clamp(3rem, 5vw, 4rem);
+  --editor-col-max:  70ch;
   --editor-col-w:    min(var(--editor-col-max), calc(100vw - 2 * var(--editor-gutter)));
   --editor-pad-v:    clamp(3rem, 6vh, 5rem);
   --editor-pad-h:    clamp(1rem, 4vw, 2.5rem);
