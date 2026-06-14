@@ -46,22 +46,33 @@
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: var(--space-4);
-  border: 1px solid var(--shell-chrome-border);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
   padding: var(--space-4);
   text-align: left;
   transition:
     background var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
     opacity var(--dur-fast) ease;
-  backdrop-filter: blur(var(--shell-chrome-blur));
-  -webkit-backdrop-filter: blur(var(--shell-chrome-blur));
 }
 
-.document-row:hover {
+.document-row:hover,
+.document-row:focus-visible {
+  border-color: var(--border);
   background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
+}
+
+.document-row > svg {
+  opacity: 0;
+  transition: opacity var(--dur-fast) ease;
+}
+
+.document-row:hover > svg,
+.document-row:focus-visible > svg {
+  opacity: 1;
 }
 
 .document-icon {
@@ -70,7 +81,7 @@
   height: calc(var(--u) * 2.5);
   place-items: center;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface-strong) 55%, transparent);
+  background: transparent;
   color: var(--text-secondary);
 }
 

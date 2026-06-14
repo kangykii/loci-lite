@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import HomeQuickActions from '../components/home/HomeQuickActions';
 import RecentFiles from '../components/home/RecentFiles';
 import WelcomeHeading from '../components/home/WelcomeHeading';
 import { useDocumentContextMenu } from '../hooks/useDocumentContextMenu';
@@ -10,21 +9,15 @@ import { matchesSearch } from '../lib/searchMatch';
 import { isTauri } from '../lib/tauri';
 
 type HomeViewProps = {
-  onCreateNote: () => void;
   onOpenEditor: (fileId: string) => void;
   onOpenDocuments: () => void;
-  onOpenBookmarks: () => void;
-  isCreating?: boolean;
   createError?: string | null;
   listRefreshKey?: number;
 };
 
 export default function HomeView({
-  onCreateNote,
   onOpenEditor,
   onOpenDocuments,
-  onOpenBookmarks,
-  isCreating,
   createError,
   listRefreshKey,
 }: HomeViewProps) {
@@ -71,13 +64,6 @@ export default function HomeView({
           Could not create note: {createError}
         </p>
       ) : null}
-
-      <HomeQuickActions
-        canCreate={canCreate}
-        isCreating={isCreating}
-        onCreateNote={onCreateNote}
-        onOpenBookmarks={onOpenBookmarks}
-      />
 
       <RecentFiles
         files={staggeredFiles}
