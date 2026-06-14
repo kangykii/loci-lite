@@ -105,6 +105,9 @@ If the architecture disagrees with a solution you are about to implement, **stop
 - Never use `@tauri-apps/api` imports outside of `lib/tauri.ts`
 - Use Tauri 2 API shapes — not Tauri 1. They are not the same. If uncertain, check the Tauri 2 docs before writing
 
+- Windows release builds must target NSIS only (`"targets": ["nsis"]`) so the app produces the setup `.exe` and does not generate MSI installers.
+- Local Windows release builds keep `createUpdaterArtifacts` disabled unless a signing private key is intentionally supplied for an updater release.
+
 ---
 
 ## SQLite rules

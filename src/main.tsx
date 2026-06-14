@@ -40,15 +40,71 @@ if (isTauri()) {
   document.documentElement.classList.add('is-tauri');
 }
 
-const root = createRoot(document.getElementById('root') as HTMLElement);
+const rootElement = document.getElementById('root');
+const missingRootError = rootElement
+  ? null
+  : new Error('Root element not found. The built index.html may be incomplete.');
 
-root.render(
-  <StrictMode>
-    <BootScreen />
-  </StrictMode>,
-);
+const mountElement =
+  rootElement ??
+  document.body.appendChild(Object.assign(document.createElement('div'), { id: 'root' }));
+
+const root = createRoot(mountElement);
+
+function describeError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  return 'Unknown error';
+}
+
+function reportStartupError(title: string, error: unknown) {
+  const message = describeError(error);
+
+  console.error(title, error);
+
+  root.render(
+    <StrictMode>
+      <main className="boot-screen" role="alert">
+        <div className="boot-screen-copy">
+          <span>Startup failed</span>
+          <h1>{title}</h1>
+          <p>{message}</p>
+        </div>
+      </main>
+    </StrictMode>,
+  );
+}
+
+window.addEventListener('error', (event) => {
+  console.error('Uncaught error', event.error ?? event.message);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled rejection', event.reason);
+  event.preventDefault();
+});
+
+if (missingRootError) {
+  reportStartupError('App shell could not be mounted', missingRootError);
+} else {
+  root.render(
+    <StrictMode>
+      <BootScreen />
+    </StrictMode>,
+  );
+}
 
 async function boot() {
+  if (missingRootError) {
+    return;
+  }
+
   if (isTauri()) {
     try {
       await initDb();
@@ -56,7 +112,8 @@ async function boot() {
       await seedBaseDocumentsIfNeeded();
       await resurfaceDueReminders();
     } catch (error) {
-      console.error('Failed to initialize local database', error);
+      reportStartupError('Local database could not be initialized', error);
+      return;
     }
   }
 
@@ -64,8 +121,9 @@ async function boot() {
     void getSession()
       .then((session) => {
         if (session) {
-          void syncRemoteProfile();
+          return syncRemoteProfile();
         }
+        return undefined;
       })
       .catch((err) => {
         console.warn('Remote session check failed — app continues offline:', err);
