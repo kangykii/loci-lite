@@ -23,7 +23,7 @@ jobs:
       - name: Enable pnpm
         run: |
           corepack enable
-          corepack prepare pnpm@latest --activate
+          corepack prepare pnpm@9.15.9 --activate
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
