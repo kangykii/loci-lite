@@ -1,6 +1,9 @@
 .env
 .env.local
 .env.production
+private.key
+public.key
+*.sig
 
 node_modules
 dist

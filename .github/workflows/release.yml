@@ -1,4 +1,4 @@
-name: release
+name: Release and Update Manifest
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
       - "app-v*"
 
 jobs:
-  release-windows:
+  build:
     permissions:
       contents: write
     runs-on: windows-latest
@@ -15,17 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: setup node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 20
 
-      - name: enable pnpm
+      - name: Enable pnpm
         run: |
           corepack enable
           corepack prepare pnpm@latest --activate
 
-      - name: install Rust stable
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Rust cache
@@ -33,20 +33,57 @@ jobs:
         with:
           workspaces: src-tauri -> target
 
-      - name: install dependencies
+      - name: Install dependencies
         run: corepack pnpm install --frozen-lockfile
 
-      - uses: tauri-apps/tauri-action@v0.6.2
+      - name: Enable updater artifacts for signed release
+        shell: pwsh
+        run: |
+          $configPath = "src-tauri/tauri.conf.json"
+          $config = Get-Content $configPath -Raw | ConvertFrom-Json
+          $config.bundle.createUpdaterArtifacts = $true
+          $config.bundle.targets = @("nsis")
+          $config | ConvertTo-Json -Depth 20 | Set-Content $configPath
+
+      - name: Build and publish release
+        uses: tauri-apps/tauri-action@v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: app-v__VERSION__
-          releaseName: Loci Notepad v__VERSION__
-          releaseBody: See the assets below to download and install Loci Notepad.
+          tagName: ${{ github.ref_name }}
+          releaseName: Loci Notepad ${{ github.ref_name }}
+          releaseBody: See the setup EXE below to download and install Loci Notepad.
           releaseDraft: false
           prerelease: false
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
           tauriScript: corepack pnpm tauri
+
+  update-manifest:
+    needs: build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Download updater manifest from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          mkdir -p updates
+          gh release download "$TAG_NAME" --pattern latest.json --output updates/latest.json --clobber
+
+      - name: Commit updater manifest
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add updates/latest.json
+          git commit -m "Update auto-updater manifest for ${GITHUB_REF_NAME}" || echo "No manifest changes"
+          git push
