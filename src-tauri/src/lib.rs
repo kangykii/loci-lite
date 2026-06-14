@@ -1,61 +1,13 @@
 mod commands;
 
 use tauri::Manager;
-use tauri_plugin_sql::{Migration, MigrationKind};
 #[cfg(desktop)]
 use tauri_plugin_updater::UpdaterExt;
-
-const DB_URI: &str = "sqlite:loci.db";
-
-fn migrations() -> Vec<Migration> {
-    vec![
-        Migration {
-            version: 1,
-            description: "initial_schema",
-            sql: include_str!("../../src/store/migrations/001_initial.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 2,
-            description: "atom_type",
-            sql: include_str!("../../src/store/migrations/002_atom_type.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 3,
-            description: "file_edited_at",
-            sql: include_str!("../../src/store/migrations/003_file_edited_at.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 4,
-            description: "onboarding",
-            sql: include_str!("../../src/store/migrations/004_onboarding.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 5,
-            description: "file_pinned",
-            sql: include_str!("../../src/store/migrations/005_file_pinned.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 6,
-            description: "atom_reminder_timing",
-            sql: include_str!("../../src/store/migrations/006_atom_reminder_timing.sql"),
-            kind: MigrationKind::Up,
-        },
-    ]
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(
-            tauri_plugin_sql::Builder::default()
-                .add_migrations(DB_URI, migrations())
-                .build(),
-        )
+        .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_oauth::init())
         .invoke_handler(tauri::generate_handler![
             commands::file::get_notes_dir,

@@ -1,0 +1,2 @@
+*.sql text eol=lf
+src/store/migrations/*.sql text eol=lf
