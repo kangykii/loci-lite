@@ -1,15 +1,15 @@
 {
-  "version": "0.2.2",
+  "version": "0.2.3",
   "notes": "See the setup EXE below to download and install Loci Notepad.",
-  "pub_date": "2026-06-14T11:03:57.781Z",
+  "pub_date": "2026-06-16T13:25:13.441Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTOWJtcjZvMUVERWo0Z3lmQXMvakxrVkxhdGRydFBaMW5nU1NPbDNhMHE5eDVEWUhUcHB4T0szMkdVeFR0YXpsVDY1Z3dKTTgrcmVMQ29qUDMzQ3BnbU9sTmtyZDRvR3dFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNDM1MDM1CWZpbGU6TG9jaSBOb3RlcGFkXzAuMi4yX3g2NC1zZXR1cC5leGUKcER3QlNzalJiRXljcHhXclFHemN2clNwQkZaTWZnMlRoSGJZUGdxb3RsNWdzL0dSMmgvbVBGeWVIU3A2NWhwcTdiVml4UWR3N3dOVUo0ZHQzYWQ2QlE9PQo=",
-      "url": "https://github.com/kangykii/loci-lite/releases/download/app-v0.2.2/Loci.Notepad_0.2.2_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTOWJtcjZvMUVERXZxYjNuN3A4TVdCL0ZJKytyT0xCVFpRR1V5M3pvVngwVXNrMVdKMFRZaVlod3FQMWVxMkpUQVlPclhDK0lrWDlVS2xoeENLV3RacDluaEM1eVkwdlFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjE2MzEwCWZpbGU6TG9jaSBOb3RlcGFkXzAuMi4zX3g2NC1zZXR1cC5leGUKOUxFQml1RU1DcG0vRkZyeFhwWmFUMG11ZE8ramhEZDVtUUE4UFUyVi9jd0JYaDBZVEQ1NlBtT3ZSeDNnNkMvR0x0T2RKeElZZkQ0bXpjdk5BUTQxQkE9PQo=",
+      "url": "https://github.com/kangykii/loci-lite/releases/download/app-v0.2.3/Loci.Notepad_0.2.3_x64-setup.exe"
     },
     "windows-x86_64-nsis": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTOWJtcjZvMUVERWo0Z3lmQXMvakxrVkxhdGRydFBaMW5nU1NPbDNhMHE5eDVEWUhUcHB4T0szMkdVeFR0YXpsVDY1Z3dKTTgrcmVMQ29qUDMzQ3BnbU9sTmtyZDRvR3dFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNDM1MDM1CWZpbGU6TG9jaSBOb3RlcGFkXzAuMi4yX3g2NC1zZXR1cC5leGUKcER3QlNzalJiRXljcHhXclFHemN2clNwQkZaTWZnMlRoSGJZUGdxb3RsNWdzL0dSMmgvbVBGeWVIU3A2NWhwcTdiVml4UWR3N3dOVUo0ZHQzYWQ2QlE9PQo=",
-      "url": "https://github.com/kangykii/loci-lite/releases/download/app-v0.2.2/Loci.Notepad_0.2.2_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTOWJtcjZvMUVERXZxYjNuN3A4TVdCL0ZJKytyT0xCVFpRR1V5M3pvVngwVXNrMVdKMFRZaVlod3FQMWVxMkpUQVlPclhDK0lrWDlVS2xoeENLV3RacDluaEM1eVkwdlFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNjE2MzEwCWZpbGU6TG9jaSBOb3RlcGFkXzAuMi4zX3g2NC1zZXR1cC5leGUKOUxFQml1RU1DcG0vRkZyeFhwWmFUMG11ZE8ramhEZDVtUUE4UFUyVi9jd0JYaDBZVEQ1NlBtT3ZSeDNnNkMvR0x0T2RKeElZZkQ0bXpjdk5BUTQxQkE9PQo=",
+      "url": "https://github.com/kangykii/loci-lite/releases/download/app-v0.2.3/Loci.Notepad_0.2.3_x64-setup.exe"
     }
   }
 }
