@@ -123,7 +123,7 @@ If the architecture disagrees with a solution you are about to implement, **stop
 
 ## Browse search rules
 
-- **Home / Documents:** [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts) loads registry rows + markdown haystack; views filter with [`matchesSearch`](src/lib/searchMatch.ts) in `useMemo` on every keystroke. Home shows recent 10 when query is empty.
+- **Home / Documents:** [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts) loads registry rows + markdown haystack; views filter with [`matchesSearch`](src/lib/searchMatch.ts) in `useMemo` on every keystroke. Home shows recent 10 when query is empty. Documents/View all may group rows by `files.project_group_label`; Home and sidebar stay flat.
 - **Bookmarks:** load definition atoms only; client-side filter on `atom.sourceText` only in [`AtomPanel.tsx`](src/components/atoms/AtomPanel.tsx). Notes and reminders never appear in Bookmarks. No `useSearchableDocuments` on Bookmarks.
 - **Match semantics v1:** case-insensitive substring only — no fuzzy, regex, or Enter-to-search.
 - **Layer:** `readFile` and `listAllFiles` stay in hooks; components hold `searchQuery` state only.
@@ -140,8 +140,9 @@ If the architecture disagrees with a solution you are about to implement, **stop
 - **Drag payload:** `writeDragPayload` / `readDragPayload` in [`deletePayload.ts`](src/lib/deletePayload.ts) only; MIME `application/x-loci-delete` + `text/plain` fallback.
 - **Drag sources:** whole `.document-row` / `.bookmark-flashcard` body (`div` / `article`) — never `draggable` on `<button>`; no grip handles.
 - **Tauri:** main window `dragDropEnabled: false` in `tauri.conf.json` (required for HTML5 browse DnD).
-- **Drag session:** [`browseDrag.ts`](src/lib/browseDrag.ts) for `is-browse-dragging` + click suppression after drag.
+- **Drag session:** [`browseDrag.ts`](src/lib/browseDrag.ts) for `is-browse-dragging`, click suppression after drag, and global `drop`/`dragend` cleanup for the custom follower.
 - **Drag follower:** full-opacity preview via [`browseDragGhost.ts`](src/lib/browseDragGhost.ts) (blank native `setDragImage` + `.is-follower` panel) — never the default full-element screenshot or faded Chromium DOM ghost; no destructive styling on the follower.
+- **Document projects:** document-on-document drops are Documents/View all only. Project rows use an inline Lucide chevron-down member dropdown; rename/delete/drag-out are metadata-only (`files.project_group_label` + `project_folder_name:{uuid}`); Home and sidebar document lists stay flat/open-only.
 - **Navigation:** editor note delete → Home; Documents bin delete → stay on Documents.
 
 ---

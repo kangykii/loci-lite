@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { deleteFile as deleteFileOnDisk, isTauri } from '../lib/tauri';
 import { initDb } from '../store/db';
 import {
+  clearSingletonProjectGroupLabel,
   deleteFile as deleteFileRecord,
   getFileById,
 } from '../store/files.store';
@@ -28,6 +29,9 @@ export function useDeleteDocument() {
 
       await deleteFileOnDisk(file.path);
       await deleteFileRecord(fileId);
+      if (file.projectGroupLabel) {
+        await clearSingletonProjectGroupLabel(file.projectGroupLabel);
+      }
     } catch (cause: unknown) {
       const message = cause instanceof Error ? cause.message : 'Failed to delete document';
       setError(message);

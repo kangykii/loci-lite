@@ -17,6 +17,7 @@ export type SearchableDocument = {
   preview: string;
   haystack: string;
   pinned: boolean;
+  projectGroupLabel: string | null;
 };
 
 type SearchableDocumentsStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -67,6 +68,7 @@ export function useSearchableDocuments() {
             preview,
             haystack: `${title}\n${markdown}`,
             pinned: file.pinned,
+            projectGroupLabel: file.projectGroupLabel,
           };
         }),
       );

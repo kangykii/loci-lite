@@ -32,6 +32,7 @@ export function useCreateDocument() {
         createdAt: now,
         editedAt: now,
         pinned: false,
+        projectGroupLabel: null,
       });
 
       return id;

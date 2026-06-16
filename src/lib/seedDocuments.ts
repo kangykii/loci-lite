@@ -105,6 +105,7 @@ export async function seedBaseDocumentsIfNeeded(): Promise<void> {
       createdAt: timestamp,
       editedAt: timestamp,
       pinned: false,
+      projectGroupLabel: null,
     });
   }
 

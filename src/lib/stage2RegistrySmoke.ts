@@ -25,6 +25,7 @@ export async function runStage2RegistrySmoke(): Promise<void> {
     createdAt: now,
     editedAt: now,
     pinned: false,
+    projectGroupLabel: null,
   });
 
   const record = await getFileById(id);

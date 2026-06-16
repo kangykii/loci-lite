@@ -20,6 +20,7 @@ type BrowseDragStartEvent = {
 
 let suppressNextClick = false;
 let activeBrowseDragPayload: DeletePayload | null = null;
+let removeEndFallbacks: (() => void) | null = null;
 
 export function getActiveBrowseDragPayload(): DeletePayload | null {
   return activeBrowseDragPayload;
@@ -37,6 +38,8 @@ export function startBrowseDrag(
 
   suppressNextClick = false;
   activeBrowseDragPayload = payload;
+  removeEndFallbacks?.();
+  removeEndFallbacks = installEndFallbacks();
   writeDragPayload(dataTransfer, payload);
   suppressNativeDragImage(dataTransfer);
 
@@ -48,10 +51,26 @@ export function startBrowseDrag(
 }
 
 export function endBrowseDrag(): void {
+  removeEndFallbacks?.();
+  removeEndFallbacks = null;
   document.documentElement.classList.remove(BROWSE_DRAGGING_CLASS);
   hideBrowseDragGhost();
   activeBrowseDragPayload = null;
   suppressNextClick = true;
+}
+
+function installEndFallbacks(): () => void {
+  const end = () => {
+    if (activeBrowseDragPayload) endBrowseDrag();
+  };
+
+  window.addEventListener('dragend', end, true);
+  window.addEventListener('drop', end, true);
+
+  return () => {
+    window.removeEventListener('dragend', end, true);
+    window.removeEventListener('drop', end, true);
+  };
 }
 
 export function consumeBrowseDragClick(): boolean {

@@ -31,6 +31,14 @@
   cursor: grabbing;
 }
 
+.document-project-folder[draggable='true'] {
+  cursor: grab;
+}
+
+.document-project-folder[draggable='true']:active {
+  cursor: grabbing;
+}
+
 .documents-list {
   display: grid;
   gap: var(--space-3);
@@ -40,7 +48,8 @@
   min-height: calc(var(--u) * 4);
 }
 
-.document-row {
+.document-row,
+.document-project-folder {
   display: grid;
   min-height: calc(var(--u) * 4);
   grid-template-columns: auto 1fr auto;
@@ -60,18 +69,29 @@
 }
 
 .document-row:hover,
-.document-row:focus-visible {
+.document-row:focus-visible,
+.document-project-folder:hover,
+.document-project-folder:focus-visible {
   border-color: var(--border);
   background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
 }
 
-.document-row > svg {
+.document-row.is-project-drop-target,
+.document-project-folder.is-project-drop-target {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.document-row > svg,
+.document-project-folder > svg {
   opacity: 0;
   transition: opacity var(--dur-fast) ease;
 }
 
 .document-row:hover > svg,
-.document-row:focus-visible > svg {
+.document-row:focus-visible > svg,
+.document-project-folder:hover > svg,
+.document-project-folder:focus-visible > svg {
   opacity: 1;
 }
 

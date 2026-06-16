@@ -86,6 +86,7 @@ async function ensureSchema(db: Database): Promise<void> {
   await addColumnIfMissing(db, 'files', 'edited_at', 'edited_at INTEGER NOT NULL DEFAULT 0');
   await db.execute('UPDATE files SET edited_at = opened_at WHERE edited_at = 0');
   await addColumnIfMissing(db, 'files', 'pinned', 'pinned INTEGER NOT NULL DEFAULT 0');
+  await addColumnIfMissing(db, 'files', 'project_group_label', 'project_group_label TEXT');
   await addColumnIfMissing(db, 'atoms', 'reminder_due_at', 'reminder_due_at INTEGER');
   await addColumnIfMissing(db, 'atoms', 'reminder_surfaced_at', 'reminder_surfaced_at INTEGER');
 }

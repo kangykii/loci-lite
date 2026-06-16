@@ -1,0 +1,67 @@
+.document-project-toggle {
+  display: grid;
+  width: calc(var(--u) * 2);
+  height: calc(var(--u) * 2);
+  place-items: center;
+  border-radius: var(--radius-pill);
+  border: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    transform var(--dur-fast) ease;
+}
+
+.document-project-toggle:hover,
+.document-project-toggle:focus-visible {
+  background: var(--surface-strong);
+  color: var(--text-primary);
+}
+
+.document-project-toggle[aria-expanded='true'] {
+  transform: rotate(180deg);
+}
+
+.document-project-member-row {
+  display: grid;
+  min-height: calc(var(--u) * 3.25);
+  align-items: center;
+  margin-left: calc(var(--u) * 3.5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-3) var(--space-4);
+  transition:
+    background var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    opacity var(--dur-fast) ease;
+}
+
+.document-project-member-row[draggable='true'] {
+  cursor: grab;
+}
+
+.document-project-member-row[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.document-project-member-row:hover,
+.document-project-member-row:focus-visible {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
+}
+
+.document-project-member-row strong {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.document-project-member-row span {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}

@@ -78,6 +78,7 @@ export function useDocumentContextMenu({
         createdAt: now,
         editedAt: now,
         pinned: false,
+        projectGroupLabel: null,
       });
       onChanged();
       onOpenDocument?.(id);

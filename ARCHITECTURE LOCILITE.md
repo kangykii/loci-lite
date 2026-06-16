@@ -76,6 +76,7 @@ loci-lite/
 │   │   ├── search-field.css        # Shared browse search field shell + Lucide clear control
 │   │   ├── home.css              # Homepage shell and recent file cards
 │   │   ├── documents.css         # Documents list and search styles
+│   │   ├── document-projects.css # Documents-only project folder dropdown styles
 │   │   ├── atoms.css             # Definition flashcard grid, legacy filter styles, tooltip
 │   │   ├── bookmark-stack-folder.css  # Stack folder tile (tab, pocket, fringes, rename)
 │   │   ├── atom-popup.css        # Bookmark creation popup
@@ -171,6 +172,18 @@ loci-lite/
 │   │   │   ├── BookmarkStackPopupCard.tsx  # Popup flashcard shell + data-stack-enter switch
 │   │   │   ├── BookmarkStackPopupNav.tsx  # Stack popup prev/next/shuffle controls
 │   │   │   └── bookmarkCardDrop.ts     # Card/folder drop handlers for stacking
+│   │   ├── documents/
+│   │   │   ├── DocumentCreateCard.tsx # Documents page new-note card
+│   │   │   ├── DocumentProjectControls.tsx # Project folder context menu + dialogs
+│   │   │   ├── DocumentProjectFolder.tsx # Documents-only project folder row
+│   │   │   ├── DocumentProjectGroup.tsx # Project row + inline expanded members
+│   │   │   ├── DocumentProjectMemberRow.tsx # Draggable project member row
+│   │   │   ├── DocumentsProjectList.tsx # Groups Documents page rows into projects
+│   │   │   ├── DocumentsProjectRows.tsx # Project rows + drag-out list drop surface
+│   │   │   ├── DocumentsStatus.tsx # Documents page status messages
+│   │   │   ├── DocumentRow.tsx # Documents page row drag/open shell
+│   │   │   ├── RenameNoteDialog.tsx
+│   │   │   └── documentDrop.ts # Document-on-document project drop handlers
 │   │   ├── settings/
 │   │   │   ├── SettingsSection.tsx # Settings section heading + rows
 │   │   │   └── SettingsRow.tsx     # Label, description, control slot
@@ -198,6 +211,7 @@ loci-lite/
 │   │   ├── useDocumentsList.ts     # Legacy; superseded on Documents by useSearchableDocuments
 │   │   ├── useSearchableDocuments.ts  # All registry files + markdown haystack for live search
 │   │   ├── useSearchStagger.ts     # Search list leave delay + displayed items (Home, Documents)
+│   │   ├── useStagedProjectItems.ts # Project row leave-then-reflow staging
 │   │   ├── useViewTransition.ts    # View navigation state machine (sole routing owner)
 │   │   ├── useShellSidebarGesture.ts # Sidebar shortcut + guarded horizontal trackpad gestures
 │   │   ├── useLastDocumentReturn.ts # Most-recent document return from Home swipe
@@ -206,6 +220,8 @@ loci-lite/
 │   │   ├── useDeleteDocument.ts    # delete_file (disk) + files.store deleteFile
 │   │   ├── useAtoms.ts             # Atom CRUD + load for file / all / definitions
 │   │   ├── useBookmarkStacks.ts    # Drop-to-merge bookmarks via group_label
+│   │   ├── useDocumentProjectFolders.ts # Drop-to-merge document projects
+│   │   ├── useProjectFolderNames.ts # Load/rename project folder display names
 │   │   ├── useStackDisplayNames.ts # Load/rename stack folder display names
 │   │   ├── useAtomCreation.ts      # Bookmark popup; delegates to atomRecord helpers
 │   │   ├── useEditorAtomBridge.ts  # Composes atom hooks for EditorView
@@ -244,9 +260,11 @@ loci-lite/
 │   │   │   ├── 003_file_edited_at.sql # files.edited_at for latest edited source
 │   │   │   ├── 004_onboarding.sql # onboarding install date + learned feature flags
 │   │   │   ├── 005_file_pinned.sql # files.pinned for recent list ordering
-│   │   │   └── 006_atom_reminder_timing.sql # reminder due/surfaced timestamps
+│   │   │   ├── 006_atom_reminder_timing.sql # reminder due/surfaced timestamps
+│   │   │   └── 007_file_project_group_label.sql # files.project_group_label
 │   │   ├── files.store.ts          # File registry queries
 │   │   ├── atoms.store.ts          # Atom CRUD queries
+│   │   ├── projectFolderNames.store.ts # Project folder display names in settings KV
 │   │   ├── stackNames.store.ts     # Stack display names in settings KV
 │   │   ├── annotations.store.ts    # Authorship annotation queries
 │   │   ├── settings.store.ts       # Settings queries
@@ -271,11 +289,12 @@ loci-lite/
 │       ├── pluginLifecycle.ts      # dispatchNoteOpen/Close/Bookmark → plugin registry
 │       ├── tauri.ts                # All Tauri command + window API invocations (one file)
 │       ├── documentMeta.ts         # Slug, title, excerpt, outline helpers
+│       ├── documentProjectFolders.ts # Documents project grouping and merge plans
 │       ├── scrollEditorTarget.ts   # Token-driven eased scroll (find + outline); typewriter excluded
 │       ├── outlineNavigation.ts    # Outline entries + scroll-to-heading in editor DOM
 │       ├── searchMatch.ts          # Case-insensitive browse search matching
 │       ├── deletePayload.ts        # writeDragPayload / readDragPayload for browse delete DnD
-│       ├── browseDrag.ts           # startBrowseDrag / endBrowseDrag; html.is-browse-dragging
+│       ├── browseDrag.ts           # startBrowseDrag / endBrowseDrag; html.is-browse-dragging + end fallbacks
 │       ├── browseDragGhost.ts      # Full-opacity drag follower panel (blank native ghost)
 │       ├── bookmarkStacks.ts       # Stack merge plan + grid grouping by group_label
 │       ├── seedDocuments.ts        # First-run welcome docs (Tauri only)
@@ -432,10 +451,10 @@ Remote Postgres only. Apply migrations `001` → `007` in order (Supabase SQL ed
 - **External URL opening** ([`src-tauri/src/commands/window.rs`](src-tauri/src/commands/window.rs)): `open_url` is allowlisted to Stripe Checkout/Billing HTTPS URLs only; renderer code cannot use it to open arbitrary files, custom schemes, or unrelated websites.
 - **Frontend bridge** ([`src/lib/tauri.ts`](src/lib/tauri.ts)): sole `invoke()` and `@tauri-apps/api/window` site; exports `isTauri`.
 - **SQLite** ([`src/store/db.ts`](src/store/db.ts)): `initDb()` loads `sqlite:loci.db`; migrations v1-v4 from [`src/store/migrations/`](src/store/migrations/) registered in [`src-tauri/src/lib.rs`](src-tauri/src/lib.rs).
-- **File registry** ([`src/store/files.store.ts`](src/store/files.store.ts)): `insertFile`, `getFileById`, `touchOpenedAt`, `touchEditedAt`, `updateTitle`, `listRecentFiles`, `listAllFiles`, `listFilesByEditedAt`, `deleteFile` — metadata only; `.md` body on disk is source of truth.
+- **File registry** ([`src/store/files.store.ts`](src/store/files.store.ts)): `insertFile`, `getFileById`, `touchOpenedAt`, `touchEditedAt`, `updateTitle`, `listRecentFiles`, `listAllFiles`, `listFilesByEditedAt`, `deleteFile`, and document project grouping — metadata only; `.md` body on disk is source of truth.
 - **List refresh:** `App.tsx` `libraryRevision` counter bumps on create/delete; passed as `listRefreshKey` to browse views (replaces using `activeFileId` as refresh signal).
 - **`App.tsx`** calls `initDb()` once when `isTauri()` (not in Vite-only browser).
-- **Stage 4 (browse UI):** [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts) loads all registry files + markdown haystack via `readFile`; [`matchesSearch`](src/lib/searchMatch.ts) filters client-side on keystroke. **Home:** AI-cached prose welcome via [`useAiWelcomeMessages.ts`](src/hooks/useAiWelcomeMessages.ts), recent 10 when search empty, global title+body search when query present ([`HomeView.tsx`](src/views/HomeView.tsx) + [`RecentFiles.tsx`](src/components/home/RecentFiles.tsx)); New note + Bookmarks live in the persistent [`ShellSidebarTrigger.tsx`](src/components/shell/ShellSidebarTrigger.tsx) action strip; **View all** opens Documents via `App.tsx` `onOpenDocuments`. **Documents:** live global search ([`DocumentsView.tsx`](src/views/DocumentsView.tsx)); Filter button remains UI shell. `App.tsx` `handleOpenEditor(fileId)`; previews via [`excerptFromMarkdown`](src/lib/documentMeta.ts). List rows use [`useSearchStagger.ts`](src/hooks/useSearchStagger.ts) + `data-stagger` / `--stagger-index` ([`transitions.css`](src/styles/transitions.css)).
+- **Stage 4 (browse UI):** [`useSearchableDocuments.ts`](src/hooks/useSearchableDocuments.ts) loads all registry files + markdown haystack via `readFile`; [`matchesSearch`](src/lib/searchMatch.ts) filters client-side on keystroke. **Home:** AI-cached prose welcome via [`useAiWelcomeMessages.ts`](src/hooks/useAiWelcomeMessages.ts), recent 10 when search empty, global title+body search when query present ([`HomeView.tsx`](src/views/HomeView.tsx) + [`RecentFiles.tsx`](src/components/home/RecentFiles.tsx)); New note + Bookmarks live in the persistent [`ShellSidebarTrigger.tsx`](src/components/shell/ShellSidebarTrigger.tsx) action strip; **View all** opens Documents via `App.tsx` `onOpenDocuments`. **Documents:** live global search ([`DocumentsView.tsx`](src/views/DocumentsView.tsx)); Filter button remains UI shell. `App.tsx` `handleOpenEditor(fileId)`; previews via [`excerptFromMarkdown`](src/lib/documentMeta.ts). List rows use [`useSearchStagger.ts`](src/hooks/useSearchStagger.ts) + `data-stagger` / `--stagger-index` ([`transitions.css`](src/styles/transitions.css)); document project rows use [`useStagedProjectItems.ts`](src/hooks/useStagedProjectItems.ts) so membership changes leave first, then reflow.
 - **Atom behaviours:** definitions are the only atoms loaded by the Bookmarks tab, where they render as flashcards/stacks and search by `sourceText`. Definitions also participate in cross-file editor scanning. Notes load only for their source file and decorate as wiki-style underlined editor annotations with the existing hover tooltip. Reminders do not decorate text and do not appear in Bookmarks; [`resurfaceReminders.ts`](src/lib/resurfaceReminders.ts) finds due, unsurfaced reminder atoms on boot and before Home/Documents list refresh, bumps the parent file `opened_at`, then sets `reminder_surfaced_at` so each reminder resurfaces once.
 - **First-run seed:** [`seedDocuments.ts`](src/lib/seedDocuments.ts) — after `initDb()`, if `settings.seed.docs_v1` is unset and the file registry is empty, writes two onboarding `.md` notes (`welcome-to-loci-lite`, `what-works-today`) via `create_note` + `insertFile`. Skipped when the user already has registry rows.
 - **Boot screen:** [`BootScreen.tsx`](src/components/shell/BootScreen.tsx) renders immediately from [`main.tsx`](src/main.tsx) before local DB init/seed completes, then React swaps to `App`. It has no store or Tauri access.
@@ -446,7 +465,7 @@ Remote Postgres only. Apply migrations `001` → `007` in order (Supabase SQL ed
 - **Editor menu:** [`ContextMenuPlugin.tsx`](src/editor/plugins/ContextMenuPlugin.tsx) owns only the Lexical right-click shell. Range helpers live in [`contextMenuRanges.ts`](src/editor/lib/contextMenuRanges.ts); authorship intersection helpers live in [`contextMenuAnnotations.ts`](src/editor/lib/contextMenuAnnotations.ts). The plugin emits bookmark/authorship callbacks through editor contexts and opens [`SearchInNotesModal.tsx`](src/components/editor/SearchInNotesModal.tsx) for cross-note matches.
 - **Note row menu:** [`useDocumentContextMenu.tsx`](src/hooks/useDocumentContextMenu.tsx) is used by Home recent rows and Documents rows only. It calls store/native bridges for pin, rename, duplicate, reveal, and confirmed delete. Rename/duplicate update markdown H1 via [`noteMarkdownTitle.ts`](src/lib/noteMarkdownTitle.ts); rename UI uses [`RenameNoteDialog.tsx`](src/components/documents/RenameNoteDialog.tsx). Sidebar library remains open-only.
 - **Bookmark menu:** [`useBookmarkContextMenu.tsx`](src/hooks/useBookmarkContextMenu.tsx) is used by bookmark cards/folders. Solo cards expose Edit/Delete; stack folders expose Rename/Delete stack. There are no note actions on bookmarks.
-- **Pinned notes:** migration [`005_file_pinned.sql`](src/store/migrations/005_file_pinned.sql) adds `files.pinned`; [`files.store.ts`](src/store/files.store.ts) maps it and sorts pinned rows before recent rows.
+- **Pinned notes / project groups:** migration [`005_file_pinned.sql`](src/store/migrations/005_file_pinned.sql) adds `files.pinned`; migration [`007_file_project_group_label.sql`](src/store/migrations/007_file_project_group_label.sql) adds `files.project_group_label` for Documents-only project folders. [`files.store.ts`](src/store/files.store.ts) maps both and sorts pinned rows before recent rows.
 - **Native file helpers:** [`src-tauri/src/commands/note_paths.rs`](src-tauri/src/commands/note_paths.rs) centralizes notes-dir validation and unique note paths. [`file.rs`](src-tauri/src/commands/file.rs) exposes duplicate, reveal, and macOS dictionary lookup through [`tauri.ts`](src/lib/tauri.ts).
 
 ### Network infrastructure (implemented — Phases 2–4)
@@ -499,10 +518,11 @@ All destructive actions gate on [`ConfirmDialog.tsx`](src/components/ui/ConfirmD
 - Tauri main window sets `"dragDropEnabled": false`, `"scrollBarStyle": "fluentOverlay"`, and user-facing `"title": "Loci Notepad"` in [`tauri.conf.json`](src-tauri/tauri.conf.json). Windows disables native decorations in [`lib.rs`](src-tauri/src/lib.rs) setup; custom chrome in [`WindowChrome.tsx`](src/components/shell/WindowChrome.tsx). Capabilities grant sql, window minimize/maximize/close/drag, and oauth start/cancel permissions.
 - Drag sources: whole `.document-row` shell (`div`, not `<button>`) and whole `.bookmark-flashcard` (`article`) — no separate drag handles.
 - Payload: [`writeDragPayload`](src/lib/deletePayload.ts) / [`readDragPayload`](src/lib/deletePayload.ts) — MIME `application/x-loci-delete` plus `text/plain` JSON fallback for WebView2.
-- Session: [`browseDrag.ts`](src/lib/browseDrag.ts) toggles `html.is-browse-dragging` and suppresses click-after-drag via `consumeBrowseDragClick`.
+- Session: [`browseDrag.ts`](src/lib/browseDrag.ts) toggles `html.is-browse-dragging`, suppresses click-after-drag via `consumeBrowseDragClick`, and installs window-level `drop`/`dragend` fallbacks so the custom follower cannot remain visible after release.
 - Drag follower: [`browseDragGhost.ts`](src/lib/browseDragGhost.ts) builds `.browse-drag-ghost.is-follower` (reused DOM node), suppresses Chromium’s faded native drag bitmap with a 1×1 `setDragImage`, and anchors the panel at the pointer (`left: clientX`, `top: clientY`) on `document` `drag` so the preview stays fully opaque.
 - Drop (delete): [`BrowseDeleteBin.tsx`](src/components/ui/BrowseDeleteBin.tsx) — `dragenter` + `dragover` preventDefault, `.is-drop-target` highlight.
 - Drop (stack): [`bookmarkCardDrop.ts`](src/components/atoms/bookmarkCardDrop.ts) on [`AtomCard.tsx`](src/components/atoms/AtomCard.tsx) and [`BookmarkStackFolder.tsx`](src/components/atoms/BookmarkStackFolder.tsx) — bookmark onto card/folder merges via [`useBookmarkStacks.ts`](src/hooks/useBookmarkStacks.ts) + [`bookmarkStacks.ts`](src/lib/bookmarkStacks.ts); updates `atoms.group_label` in SQLite (no confirm). `dragover`/`dragenter` use `dataTransfer.types` + [`getActiveBrowseDragPayload`](src/lib/browseDrag.ts) (`getData` is empty until `drop`); `html.is-browse-dragging` sets `pointer-events: none` on flashcard/folder innards so the `article` shell receives drops.
+- Drop (document project): [`documentDrop.ts`](src/components/documents/documentDrop.ts) on Documents page rows/folders only — document onto document/folder merges via [`useDocumentProjectFolders.ts`](src/hooks/useDocumentProjectFolders.ts) + [`documentProjectFolders.ts`](src/lib/documentProjectFolders.ts); updates `files.project_group_label` in SQLite (no confirm). Project row context menu renames via `projectFolderNames.store`; Delete project dissolves the group and keeps notes. [`DocumentProjectFolder.tsx`](src/components/documents/DocumentProjectFolder.tsx) uses a Lucide chevron-down toggle for inline members, and dragging a member row onto the surrounding Documents list surface removes that document from the project. Home recent rows and sidebar library remain flat/open-only.
 
 **Bookmark delete** ([`useAtoms.removeAtom`](src/hooks/useAtoms.ts) after confirm):
 
@@ -731,7 +751,7 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 2. main.tsx: import plugins/index (registry); fire-and-forget getSession() → syncRemoteProfile() when signed in; then render App
 2a. Tauri desktop setup initializes the updater plugin and checks the GitHub Release `latest.json`; signed updates install and restart quietly when available.
 3. View: home by default
-4. Home / Documents: useSearchableDocuments (Home shows recent 10 when search empty)
+4. Home / Documents: useSearchableDocuments (Home shows recent 10 when search empty; Documents groups `files.project_group_label` projects only in the View all page)
 5. New note / open row → activeFileId → EditorView
 6. useDocument load/save + PersistPlugin debounce (800ms)
 7. useEditorAtomBridge loads atoms + definitions; useEditorAuthorshipBridge loads annotations; Editor mounts plugins via context

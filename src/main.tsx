@@ -27,6 +27,7 @@ import './styles/sidebar-edge-pull.css';
 import './styles/settings.css';
 import './styles/home.css';
 import './styles/documents.css';
+import './styles/document-projects.css';
 import './styles/atoms.css';
 import './styles/bookmark-stack-folder.css';
 import './styles/atom-popup.css';
