@@ -3,7 +3,7 @@
 // All remote calls in the app go through this file.
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { ENV, hasRemote } from './env';
+import { ENV, hasRemote, remoteUnavailableMessage } from './env';
 
 export type AppSupabaseClient = SupabaseClient | null;
 
@@ -45,7 +45,7 @@ export async function invokeRemoteFunction<T>(
   body?: Record<string, unknown>,
 ): Promise<{ data: T | null; error: unknown }> {
   const client = getSupabaseClient();
-  if (!client) return { data: null, error: 'No network connection' };
+  if (!client) return { data: null, error: remoteUnavailableMessage };
   try {
     const { data, error } = await client.functions.invoke<T>(name, { body });
     if (error) {

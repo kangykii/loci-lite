@@ -3,6 +3,7 @@
 // Never import this from components - use useAuth hook instead.
 
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { remoteUnavailableMessage } from './env';
 import { getSupabaseClient } from './supabase';
 
 export type AuthStateListener = (
@@ -15,7 +16,7 @@ export async function signInWithOTPCode(
   shouldCreateUser = true,
 ): Promise<{ error: string | null }> {
   const client = getSupabaseClient();
-  if (!client) return { error: 'No network connection' };
+  if (!client) return { error: remoteUnavailableMessage };
 
   try {
     const { error } = await client.auth.signInWithOtp({
@@ -37,7 +38,7 @@ export async function signInWithPassword(
   password: string,
 ): Promise<{ error: string | null }> {
   const client = getSupabaseClient();
-  if (!client) return { error: 'No network connection' };
+  if (!client) return { error: remoteUnavailableMessage };
 
   try {
     const { error } = await client.auth.signInWithPassword({
@@ -53,7 +54,7 @@ export async function signInWithPassword(
 
 export async function updateAuthPassword(password: string): Promise<{ error: string | null }> {
   const client = getSupabaseClient();
-  if (!client) return { error: 'No network connection' };
+  if (!client) return { error: remoteUnavailableMessage };
 
   try {
     const { error } = await client.auth.updateUser({ password });
@@ -68,7 +69,7 @@ export async function verifyOTPCode(
   token: string,
 ): Promise<{ error: string | null }> {
   const client = getSupabaseClient();
-  if (!client) return { error: 'No network connection' };
+  if (!client) return { error: remoteUnavailableMessage };
 
   try {
     const { error } = await client.auth.verifyOtp({ email, token, type: 'email' });

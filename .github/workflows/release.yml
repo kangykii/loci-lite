@@ -36,6 +36,25 @@ jobs:
       - name: Install dependencies
         run: corepack pnpm install --frozen-lockfile
 
+      - name: Verify release environment
+        shell: pwsh
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:VITE_SUPABASE_URL)) {
+            throw "VITE_SUPABASE_URL secret is required for release builds."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:VITE_SUPABASE_PUBLISHABLE_KEY)) {
+            throw "VITE_SUPABASE_PUBLISHABLE_KEY secret is required for release builds."
+          }
+          if ($env:VITE_SUPABASE_URL.StartsWith("your_supabase_") -or $env:VITE_SUPABASE_URL.EndsWith("...")) {
+            throw "VITE_SUPABASE_URL secret still looks like a placeholder."
+          }
+          if ($env:VITE_SUPABASE_PUBLISHABLE_KEY.StartsWith("your_supabase_") -or $env:VITE_SUPABASE_PUBLISHABLE_KEY.EndsWith("...")) {
+            throw "VITE_SUPABASE_PUBLISHABLE_KEY secret still looks like a placeholder."
+          }
+
       - name: Enable updater artifacts for signed release
         shell: pwsh
         run: |
@@ -51,6 +70,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_STRIPE_MODERN_WRITER_PRICE_ID: ${{ secrets.VITE_STRIPE_MODERN_WRITER_PRICE_ID }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Loci Notepad ${{ github.ref_name }}

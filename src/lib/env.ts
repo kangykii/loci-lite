@@ -21,3 +21,4 @@ if (!ENV.supabaseUrl || !ENV.supabasePublishableKey) {
 }
 
 export const hasRemote = Boolean(ENV.supabaseUrl && ENV.supabasePublishableKey);
+export const remoteUnavailableMessage = 'Account login is not configured in this build.';
