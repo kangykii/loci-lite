@@ -1,137 +1,108 @@
-import { $convertToMarkdownString } from '@lexical/markdown';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  COMMAND_PRIORITY_LOW,
+  $addUpdateTag,
+  $getSelection,
+  $insertNodes,
+  $isRangeSelection,
+  $parseSerializedNode,
+  COMMAND_PRIORITY_HIGH,
   PASTE_COMMAND,
   PASTE_TAG,
   type PasteCommandType,
 } from 'lexical';
 import { useEffect, useRef } from 'react';
-import { markdownTransformers } from '../config/markdownTransformers';
+import { useAuthorshipEditorContext } from '../context/AuthorshipEditorContext';
 import {
-  type AuthorshipAnnotationItem,
-  type ReconciledAnnotationDetail,
-  useAuthorshipEditorContext,
-} from '../context/AuthorshipEditorContext';
+  buildAuthorshipDocIndex,
+  getVisibleTextOffsetForPoint,
+} from '../lib/authorshipIndex';
+import {
+  diffVisibleText,
+  insertedVisibleTextRange,
+  reconcileVisibleTextAnnotations,
+} from '../lib/authorshipSpans';
 import { NON_PERSISTENT_DECORATION_TAG } from '../lib/editorUpdateTags';
-import {
-  collectInsertedTextAfterPaste,
-  findLastMarkdownSpanRelaxed,
-  resolvePasteSpanInMarkdown,
-} from '../lib/resolvePasteSpan';
+import { markdownPasteToSerializedNodes } from '../lib/smartMarkdownPaste';
+
+type PasteIntent = {
+  previousVisibleText: string;
+  replaceStart: number;
+  replaceEnd: number;
+};
 
 function readPastedText(event: PasteCommandType): string {
-  if (event instanceof ClipboardEvent) {
-    return event.clipboardData?.getData('text/plain') ?? '';
-  }
-
-  return '';
+  return event instanceof ClipboardEvent
+    ? event.clipboardData?.getData('text/plain') ?? ''
+    : '';
 }
 
-function normalizeNewlines(value: string): string {
-  return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-}
-
-function diffMarkdown(previous: string, next: string) {
-  let prefix = 0;
-  while (
-    prefix < previous.length &&
-    prefix < next.length &&
-    previous[prefix] === next[prefix]
-  ) {
-    prefix += 1;
+function hasMeaningfulHtmlPaste(event: PasteCommandType): boolean {
+  if (!(event instanceof ClipboardEvent)) {
+    return false;
   }
 
-  let suffix = 0;
-  while (
-    suffix < previous.length - prefix &&
-    suffix < next.length - prefix &&
-    previous[previous.length - 1 - suffix] === next[next.length - 1 - suffix]
-  ) {
-    suffix += 1;
+  const html = event.clipboardData?.getData('text/html') ?? '';
+  return html
+    .replace(/<!--StartFragment-->|<!--EndFragment-->/g, '')
+    .replace(/<meta[^>]*>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .trim().length > 0;
+}
+
+function currentVisibleSelectionRange(): { spanStart: number; spanEnd: number } | null {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) {
+    return null;
+  }
+
+  const anchor = getVisibleTextOffsetForPoint(selection.anchor);
+  const focus = getVisibleTextOffsetForPoint(selection.focus);
+  if (anchor === null || focus === null) {
+    return null;
   }
 
   return {
-    changeStart: prefix,
-    oldChangeEnd: previous.length - suffix,
-    insertedLength: next.length - prefix - suffix,
+    spanStart: Math.min(anchor, focus),
+    spanEnd: Math.max(anchor, focus),
   };
 }
 
-function reconcileOneAnnotation(
-  annotation: AuthorshipAnnotationItem,
-  changeStart: number,
-  oldChangeEnd: number,
-  insertedLength: number,
-): ReconciledAnnotationDetail[] {
-  const removedLength = oldChangeEnd - changeStart;
-  const delta = insertedLength - removedLength;
-
-  if (annotation.spanEnd <= changeStart) {
-    return [annotation];
+function capturePasteIntent(): PasteIntent | null {
+  const { docText } = buildAuthorshipDocIndex();
+  const selectionRange = currentVisibleSelectionRange();
+  if (!selectionRange) {
+    return null;
   }
 
-  if (annotation.spanStart >= oldChangeEnd) {
-    return [
-      {
-        ...annotation,
-        spanStart: annotation.spanStart + delta,
-        spanEnd: annotation.spanEnd + delta,
-      },
-    ];
-  }
-
-  const pieces: ReconciledAnnotationDetail[] = [];
-  const leftEnd = Math.min(annotation.spanEnd, changeStart);
-  if (annotation.spanStart < leftEnd) {
-    pieces.push({
-      id: annotation.id,
-      source: annotation.source,
-      spanStart: annotation.spanStart,
-      spanEnd: leftEnd,
-    });
-  }
-
-  const rightStart = Math.max(annotation.spanStart, oldChangeEnd);
-  if (rightStart < annotation.spanEnd) {
-    pieces.push({
-      id: pieces.length === 0 ? annotation.id : crypto.randomUUID(),
-      source: annotation.source,
-      spanStart: rightStart + delta,
-      spanEnd: annotation.spanEnd + delta,
-    });
-  }
-
-  return pieces.filter((piece) => piece.spanStart < piece.spanEnd);
+  return {
+    previousVisibleText: docText,
+    replaceStart: selectionRange.spanStart,
+    replaceEnd: selectionRange.spanEnd,
+  };
 }
 
-function reconcileAnnotations(
-  previousMarkdown: string,
-  nextMarkdown: string,
-  annotations: AuthorshipAnnotationItem[],
-): ReconciledAnnotationDetail[] {
-  if (previousMarkdown === nextMarkdown) {
-    return annotations;
-  }
-
-  const diff = diffMarkdown(previousMarkdown, nextMarkdown);
-  return annotations.flatMap((annotation) =>
-    reconcileOneAnnotation(
-      annotation,
-      diff.changeStart,
-      diff.oldChangeEnd,
-      diff.insertedLength,
+function anchoredPasteChange(
+  intent: PasteIntent,
+  nextVisibleText: string,
+) {
+  const removedLength = intent.replaceEnd - intent.replaceStart;
+  return {
+    changeStart: intent.replaceStart,
+    oldChangeEnd: intent.replaceEnd,
+    insertedLength: Math.max(
+      0,
+      nextVisibleText.length - intent.previousVisibleText.length + removedLength,
     ),
-  );
+  };
 }
 
 export default function AuthorshipPlugin() {
   const [editor] = useLexicalComposerContext();
   const { annotations, fileId, onAnnotationsReconciled, onPasteRecorded } =
     useAuthorshipEditorContext();
-  const pendingPasteRef = useRef<string | null>(null);
   const annotationsRef = useRef(annotations);
-  const previousMarkdownRef = useRef<string | null>(null);
+  const previousVisibleTextRef = useRef<string | null>(null);
+  const pasteIntentRef = useRef<PasteIntent | null>(null);
 
   useEffect(() => {
     annotationsRef.current = annotations;
@@ -139,12 +110,12 @@ export default function AuthorshipPlugin() {
 
   useEffect(() => {
     if (!fileId) {
-      previousMarkdownRef.current = null;
+      previousVisibleTextRef.current = null;
       return;
     }
 
     editor.getEditorState().read(() => {
-      previousMarkdownRef.current = $convertToMarkdownString(markdownTransformers);
+      previousVisibleTextRef.current = buildAuthorshipDocIndex().docText;
     });
   }, [editor, fileId]);
 
@@ -156,14 +127,29 @@ export default function AuthorshipPlugin() {
     const unregisterCommand = editor.registerCommand(
       PASTE_COMMAND,
       (event) => {
+        pasteIntentRef.current = capturePasteIntent();
+
+        if (hasMeaningfulHtmlPaste(event)) {
+          return false;
+        }
+
         const pastedText = readPastedText(event);
-        if (pastedText) {
-          pendingPasteRef.current = normalizeNewlines(pastedText);
+        if (!pastedText) {
+          return false;
+        }
+
+        const parsedNodes = markdownPasteToSerializedNodes(pastedText);
+        if (parsedNodes) {
+          event.preventDefault();
+          $addUpdateTag(PASTE_TAG);
+          const nodes = parsedNodes.map((node) => $parseSerializedNode(node));
+          $insertNodes(nodes);
+          return true;
         }
 
         return false;
       },
-      COMMAND_PRIORITY_LOW,
+      COMMAND_PRIORITY_HIGH,
     );
 
     const unregisterListener = editor.registerUpdateListener(({ editorState, tags }) => {
@@ -172,43 +158,38 @@ export default function AuthorshipPlugin() {
       }
 
       editorState.read(() => {
-        const markdown = $convertToMarkdownString(markdownTransformers);
-        const previousMarkdown = previousMarkdownRef.current;
-        previousMarkdownRef.current = markdown;
+        const visibleText = buildAuthorshipDocIndex().docText;
+        const pasteIntent = tags.has(PASTE_TAG) ? pasteIntentRef.current : null;
+        const previousVisibleText =
+          pasteIntent?.previousVisibleText ?? previousVisibleTextRef.current;
+        previousVisibleTextRef.current = visibleText;
 
-        if (previousMarkdown === null) {
+        if (previousVisibleText === null) {
+          pasteIntentRef.current = null;
           return;
         }
 
-        const nextAnnotations = reconcileAnnotations(
-          previousMarkdown,
-          markdown,
-          annotationsRef.current,
-        );
+        const change = pasteIntent
+          ? anchoredPasteChange(pasteIntent, visibleText)
+          : diffVisibleText(previousVisibleText, visibleText);
+        const nextAnnotations = reconcileVisibleTextAnnotations(change, annotationsRef.current);
         const shouldReconcile =
           annotationsRef.current.length > 0 &&
           JSON.stringify(nextAnnotations) !== JSON.stringify(annotationsRef.current);
 
-        if (tags.has(PASTE_TAG) && pendingPasteRef.current) {
-          const pastedText = pendingPasteRef.current;
-          pendingPasteRef.current = null;
-          const inserted =
-            collectInsertedTextAfterPaste(pastedText) ?? pastedText.replace(/\n/g, '');
-          const spans =
-            resolvePasteSpanInMarkdown(markdown, pastedText) ??
-            findLastMarkdownSpanRelaxed(normalizeNewlines(markdown), inserted);
-
-          if (!spans) {
-            return;
-          }
+        if (tags.has(PASTE_TAG)) {
+          const insertedRange = insertedVisibleTextRange(change);
+          pasteIntentRef.current = null;
 
           const recordPaste = () =>
-            onPasteRecorded({
-              id: crypto.randomUUID(),
-              spanStart: spans.spanStart,
-              spanEnd: spans.spanEnd,
-              pastedText: inserted,
-            });
+            insertedRange
+              ? onPasteRecorded({
+                  id: crypto.randomUUID(),
+                  spanStart: insertedRange.spanStart,
+                  spanEnd: insertedRange.spanEnd,
+                  pastedText: visibleText.slice(insertedRange.spanStart, insertedRange.spanEnd),
+                })
+              : undefined;
 
           if (shouldReconcile) {
             void Promise.resolve(onAnnotationsReconciled(nextAnnotations))
@@ -221,9 +202,7 @@ export default function AuthorshipPlugin() {
         }
 
         if (shouldReconcile) {
-          void Promise.resolve(onAnnotationsReconciled(nextAnnotations)).catch(
-            () => undefined,
-          );
+          void Promise.resolve(onAnnotationsReconciled(nextAnnotations)).catch(() => undefined);
         }
       });
     });

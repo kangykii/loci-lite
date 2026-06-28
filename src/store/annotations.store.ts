@@ -1,23 +1,6 @@
 import { getDb } from './db';
-
-export type AnnotationRecord = {
-  id: string;
-  fileId: string;
-  spanStart: number;
-  spanEnd: number;
-  source: 'ai' | 'paste';
-  createdAt: number;
-};
-
-type AnnotationRow = {
-  id: string;
-  file_id: string;
-  span_start: number;
-  span_end: number;
-  source: 'ai' | 'paste';
-  created_at: number;
-};
-
+export type { AnnotationRecord } from './annotationTypes';
+import type { AnnotationRecord, AnnotationRow } from './annotationTypes';
 function mapAnnotation(row: AnnotationRow): AnnotationRecord {
   return {
     id: row.id,
@@ -26,17 +9,20 @@ function mapAnnotation(row: AnnotationRow): AnnotationRecord {
     spanEnd: row.span_end,
     source: row.source,
     createdAt: row.created_at,
+    coordinateSystem: 'visible_text',
   };
 }
 
 export async function createAnnotation(
-  ann: Omit<AnnotationRecord, 'createdAt'>,
+  ann: Omit<AnnotationRecord, 'createdAt' | 'coordinateSystem'>,
 ): Promise<void> {
   const db = await getDb();
   const createdAt = Date.now();
   await db.execute(
-    `INSERT INTO annotations (id, file_id, span_start, span_end, source, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
+    `INSERT INTO annotations (
+       id, file_id, span_start, span_end, source, created_at, coordinate_system
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, 'visible_text')`,
     [ann.id, ann.fileId, ann.spanStart, ann.spanEnd, ann.source, createdAt],
   );
 }
@@ -46,7 +32,9 @@ export async function listAnnotationsForFile(
 ): Promise<AnnotationRecord[]> {
   const db = await getDb();
   const rows = await db.select<AnnotationRow[]>(
-    'SELECT * FROM annotations WHERE file_id = $1 ORDER BY span_start ASC',
+    `SELECT * FROM annotations
+     WHERE file_id = $1 AND coordinate_system = 'visible_text'
+     ORDER BY span_start ASC`,
     [fileId],
   );
   return rows.map(mapAnnotation);
@@ -58,13 +46,15 @@ export async function deleteAnnotation(id: string): Promise<void> {
 }
 
 async function insertAnnotationRecord(
-  ann: Omit<AnnotationRecord, 'createdAt'>,
+  ann: Omit<AnnotationRecord, 'createdAt' | 'coordinateSystem'>,
   createdAt: number,
 ): Promise<void> {
   const db = await getDb();
   await db.execute(
-    `INSERT INTO annotations (id, file_id, span_start, span_end, source, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
+    `INSERT INTO annotations (
+       id, file_id, span_start, span_end, source, created_at, coordinate_system
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, 'visible_text')`,
     [ann.id, ann.fileId, ann.spanStart, ann.spanEnd, ann.source, createdAt],
   );
 }
@@ -79,9 +69,11 @@ export async function subtractAnnotationRange(
   removeEnd: number,
 ): Promise<AnnotationRecord[]> {
   const db = await getDb();
-  const rows = await db.select<AnnotationRow[]>('SELECT * FROM annotations WHERE id = $1', [
-    id,
-  ]);
+  const rows = await db.select<AnnotationRow[]>(
+    `SELECT * FROM annotations
+     WHERE id = $1 AND coordinate_system = 'visible_text'`,
+    [id],
+  );
   const existing = rows[0] ? mapAnnotation(rows[0]) : null;
 
   if (!existing) {
@@ -121,18 +113,32 @@ export async function subtractAnnotationRange(
 
 export async function replaceAnnotationsForFile(
   fileId: string,
-  annotations: Omit<AnnotationRecord, 'fileId' | 'createdAt'>[],
+  annotations: Omit<AnnotationRecord, 'fileId' | 'createdAt' | 'coordinateSystem'>[],
 ): Promise<AnnotationRecord[]> {
   const db = await getDb();
-  await db.execute('DELETE FROM annotations WHERE file_id = $1', [fileId]);
+  const existingRows = await db.select<AnnotationRow[]>(
+    `SELECT * FROM annotations
+     WHERE file_id = $1 AND coordinate_system = 'visible_text'`,
+    [fileId],
+  );
+  const existingCreatedAt = new Map(
+    existingRows.map((row) => [row.id, row.created_at]),
+  );
 
-  const createdAt = Date.now();
+  await db.execute(
+    `DELETE FROM annotations
+     WHERE file_id = $1 AND coordinate_system = 'visible_text'`,
+    [fileId],
+  );
+
+  const now = Date.now();
   const records = annotations
     .filter((annotation) => annotation.spanStart < annotation.spanEnd)
     .map((annotation) => ({
       ...annotation,
       fileId,
-      createdAt,
+      createdAt: existingCreatedAt.get(annotation.id) ?? now,
+      coordinateSystem: 'visible_text' as const,
     }));
 
   for (const record of records) {

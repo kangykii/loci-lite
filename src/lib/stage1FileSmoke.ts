@@ -10,8 +10,8 @@ export async function runStage1FileSmoke(): Promise<void> {
   const path = await createNote('untitled', defaultNewNoteMarkdown());
   const initial = await readFile(path);
 
-  if (!initial.includes('# Untitled')) {
-    throw new Error('create_note did not write expected markdown.');
+  if (initial !== '') {
+    throw new Error('create_note did not write an empty note body.');
   }
 
   await writeFile(path, '# Hello\n\nFrom Stage 1 smoke test.\n');

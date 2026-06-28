@@ -44,7 +44,7 @@ export default function PersistPlugin({ onSave }: PersistPluginProps) {
 
     timeoutRef.current = setTimeout(() => {
       editorState.read(() => {
-        const markdown = $convertToMarkdownString(markdownTransformers);
+        const markdown = $convertToMarkdownString(markdownTransformers, undefined, true);
         void onSaveRef.current(markdown);
       });
     }, DEBOUNCE_MS);

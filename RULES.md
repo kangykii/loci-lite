@@ -118,6 +118,7 @@ If the architecture disagrees with a solution you are about to implement, **stop
 - `store/db.ts` is the only file that opens the DB connection — store files import from it
 - Never run raw SQL strings inline in components or hooks — always call a store function
 - The `.md` file on disk is the source of truth for document content. SQLite holds derived data only. Never write document prose to SQLite.
+- Note names live in `files.title` metadata. Rename/duplicate/create must not inject or rewrite a Markdown H1.
 
 ---
 
@@ -155,6 +156,11 @@ If the architecture disagrees with a solution you are about to implement, **stop
 - Definition shortcut: Lexical `replace` calls [`definitionShortcutBridge.ts`](src/editor/lib/definitionShortcutBridge.ts) only; persistence stays in [`useEditorAtomBridge.ts`](src/hooks/useEditorAtomBridge.ts) via `onDefinitionShortcut`.
 - `editor/config/lexicalConfig.ts` is the only place nodes are registered.
 - `editor/config/markdownTransformers.ts` is the only place markdown import/export is defined.
+- Markdown import/export must preserve blank paragraphs by using Lexical's preserve-newlines option.
+- Smart Markdown paste must reuse `markdownTransformers.ts` and must not call `$convertFromMarkdownString` on the live editor root.
+- Smart Markdown paste must not override meaningful rich `text/html` clipboard content.
+- Do not collapse blank lines during save/load/close; spacing cleanup is paste-time normalization or CSS-only.
+- Paste spacing cleanup may remove only newly inserted empty paragraphs from a paste update. It must not remove pre-existing/user-typed blank paragraphs.
 - Never import Lexical internals with `lexical/` deep paths unless the public API genuinely does not expose what is needed — flag this before doing it.
 
 ---
@@ -300,8 +306,10 @@ A task is not done until all of these are true:
 - [ ] Editor outline does not shift editor column position; toggle on editor bar only
 - [ ] Outline panel uses `--outline-panel-w` and `--outline-panel-max-h` (no hardcoded outline rem widths)
 - [ ] Outline panel header uses document title, not the word "Outline"
+- [ ] Outline nav preserves heading hierarchy and hides only the first heading when it duplicates the document title
 - [ ] Theme uses dual-layer tokens (`data-theme` + `prefers-color-scheme` fallback); DESIGN updated
 - [ ] Notebook themes store ids, set `data-theme` mode + `data-notebook-theme` variant, and gate paid covers through Modern Writer or `cosmetics.slug`
+- [ ] Every theme path defines `--selection-bg` and `--selection-text`; selection styling uses native `::selection`
 - [ ] Editor bar has prompt field; no Focus/Authorship/Atoms text buttons
 - [ ] Mode toggles use `AppleToggle` in overflow menu only
 - [ ] Focus mode toggle wired via `useFocusMode` + overflow `AppleToggle` (not a bar text button)
@@ -341,12 +349,15 @@ A task is not done until all of these are true:
 - [ ] Tauri main window has `dragDropEnabled: false` when browse HTML5 DnD is used
 - [ ] Definition shortcut uses `definitionShortcutBridge` + `useEditorAtomBridge` — no `store/` in Lexical plugins/transformers
 - [ ] Authorship paste always recorded when `fileId` set; visibility gated by `authorship-visible` on `.editor-root` only
+- [ ] Authorship paste spans use captured pre-paste visible selection/caret intent when available; generic visible-text diff is fallback only
 - [ ] Authorship toggle in overflow menu only; wired via `useAuthorshipMode` + `useEditorAuthorshipBridge` (not a bar text button)
 - [ ] `AuthorshipPlugin` and `ContextMenuPlugin` have no `store/` imports — annotations via `AuthorshipEditorContext`
-- [ ] Authorship wash uses `--authorship-paste-wash` / `--authorship-paste-wash-hover` tokens only; no hardcoded rgba in `editor.css` for authorship
-- [ ] Authorship is visual-only runtime overlay derived from SQLite; it must not create authorship text nodes, split Lexical text for provenance, or write provenance into bookmark nodes
+- [ ] Authorship spans use visible editor-text offsets only (`coordinate_system='visible_text'`), never Markdown offsets
+- [ ] Authorship paint uses native CSS Highlight text colouring for every source; do not use duplicated text overlays for authorship
+- [ ] Authorship colour uses the universal `--authorship-tone-1` through `--authorship-tone-6` palette only; no hardcoded rgba in `editor.css` for authorship
+- [ ] Authorship is visual-only runtime colouring derived from SQLite; it must not create authorship text nodes, split Lexical text for provenance, or write provenance into bookmark nodes
 - [ ] Authorship can visually overlap bookmark spans, but bookmarks and paste provenance must not become each other's durable data model
-- [ ] Mark as mine is based on selected/clicked markdown ranges from context annotations; it subtracts only that range and preserves surrounding pasted text plus bookmark nodes
+- [ ] Mark as mine is based on selected/clicked visible-text ranges from context annotations; it subtracts only that range and preserves surrounding pasted text plus bookmark nodes
 - [ ] TypeScript has no `any` types unless explicitly justified in a comment
 - [ ] Notification host portaled from `NotificationProvider` in `App.tsx` — max 3 chips top-right
 - [ ] Save/error ack via `useNotifications()` in hooks (not `settings.store` in views); no third-party toast libraries

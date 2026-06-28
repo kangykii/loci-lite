@@ -1,10 +1,14 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { useCallback, useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useEffect } from 'react';
 import { useAuthorshipEditorContext } from '../context/AuthorshipEditorContext';
-import { mapMarkdownSpanToTextMatches } from '../lib/authorshipIndex';
+import { mapVisibleTextSpanToTextMatches } from '../lib/authorshipIndex';
 
-const PASTE_HIGHLIGHT_NAME = 'loci-authorship-paste';
+const AUTHORSHIP_HIGHLIGHT_COUNT = 6;
+const AUTHORSHIP_HIGHLIGHT_NAMES = Array.from(
+  { length: AUTHORSHIP_HIGHLIGHT_COUNT },
+  (_, index) => `loci-authorship-${index + 1}`,
+);
+const LEGACY_HIGHLIGHT_NAMES = ['loci-authorship-paste'];
 
 type HighlightRegistry = {
   set: (name: string, highlight: unknown) => void;
@@ -15,21 +19,24 @@ type HighlightWindow = Window & {
   Highlight?: new (...ranges: Range[]) => unknown;
 };
 
-type OverlayRect = {
-  id: string;
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-};
-
 function getHighlightRegistry(): HighlightRegistry | null {
   const css = window.CSS as { highlights?: HighlightRegistry };
   return css.highlights ?? null;
 }
 
-function supportsCustomHighlight(): boolean {
-  return Boolean(getHighlightRegistry() && (window as HighlightWindow).Highlight);
+function getHighlightConstructor(): HighlightWindow['Highlight'] {
+  return (window as HighlightWindow).Highlight;
+}
+
+function clearAuthorshipHighlights(): void {
+  const registry = getHighlightRegistry();
+  if (!registry) {
+    return;
+  }
+
+  [...AUTHORSHIP_HIGHLIGHT_NAMES, ...LEGACY_HIGHLIGHT_NAMES].forEach((name) => {
+    registry.delete(name);
+  });
 }
 
 function findTextDescendant(root: Node): Text | null {
@@ -41,92 +48,82 @@ function findTextDescendant(root: Node): Text | null {
   return walker.nextNode() as Text | null;
 }
 
-function createDomRange(element: HTMLElement, start: number, end: number): Range | null {
-  const textNode = findTextDescendant(element);
-  if (!textNode) {
-    return null;
+function tokenRangesForTextNode(textNode: Text, start: number, end: number): Range[] {
+  const value = textNode.textContent ?? '';
+  const safeStart = Math.max(0, Math.min(start, value.length));
+  const safeEnd = Math.max(safeStart, Math.min(end, value.length));
+  const source = value.slice(safeStart, safeEnd);
+  const pattern = /\S+/g;
+  const ranges: Range[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(source))) {
+    const range = document.createRange();
+    range.setStart(textNode, safeStart + match.index);
+    range.setEnd(textNode, safeStart + match.index + match[0].length);
+    ranges.push(range);
   }
 
-  const textLength = textNode.textContent?.length ?? 0;
-  const range = document.createRange();
-  range.setStart(textNode, Math.max(0, Math.min(start, textLength)));
-  range.setEnd(textNode, Math.max(0, Math.min(end, textLength)));
-  return range;
+  return ranges;
 }
 
-function clearHighlight(): void {
-  getHighlightRegistry()?.delete(PASTE_HIGHLIGHT_NAME);
+function applyAuthorshipHighlights(ranges: Range[]): void {
+  const registry = getHighlightRegistry();
+  const HighlightConstructor = getHighlightConstructor();
+  clearAuthorshipHighlights();
+
+  if (!registry || !HighlightConstructor || ranges.length === 0) {
+    return;
+  }
+
+  const buckets = AUTHORSHIP_HIGHLIGHT_NAMES.map((): Range[] => []);
+  ranges.forEach((range, index) => {
+    buckets[index % AUTHORSHIP_HIGHLIGHT_COUNT].push(range);
+  });
+
+  buckets.forEach((bucket, index) => {
+    if (bucket.length > 0) {
+      registry.set(AUTHORSHIP_HIGHLIGHT_NAMES[index], new HighlightConstructor(...bucket));
+    }
+  });
 }
 
 export default function AuthorshipOverlayPlugin() {
   const [editor] = useLexicalComposerContext();
   const { annotations, authorshipVisible, fileId } = useAuthorshipEditorContext();
-  const [overlayRoot, setOverlayRoot] = useState<HTMLElement | null>(null);
-  const [rects, setRects] = useState<OverlayRect[]>([]);
 
   const repaint = useCallback(() => {
     const root = editor.getRootElement();
     if (!root || !fileId || !authorshipVisible || annotations.length === 0) {
-      clearHighlight();
-      setRects([]);
+      clearAuthorshipHighlights();
       return;
     }
 
-    const ranges: Range[] = [];
+    const nextRanges: Range[] = [];
 
     editor.getEditorState().read(() => {
-      for (const annotation of annotations) {
-        if (annotation.source !== 'paste') {
-          continue;
-        }
-
-        const matches = mapMarkdownSpanToTextMatches(
+      annotations.forEach((annotation) => {
+        const matches = mapVisibleTextSpanToTextMatches(
           annotation.spanStart,
           annotation.spanEnd,
         );
 
-        for (const match of matches) {
+        matches.forEach((match) => {
           const element = editor.getElementByKey(match.node.getKey());
           if (!element) {
-            continue;
+            return;
           }
 
-          const range = createDomRange(element, match.start, match.end);
-          if (range) {
-            ranges.push(range);
+          const textNode = findTextDescendant(element);
+          if (textNode) {
+            nextRanges.push(...tokenRangesForTextNode(textNode, match.start, match.end));
           }
-        }
-      }
+        });
+      });
     });
 
-    if (supportsCustomHighlight()) {
-      const HighlightConstructor = (window as HighlightWindow).Highlight;
-      if (HighlightConstructor) {
-        getHighlightRegistry()?.set(PASTE_HIGHLIGHT_NAME, new HighlightConstructor(...ranges));
-      }
-      setRects([]);
-      return;
-    }
-
-    clearHighlight();
-
-    const rootBox = root.getBoundingClientRect();
-    const nextRects = ranges.flatMap((range, rangeIndex) =>
-      Array.from(range.getClientRects()).map((rect, rectIndex) => ({
-        id: `${rangeIndex}-${rectIndex}`,
-        left: rect.left - rootBox.left + root.scrollLeft,
-        top: rect.top - rootBox.top + root.scrollTop,
-        width: rect.width,
-        height: rect.height,
-      })),
-    );
-    setRects(nextRects);
+    applyAuthorshipHighlights(nextRanges);
   }, [annotations, authorshipVisible, editor, fileId]);
-
-  useEffect(() => {
-    const root = editor.getRootElement();
-    setOverlayRoot(root?.parentElement ?? null);
-  }, [editor]);
 
   useEffect(() => {
     repaint();
@@ -141,29 +138,9 @@ export default function AuthorshipOverlayPlugin() {
       unregister();
       window.removeEventListener('resize', repaint);
       window.removeEventListener('scroll', repaint, true);
-      clearHighlight();
+      clearAuthorshipHighlights();
     };
   }, [editor, repaint]);
 
-  if (!overlayRoot || supportsCustomHighlight() || rects.length === 0) {
-    return null;
-  }
-
-  return createPortal(
-    <div className="authorship-overlay-layer" aria-hidden="true">
-      {rects.map((rect) => (
-        <span
-          className="authorship-overlay-range"
-          key={rect.id}
-          style={{
-            height: rect.height,
-            left: rect.left,
-            top: rect.top,
-            width: rect.width,
-          }}
-        />
-      ))}
-    </div>,
-    overlayRoot,
-  );
+  return null;
 }

@@ -17,7 +17,7 @@ Light mode uses a **warm high-contrast paper** palette: warm hued off-white base
 
 Dark mode uses the **Charcoal Claude** palette: near-neutral charcoal base (`#171615`), warm surface (`#1F1D1C`), cream text (`#EDE6DC`), muted brown-gray chrome (`#443E38`), and a burnt-orange accent (`#B86830`). Warmth lives in the accent only — closest to iA dark, editorial not neon. The page background is flat `--bg` only; no atmospheric gradients on `html` or `body`. Accent colour appears on one primary action per view only.
 
-**Theme control:** Light tokens live on `:root`. Charcoal Claude applies when the OS prefers dark (`:root:not([data-theme='light'])`) or when the user sets `html[data-theme='dark']`. Explicit light choice uses `html[data-theme='light']`. Account → Notebooks stores a notebook theme id in the same persisted `localStorage` preference; applying a notebook sets the mode-compatible `data-theme` plus `data-notebook-theme` for palette variants.
+**Theme control:** Light tokens live on `:root`. Charcoal Claude applies when the OS prefers dark (`:root:not([data-theme='light'])`) or when the user sets `html[data-theme='dark']`. Explicit light choice uses `html[data-theme='light']`. Account → Notebooks stores a notebook theme id in the same persisted `localStorage` preference; applying a notebook sets the mode-compatible `data-theme` plus `data-notebook-theme` for palette variants. Every theme path owns native text selection via `--selection-bg` and `--selection-text`; selection uses `::selection` only, stays readable over editor prose, and never falls back to system blue or a custom overlay.
 
 ---
 
@@ -327,39 +327,39 @@ Applied app-wide on boot via [`useDefaultEditorFontSetting.ts`](src/hooks/useDef
 
 ## Authorship mode — provenance colouring
 
-Authorship mode marks text by origin. Default **off** app-wide (Settings → **Default authorship highlights**); overflow **Authorship** `AppleToggle` overrides for the current note session only. Paste is **always** recorded in SQLite when a note is open; the toggle controls **visibility** only (`.editor-root.authorship-visible`). Typed text is never annotated.
+Authorship mode marks visible words by origin. Default **off** app-wide (Settings → **Default authorship highlights**); overflow **Authorship** `AppleToggle` overrides for the current note session only. Paste is **always** recorded in SQLite when a note is open; the toggle controls **visibility** only (`.editor-root.authorship-visible`). Typed text is never annotated, and manual edits inside sourced text become user-written words immediately.
 
-**Live in v1:** paste provenance only. Paste is **always** recorded in SQLite when a note is open; the toggle controls **visibility** only (`.editor-root.authorship-visible`). Typed text is never annotated.
+**Live in v1:** paste provenance only. Paste is **always** recorded in SQLite as visible-text spans when a note is open; the toggle controls **visibility** only (`.editor-root.authorship-visible`). Typed text is never annotated.
 
 | Origin | Visual treatment (when toggle on) | Implementation |
 |---|---|---|
 | User-written | No decoration — clean | Default editor state |
-| Pasted | Light: subtle iA-style rainbow text; dark: restrained warm text | SQLite annotation + runtime range overlay |
-| AI-generated | Reserved — no wash in v1 | `source='ai'` in schema only; future |
+| Pasted | iA-style technicolor text over the sourced words | SQLite annotation + CSS Highlight text ranges |
+| AI-generated | Same rainbow paint treatment when `source='ai'` rows exist | Reserved source in schema |
 
 ```css
 /* tokens.css — dual-layer light/dark (data-theme + prefers-color-scheme fallback) */
---authorship-paste-wash: linear-gradient(105deg, …);
---authorship-paste-wash-hover: linear-gradient(105deg, …);
---authorship-paste-fallback: color-mix(in srgb, var(--text-primary) …);
---authorship-paste-fallback-hover: color-mix(in srgb, var(--text-primary) …);
+--authorship-tone-1: …;
+--authorship-tone-2: …;
+--authorship-tone-3: …;
+--authorship-tone-4: …;
+--authorship-tone-5: …;
+--authorship-tone-6: …;
 
-/* editor.css — CSS Highlight API path */
-::highlight(loci-authorship-paste) {
-  color: var(--authorship-paste-fallback);
-}
-
-/* fallback path — passive overlay layer */
-.authorship-overlay-range {
-  background-image: var(--authorship-paste-wash);
+/* editor.css — native CSS Highlight ranges; no duplicate text overlay */
+::highlight(loci-authorship-1) {
+  color: var(--authorship-tone-1);
 }
 ```
 
-Authorship rendering must be non-mutating: no inline authorship spans, no `AuthorshipNode` creation for new edits, and no authorship metadata on bookmark nodes.
+Authorship rendering must be non-mutating: no inline authorship spans, no Lexical authorship nodes, and no authorship metadata on bookmark nodes.
+The colour is native text colouring: CSS Highlight ranges paint token text directly, with no duplicate overlay glyphs, no whitespace fragments, and no line-box backgrounds.
+Authorship must not use duplicated text overlays; they drift against editor antialiasing and can create ghost lines.
+The authorship rainbow is universal: every theme path uses the same six tones as light mode so provenance has one recognizable identity across notebooks.
 
-**Mark as mine:** select authored text, right-click → **Mark as mine** at the top of the context menu subtracts only that selected markdown range from SQLite. Surrounding pasted text and bookmarks remain.
+**Mark as mine:** select authored text, right-click → **Mark as mine** at the top of the context menu subtracts only that selected visible-text range from SQLite. Surrounding pasted text and bookmarks remain.
 
-Annotations live in SQLite only — not in the `.md` file. Decoration updates are non-persistent and must not change markdown output. Spans are markdown character offsets (`span_start` / `span_end`). See [`ARCHITECTURE LOCILITE.md`](ARCHITECTURE%20LOCILITE.md) **Authorship mode**.
+Annotations live in SQLite only — not in the `.md` file. Decoration updates are non-persistent and must not change markdown output. Spans are visible editor-text character offsets (`span_start` / `span_end`, `coordinate_system='visible_text'`). See [`ARCHITECTURE LOCILITE.md`](ARCHITECTURE%20LOCILITE.md) **Authorship mode**.
 
 The treatment is intentionally subtle — coloured text, not a highlighter. The goal is awareness, not alarm.
 
@@ -861,7 +861,7 @@ Shared destructive confirmation (`.confirm-dialog-layer` + `.confirm-dialog` in 
 
 The outline toggle lives on the floating editor bar (`ListTree` + “Outline”, `aria-pressed` when open). The writing column stays centered and fluid at `--editor-col-w`; opening the outline does not reserve a layout column.
 
-When open, `.outline-layer` covers the viewport: scrim (click to close) and `.outline-panel` centered on screen. Panel header is the **document display name** (sans, semibold) — not the word “Outline”. `nav` lists section headings only; clicking a heading scrolls the document to that heading via [`outlineNavigation.ts`](src/lib/outlineNavigation.ts) and shared [`scrollEditorTarget.ts`](src/lib/scrollEditorTarget.ts) — same eased navigation scroll as find (anchor `--editor-scroll-target-ratio`, duration `--dur-editor-scroll`, easing `--ease-out`). The panel **stays open** after navigation. Close via scrim or bar toggle only.
+When open, `.outline-layer` covers the viewport: scrim (click to close) and `.outline-panel` centered on screen. Panel header is the **document display name** (sans, semibold) — not the word “Outline”. `nav` lists section headings only; if the first Markdown heading matches the document display name, it is hidden from the nav so the title appears once. Rows use heading level for minimal hierarchy: H1 primary/medium, H2 slightly indented, deeper headings progressively indented and quieter with a subtle token-colour guide only. Clicking a heading scrolls the document to that heading via [`outlineNavigation.ts`](src/lib/outlineNavigation.ts) and shared [`scrollEditorTarget.ts`](src/lib/scrollEditorTarget.ts) — same eased navigation scroll as find (anchor `--editor-scroll-target-ratio`, duration `--dur-editor-scroll`, easing `--ease-out`). The panel **stays open** after navigation. Close via scrim or bar toggle only.
 
 ```css
 .editor-layout {
@@ -948,6 +948,12 @@ Do not put the outline in `.editor-layout` grid columns. Do not add a chevron cl
   padding: 0;
 }
 ```
+
+Smart Markdown paste is invisible editor behavior: AI-style Markdown copied from chat tools is accepted as formatted editor blocks through the existing paste action. There is no popup, prompt, toast, or alternate paste control; ordinary prose and rich clipboard content keep the default paste feel.
+
+Preserved empty paragraphs render as compact blank lines: they keep caret placement and survive save/reopen, but use reduced line-height and margin so several intentional blank lines do not visually balloon the writing surface.
+
+Paste-time spacing cleanup is also invisible: newly pasted runs of empty paragraphs are reduced to one quiet separator, while user-created or pre-existing blank paragraphs remain visually compact instead of being rewritten on save/load.
 
 ### Bookmarks tab
 

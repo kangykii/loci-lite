@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { displayTitleFromMarkdown } from '../lib/documentMeta';
 import { isTauri, readFile, writeFile } from '../lib/tauri';
 import { initDb } from '../store/db';
 import {
   getFileById,
   touchEditedAt,
   touchOpenedAt,
-  updateTitle,
   type FileRecord,
 } from '../store/files.store';
 
@@ -15,10 +13,6 @@ type DocumentState =
   | { status: 'loading' }
   | { status: 'ready'; file: FileRecord; markdown: string }
   | { status: 'error'; message: string };
-
-function filenameFromPath(path: string): string {
-  return path.split(/[/\\]/).pop() ?? 'note.md';
-}
 
 export function useDocument(fileId: string | null) {
   const [state, setState] = useState<DocumentState>({ status: 'idle' });
@@ -90,13 +84,11 @@ export function useDocument(fileId: string | null) {
 
     await writeFile(file.path, markdown);
 
-    const title = displayTitleFromMarkdown(markdown, filenameFromPath(file.path));
     const editedAt = Date.now();
 
-    await updateTitle(file.id, title);
     await touchEditedAt(file.id, editedAt);
 
-    const updatedFile = { ...file, title, editedAt };
+    const updatedFile = { ...file, editedAt };
     fileRef.current = updatedFile;
     setState((current) =>
       current.status === 'ready'

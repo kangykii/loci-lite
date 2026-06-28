@@ -1,9 +1,9 @@
 import type { AuthorshipAnnotationItem } from '../context/AuthorshipEditorContext';
-import type { MarkdownRange } from './contextMenuRanges';
+import type { VisibleTextRange } from './contextMenuRanges';
 
 export function findIntersectingAnnotation(
   annotations: AuthorshipAnnotationItem[],
-  range: MarkdownRange | null,
+  range: VisibleTextRange | null,
 ): AuthorshipAnnotationItem | null {
   if (!range) return null;
   const matches = annotations.filter(
@@ -18,8 +18,8 @@ export function findIntersectingAnnotation(
 
 export function intersectionRange(
   annotation: AuthorshipAnnotationItem | null,
-  range: MarkdownRange | null,
-): MarkdownRange | null {
+  range: VisibleTextRange | null,
+): VisibleTextRange | null {
   if (!annotation || !range) return null;
   return {
     spanStart: Math.max(annotation.spanStart, range.spanStart),

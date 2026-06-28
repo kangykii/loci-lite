@@ -29,6 +29,29 @@ function nodeHasTextContent(node: LexicalNode): boolean {
   return false;
 }
 
+function nodeTextContentLength(node: LexicalNode): number {
+  if ($isTextNode(node)) {
+    return node.getTextContent().length;
+  }
+
+  if ($isElementNode(node)) {
+    return node.getChildren().reduce(
+      (length, child) => length + nodeTextContentLength(child),
+      0,
+    );
+  }
+
+  return 0;
+}
+
+function nodeContainsKey(node: LexicalNode, key: string): boolean {
+  if (node.getKey() === key) {
+    return true;
+  }
+
+  return $isElementNode(node) && node.getChildren().some((child) => nodeContainsKey(child, key));
+}
+
 function appendNodeText(node: LexicalNode, slices: DocTextSlice[], docText: string): string {
   if ($isTextNode(node)) {
     const text = node.getTextContent();
@@ -53,6 +76,45 @@ function appendNodeText(node: LexicalNode, slices: DocTextSlice[], docText: stri
   return docText;
 }
 
+function pointOffsetWithinNode(
+  node: LexicalNode,
+  targetKey: string,
+  targetOffset: number,
+  currentOffset: number,
+): number | null {
+  if (node.getKey() === targetKey) {
+    if ($isTextNode(node)) {
+      return currentOffset + Math.max(0, Math.min(targetOffset, node.getTextContent().length));
+    }
+
+    if ($isElementNode(node)) {
+      const children = node.getChildren();
+      const beforeChildren = children.slice(0, Math.max(0, Math.min(targetOffset, children.length)));
+      return (
+        currentOffset +
+        beforeChildren.reduce((length, child) => length + nodeTextContentLength(child), 0)
+      );
+    }
+
+    return currentOffset;
+  }
+
+  if (!$isElementNode(node)) {
+    return null;
+  }
+
+  let childOffset = currentOffset;
+  for (const child of node.getChildren()) {
+    if (nodeContainsKey(child, targetKey)) {
+      return pointOffsetWithinNode(child, targetKey, targetOffset, childOffset);
+    }
+
+    childOffset += nodeTextContentLength(child);
+  }
+
+  return null;
+}
+
 export function buildAuthorshipDocIndex(): AuthorshipDocIndex {
   const slices: DocTextSlice[] = [];
   let docText = '';
@@ -72,6 +134,41 @@ export function buildAuthorshipDocIndex(): AuthorshipDocIndex {
   }
 
   return { slices, docText };
+}
+
+export type VisibleTextPoint = {
+  getNode: () => LexicalNode;
+  offset: number;
+};
+
+export function getVisibleTextOffsetForPoint(point: VisibleTextPoint): number | null {
+  const targetNode = point.getNode();
+  const targetKey = targetNode.getKey();
+  let currentOffset = 0;
+  let previousBlockHadText = false;
+
+  for (const child of $getRoot().getChildren()) {
+    if (nodeContainsKey(child, targetKey)) {
+      if (previousBlockHadText) {
+        currentOffset += 2;
+      }
+
+      return pointOffsetWithinNode(child, targetKey, point.offset, currentOffset);
+    }
+
+    if (!nodeHasTextContent(child)) {
+      continue;
+    }
+
+    if (previousBlockHadText) {
+      currentOffset += 2;
+    }
+
+    currentOffset += nodeTextContentLength(child);
+    previousBlockHadText = true;
+  }
+
+  return null;
 }
 
 export function countOccurrencesBefore(markdown: string, needle: string, offset: number): number {
@@ -152,7 +249,7 @@ export function findLastCrossNodeTextMatch(searchText: string): TextMatch[] | nu
   return mapRangeToSegments(slices, matchStart, matchStart + searchText.length);
 }
 
-export function mapMarkdownSpanToTextMatches(
+export function mapVisibleTextSpanToTextMatches(
   spanStart: number,
   spanEnd: number,
 ): TextMatch[] {
@@ -163,6 +260,7 @@ export function mapMarkdownSpanToTextMatches(
   const { slices } = buildAuthorshipDocIndex();
   return mapRangeToSegments(slices, spanStart, spanEnd);
 }
+
 
 export function getTextNodeDocOffset(nodeKey: string, offset: number): number | null {
   const { slices } = buildAuthorshipDocIndex();

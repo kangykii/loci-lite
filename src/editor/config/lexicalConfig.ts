@@ -6,8 +6,18 @@ import { HorizontalRuleNode } from '@lexical/extension';
 import type { InitialConfigType } from '@lexical/react/LexicalComposer';
 import { $getRoot, type LexicalEditor } from 'lexical';
 import { AtomNode } from '../nodes/AtomNode';
-import { AuthorshipNode } from '../nodes/AuthorshipNode';
 import { markdownTransformers } from './markdownTransformers';
+
+export const editorNodes = [
+  HeadingNode,
+  QuoteNode,
+  ListNode,
+  ListItemNode,
+  CodeNode,
+  CodeHighlightNode,
+  HorizontalRuleNode,
+  AtomNode,
+];
 
 export const editorTheme = {
   paragraph: 'editor-paragraph',
@@ -73,24 +83,14 @@ function seedEditorFromMarkdown(editor: LexicalEditor, markdown: string) {
   editor.update(() => {
     const root = $getRoot();
     root.clear();
-    $convertFromMarkdownString(markdown, markdownTransformers);
+    $convertFromMarkdownString(markdown, markdownTransformers, undefined, true);
   });
 }
 
 export function createEditorConfig(initialMarkdown?: string): InitialConfigType {
   return {
     namespace: 'LociLite',
-    nodes: [
-      HeadingNode,
-      QuoteNode,
-      ListNode,
-      ListItemNode,
-      CodeNode,
-      CodeHighlightNode,
-      HorizontalRuleNode,
-      AtomNode,
-      AuthorshipNode,
-    ],
+    nodes: editorNodes,
     theme: editorTheme,
     onError(error: Error) {
       throw error;

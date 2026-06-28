@@ -51,7 +51,7 @@ export function useEditorAuthorshipBridge(fileId: string) {
         return;
       }
 
-      const record: Omit<AnnotationRecord, 'createdAt'> = {
+      const record: Omit<AnnotationRecord, 'createdAt' | 'coordinateSystem'> = {
         id: detail.id,
         fileId,
         spanStart: detail.spanStart,

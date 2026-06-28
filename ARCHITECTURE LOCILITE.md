@@ -102,15 +102,12 @@ loci-lite/
 │   │   │   └── EditorChromeContext.tsx   # Selection, bookmark, definition-shortcut callbacks
 │   │   ├── lib/
 │   │   │   ├── applyAtomDecorations.ts   # Wrap matching text with AtomNode
-│   │   │   ├── applyAuthorshipDecorations.ts  # Legacy authorship unwrap facade
-│   │   │   ├── authorshipIndex.ts       # Text index for markdown-offset authorship matching
-│   │   │   ├── authorshipNodeOps.ts     # Legacy AuthorshipNode unwrap helpers
+│   │   │   ├── authorshipIndex.ts       # Visible text index for authorship matching
 │   │   │   ├── editorUpdateTags.ts      # Non-persistent decoration update tags
 │   │   │   ├── definitionShortcutBridge.ts  # Handler registry for Lexical → React (no store)
 │   │   │   ├── definitionShortcutReplace.ts   # $replaceDefinitionShortcut guards + AtomNode swap
 │   │   │   ├── definitionShortcutLimits.ts    # Max term/definition lengths
 │   │   │   ├── definitionShortcutRevert.ts  # $revertDefinitionShortcut on save failure
-│   │   │   └── resolvePasteSpan.ts         # Paste text collection + markdown span resolution
 │   │   ├── nodes/
 │   │   │   ├── HeadingNode.ts            # Stubs — not registered at runtime
 │   │   │   ├── CodeNode.ts
@@ -119,7 +116,6 @@ loci-lite/
 │   │   │   ├── TaskNode.ts
 │   │   │   ├── FootnoteNode.ts
 │   │   │   ├── AtomNode.ts               # Live: inline bookmark span (registered)
-│   │   │   └── AuthorshipNode.ts        # Legacy compatibility node (registered, not newly created)
 │   │   ├── plugins/
 │   │   │   ├── MarkdownPlugin.tsx        # MarkdownShortcutPlugin wrapper (live)
 │   │   │   ├── DefinitionShortcutPlugin.tsx  # Registers onDefinitionShortcut into bridge (live)
@@ -138,7 +134,7 @@ loci-lite/
 │   │   ├── sound/
 │   │   │   └── typewriterSound.ts        # Web Audio keyclick singleton
 │   │   └── config/
-│   │       ├── lexicalConfig.ts          # Package nodes + AtomNode + AuthorshipNode, theme, seed markdown
+│   │       ├── lexicalConfig.ts          # Package nodes + AtomNode, theme, seed markdown
 │   │       ├── markdownTransformers.ts   # Shortcut + import transformer set (subset)
 │   │       └── definitionShortcutTransformer.ts  # DEFINITION_SHORTCUT TextMatchTransformer
 │   │
@@ -439,9 +435,11 @@ Remote Postgres only. Apply migrations `001` → `007` in order (Supabase SQL ed
 ### Editor core (implemented)
 
 - **`Editor.tsx`** — assembles Lexical core + atom plugins + `PersistPlugin`; wraps `AtomEditorProvider` / `EditorChromeProvider`; no plugin logic in this file.
-- **`lexicalConfig.ts`** — registers Lexical **package** nodes: `HeadingNode`, `QuoteNode` (`@lexical/rich-text`); `ListNode`, `ListItemNode` (`@lexical/list`); `CodeNode`, `CodeHighlightNode` (`@lexical/code`); `HorizontalRuleNode` (`@lexical/extension`). Exports `createEditorConfig(initialMarkdown?)` which seeds the document via `$convertFromMarkdownString` when markdown is provided.
+- **`lexicalConfig.ts`** — registers Lexical **package** nodes via shared `editorNodes`: `HeadingNode`, `QuoteNode` (`@lexical/rich-text`); `ListNode`, `ListItemNode` (`@lexical/list`); `CodeNode`, `CodeHighlightNode` (`@lexical/code`); `HorizontalRuleNode` (`@lexical/extension`). Exports `createEditorConfig(initialMarkdown?)` which seeds the document via `$convertFromMarkdownString` when markdown is provided.
 - **`markdownTransformers.ts`** — `HR`, `HEADING`, `QUOTE`, `UNORDERED_LIST`, `ORDERED_LIST`, `CODE`, `BOLD_ITALIC_STAR`, `BOLD_STAR`, `ITALIC_STAR`, `STRIKETHROUGH`. Does not include `LINK`, `CHECK_LIST`, `INLINE_CODE`, or underscore variants.
-- **`EditorView.tsx`** — loads a document by `fileId` via `useDocument`; passes disk markdown into `<Editor key={fileId} />`; outline title from registry `title`, headings parsed from saved markdown; wires `BottomBar` state and shortcuts without Lexical/plugin store access.
+- **`EditorView.tsx`** — loads a document by `fileId` via `useDocument`; passes disk markdown into `<Editor key={fileId} />`; outline title from registry `title`, headings parsed from saved markdown; first heading is display-filtered if it duplicates the title while original heading indexes stay intact for scroll; wires `BottomBar` state and shortcuts without Lexical/plugin store access.
+- **Smart Markdown paste** — [`smartMarkdownPaste.ts`](src/editor/lib/smartMarkdownPaste.ts) detects high-signal AI/Markdown plain-text clipboard content, collapses excessive blank-line runs outside fenced code, and parses it through a temporary Lexical editor using `editorNodes` + `markdownTransformers`; [`AuthorshipPlugin.tsx`](src/editor/plugins/AuthorshipPlugin.tsx) yields to Lexical rich paste when meaningful `text/html` is present, otherwise inserts parsed Markdown nodes at the live selection and tags the update as paste so provenance remains on the visible-text authorship path.
+- **Paste spacing intent** — [`PasteSpacingPlugin.tsx`](src/editor/plugins/PasteSpacingPlugin.tsx) observes paste-tagged Lexical updates only. It compares previous/current top-level empty paragraph keys and removes only newly pasted surplus empty paragraphs, keeping one pasted separator and leaving pre-existing or user-typed blank paragraphs intact. Save, load, close, reopen, rename, duplicate, and autosave never normalize blank lines.
 - **`App.tsx`** — `useViewTransition` + `navigateTo` for routing; tracks `activeFileId` separately; **New note** creates a file and opens the editor; editor view requires a selected `fileId`.
 - Scratch reference for current editor behaviour: [`notes.md`](notes.md) (non-canonical).
 
@@ -463,7 +461,7 @@ Remote Postgres only. Apply migrations `001` → `007` in order (Supabase SQL ed
 
 - **Shared menu:** [`ContextMenu.tsx`](src/components/ui/ContextMenu.tsx) renders item/separator entries, hidden/disabled/destructive states, Escape dismissal, and viewport clamping. Styling lives in [`shell.css`](src/styles/shell.css).
 - **Editor menu:** [`ContextMenuPlugin.tsx`](src/editor/plugins/ContextMenuPlugin.tsx) owns only the Lexical right-click shell. Range helpers live in [`contextMenuRanges.ts`](src/editor/lib/contextMenuRanges.ts); authorship intersection helpers live in [`contextMenuAnnotations.ts`](src/editor/lib/contextMenuAnnotations.ts). The plugin emits bookmark/authorship callbacks through editor contexts and opens [`SearchInNotesModal.tsx`](src/components/editor/SearchInNotesModal.tsx) for cross-note matches.
-- **Note row menu:** [`useDocumentContextMenu.tsx`](src/hooks/useDocumentContextMenu.tsx) is used by Home recent rows and Documents rows only. It calls store/native bridges for pin, rename, duplicate, reveal, and confirmed delete. Rename/duplicate update markdown H1 via [`noteMarkdownTitle.ts`](src/lib/noteMarkdownTitle.ts); rename UI uses [`RenameNoteDialog.tsx`](src/components/documents/RenameNoteDialog.tsx). Sidebar library remains open-only.
+- **Note row menu:** [`useDocumentContextMenu.tsx`](src/hooks/useDocumentContextMenu.tsx) is used by Home recent rows and Documents rows only. It calls store/native bridges for pin, registry-title rename, duplicate, reveal, and confirmed delete. Rename updates `files.title` only; duplicate copies the Markdown body unchanged and gives the new registry row a `" Copy"` title. Sidebar library remains open-only.
 - **Bookmark menu:** [`useBookmarkContextMenu.tsx`](src/hooks/useBookmarkContextMenu.tsx) is used by bookmark cards/folders. Solo cards expose Edit/Delete; stack folders expose Rename/Delete stack. There are no note actions on bookmarks.
 - **Pinned notes / project groups:** migration [`005_file_pinned.sql`](src/store/migrations/005_file_pinned.sql) adds `files.pinned`; migration [`007_file_project_group_label.sql`](src/store/migrations/007_file_project_group_label.sql) adds `files.project_group_label` for Documents-only project folders. [`files.store.ts`](src/store/files.store.ts) maps both and sorts pinned rows before recent rows.
 - **Native file helpers:** [`src-tauri/src/commands/note_paths.rs`](src-tauri/src/commands/note_paths.rs) centralizes notes-dir validation and unique note paths. [`file.rs`](src-tauri/src/commands/file.rs) exposes duplicate, reveal, and macOS dictionary lookup through [`tauri.ts`](src/lib/tauri.ts).
@@ -553,20 +551,20 @@ Paste provenance only in v1. AI `source='ai'` is reserved in schema; no AI wash 
 **Layer boundary (hard):** Lexical plugins **never** import `store/` or `ai/`. [`useEditorAuthorshipBridge.ts`](src/hooks/useEditorAuthorshipBridge.ts) in [`EditorView.tsx`](src/views/EditorView.tsx) loads annotations via [`annotations.store.ts`](src/store/annotations.store.ts), then passes data and callbacks through [`AuthorshipEditorContext.tsx`](src/editor/context/AuthorshipEditorContext.tsx).
 
 **Paste flow:**
-1. [`AuthorshipPlugin.tsx`](src/editor/plugins/AuthorshipPlugin.tsx) registers `PASTE_COMMAND` at `COMMAND_PRIORITY_LOW`, returns `false` (Lexical handles paste); `registerUpdateListener` on `PASTE_TAG` records after insert.
-2. Plugin exports markdown via `$convertToMarkdownString` + [`markdownTransformers.ts`](src/editor/config/markdownTransformers.ts); resolves span with last occurrence of pasted plain text in markdown.
-3. `onPasteRecorded` on context → bridge `createAnnotation` (`source='paste'`, `crypto.randomUUID()`).
-4. [`AuthorshipOverlayPlugin.tsx`](src/editor/plugins/AuthorshipOverlayPlugin.tsx) maps SQLite markdown spans to current text ranges and renders a runtime overlay. It does not create `AuthorshipNode`s, split text, or store provenance on `AtomNode`.
+1. [`AuthorshipPlugin.tsx`](src/editor/plugins/AuthorshipPlugin.tsx) registers smart Markdown paste at `COMMAND_PRIORITY_HIGH`; before either smart paste or rich `text/html` fallthrough, it captures the current visible-text selection/caret as paste intent.
+2. `registerUpdateListener` compares previous/current visible editor text from [`authorshipIndex.ts`](src/editor/lib/authorshipIndex.ts). On `PASTE_TAG`, paste intent anchors the inserted visible-text range; generic diff is fallback only when no intent was captured. There is no Markdown string search or last-occurrence fallback.
+3. `onPasteRecorded` on context → bridge `createAnnotation` (`source='paste'`, `coordinate_system='visible_text'`, `crypto.randomUUID()`). Legacy `NULL` coordinate rows are ignored because old Markdown-offset provenance cannot be safely converted.
+4. [`AuthorshipOverlayPlugin.tsx`](src/editor/plugins/AuthorshipOverlayPlugin.tsx) maps SQLite visible-text spans to current Lexical text ranges, splits them into non-whitespace token ranges, and paints them through named CSS Highlight ranges (`loci-authorship-1` → `loci-authorship-6`). It does not create overlay DOM, Lexical authorship nodes, split text, or store provenance on `AtomNode`.
 
-**Reload on open:** when `fileId` / `annotations` change, the overlay re-renders from SQLite offsets. [`AuthorshipNode.ts`](src/editor/nodes/AuthorshipNode.ts) stays registered only so old in-memory states can be unwrapped safely.
+**Reload on open:** when `fileId` / `annotations` change, the overlay re-renders from SQLite offsets. There is no inline authorship node compatibility path; notes persist as Markdown, not Lexical JSON.
 
 **Visibility toggle:** [`useAuthorshipMode.ts`](src/hooks/useAuthorshipMode.ts) — loads app default from `editor_default_authorship` on note open; overflow **Authorship** `AppleToggle` overrides for the current note session only. Toggles `authorship-visible` on `.editor-root`. Paste is **always** recorded; toggle gates CSS wash per [`DESIGN LOCILITE.md`](DESIGN%20LOCILITE.md). Wired through overflow in [`EditorBarMenu.tsx`](src/components/shell/EditorBarMenu.tsx) via [`BottomBar.tsx`](src/components/shell/BottomBar.tsx).
 
 **Decoration isolation:** authorship overlay rendering does not mutate Lexical content. Atom decoration updates are tagged with [`NON_PERSISTENT_DECORATION_TAG`](src/editor/lib/editorUpdateTags.ts), and [`PersistPlugin.tsx`](src/editor/plugins/PersistPlugin.tsx) ignores that tag.
 
-**Mark as mine:** [`ContextMenuPlugin.tsx`](src/editor/plugins/ContextMenuPlugin.tsx) computes selected/clicked markdown offsets, finds intersecting annotations from context, and sends `{ annotationId, spanStart, spanEnd }`. The bridge subtracts that range in SQLite, preserving surrounding pasted text and bookmark nodes.
+**Mark as mine:** [`ContextMenuPlugin.tsx`](src/editor/plugins/ContextMenuPlugin.tsx) computes selected/clicked visible-text offsets, finds intersecting annotations from context, and sends `{ annotationId, spanStart, spanEnd }`. The bridge subtracts that range in SQLite, preserving surrounding pasted text and bookmark nodes.
 
-**Styles:** `--authorship-paste-wash` / `--authorship-paste-wash-hover` in [`tokens.css`](src/styles/tokens.css) plus readable fallback tokens; [`editor.css`](src/styles/editor.css) styles `::highlight(loci-authorship-paste)` and the passive overlay fallback. Coexists with focus, typewriter, and bookmark-highlight classes on `.editor-root`.
+**Styles:** universal `--authorship-tone-1` through `--authorship-tone-6` in every active theme path in [`tokens.css`](src/styles/tokens.css); [`editor.css`](src/styles/editor.css) maps each named CSS Highlight range to one tone. Coexists with focus, typewriter, find highlights, and bookmark-highlight classes on `.editor-root`.
 
 **Persist:** annotations are SQLite-only. Saved `.md` remains plain prose with no provenance markers.
 
@@ -634,9 +632,9 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 
 ### Persist (implemented — Stage 3)
 - `PersistPlugin.tsx` uses Lexical `OnChangePlugin` (selection changes ignored)
-- Debounces 800ms then serialises via `$convertToMarkdownString` + `markdownTransformers.ts`
+- Debounces 800ms then serialises via `$convertToMarkdownString` + `markdownTransformers.ts`, with Lexical preserve-newlines enabled so blank paragraphs survive save/reopen
 - Calls `onSave(markdown)` prop only — no store or `invoke` in the plugin
-- `useDocument.save` writes disk via `lib/tauri.ts` and updates `files.title` / `files.edited_at` in SQLite; opening a document updates `files.opened_at`
+- `useDocument.save` writes disk via `lib/tauri.ts` and updates `files.edited_at` in SQLite; opening a document updates `files.opened_at`. Note names live in `files.title` and are not injected into Markdown.
 
 ### AI welcome messages (implemented)
 
@@ -661,7 +659,7 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 - **Arrows** change font size when find query is empty; move the find match index when query is non-empty; disabled when find is active and has no results
 - **Centre label** shows word count by default, the font size briefly after arrow font changes, or match progress / `0 results` in find mode
 - **Prompt field** opens find mode on focus/click or `Ctrl/Cmd+F`; [`useFindHighlight`](src/hooks/useFindHighlight.ts) highlights all matches and the active match in the editor surface
-- **Outline** toggle opens centered outline overlay; nav items scroll to matching `h1–h6` in `.editor-root` via [`outlineNavigation.ts`](src/lib/outlineNavigation.ts) + shared [`scrollEditorTarget.ts`](src/lib/scrollEditorTarget.ts) (eased rAF scroll, `--editor-scroll-target-ratio` / `--dur-editor-scroll`); panel stays open after click; editor column does not reflow
+- **Outline** toggle opens centered outline overlay; nav items show a minimal heading hierarchy and scroll to matching `h1–h6` in `.editor-root` via [`outlineNavigation.ts`](src/lib/outlineNavigation.ts) + shared [`scrollEditorTarget.ts`](src/lib/scrollEditorTarget.ts) (eased rAF scroll, `--editor-scroll-target-ratio` / `--dur-editor-scroll`); panel stays open after click; editor column does not reflow
 - **Overflow menu** — **Focus** `AppleToggle` wired to [`useFocusMode`](src/hooks/useFocusMode.ts); **Typewriter** `AppleToggle` wired to [`useTypewriterMode`](src/hooks/useTypewriterMode.ts) (default off, session-only; sound in Settings only); **Authorship** `AppleToggle` wired to [`useAuthorshipMode`](src/hooks/useAuthorshipMode.ts) (app default from Settings; session override); **Bookmark highlight** `AppleToggle` wired to [`useBookmarkHighlight`](src/hooks/useBookmarkHighlight.ts) (app default from Settings; session override); each row shows its keyboard shortcut
 - Future AI atomise (`ai/actions/atomise.ts`) is not on the editor bar
 

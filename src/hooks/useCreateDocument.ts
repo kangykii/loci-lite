@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import {
   defaultNewNoteMarkdown,
   slugify,
-  titleFromMarkdown,
 } from '../lib/documentMeta';
 import { createNote } from '../lib/tauri';
 import { initDb } from '../store/db';
@@ -22,12 +21,11 @@ export function useCreateDocument() {
       const path = await createNote(slugify('Untitled'), markdown);
       const now = Date.now();
       const id = crypto.randomUUID();
-      const title = titleFromMarkdown(markdown) ?? 'Untitled';
 
       await insertFile({
         id,
         path,
-        title,
+        title: 'Untitled',
         openedAt: now,
         createdAt: now,
         editedAt: now,

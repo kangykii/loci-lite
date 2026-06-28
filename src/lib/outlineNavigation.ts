@@ -25,6 +25,24 @@ export function outlineEntriesFromMarkdown(markdown: string): OutlineEntry[] {
   return entries;
 }
 
+function normalizeOutlineText(text: string): string {
+  return text.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
+export function outlineEntriesForDisplay(
+  entries: OutlineEntry[],
+  documentTitle: string,
+): OutlineEntry[] {
+  const [firstEntry, ...restEntries] = entries;
+  if (!firstEntry) return entries;
+
+  if (normalizeOutlineText(firstEntry.text) === normalizeOutlineText(documentTitle)) {
+    return restEntries;
+  }
+
+  return entries;
+}
+
 export function getEditorHeadingElements(root: HTMLElement): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(HEADING_SELECTOR));
 }

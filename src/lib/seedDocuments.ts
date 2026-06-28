@@ -22,7 +22,7 @@ Loci Notepad is a **local-first** writing room. Your notes are plain Markdown fi
 
 1. On Home, choose **New note** (desktop app only).
 2. Write in the editor column — serif body, calm width.
-3. Edits save automatically after a short pause (~800 ms) to the \`.md\` file and registry title.
+3. Edits save automatically after a short pause (~800 ms) to the \`.md\` file. Note names stay in Loci's local registry.
 
 Use **Recent** on Home or a row on **Documents** to return to a note.
 

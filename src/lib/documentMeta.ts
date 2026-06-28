@@ -55,7 +55,7 @@ export function displayTitleFromMarkdown(markdown: string, filename: string): st
 }
 
 export function defaultNewNoteMarkdown(): string {
-  return '# Untitled\n\n';
+  return '';
 }
 
 const EXCERPT_MAX_LENGTH = 200;

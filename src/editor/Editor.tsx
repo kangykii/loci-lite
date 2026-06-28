@@ -32,6 +32,7 @@ import DefinitionShortcutPlugin from './plugins/DefinitionShortcutPlugin';
 import FocusModePlugin from './plugins/FocusModePlugin';
 import TypewriterScrollPlugin from './plugins/TypewriterScrollPlugin';
 import MarkdownPlugin from './plugins/MarkdownPlugin';
+import PasteSpacingPlugin from './plugins/PasteSpacingPlugin';
 import PersistPlugin from './plugins/PersistPlugin';
 import SelectionSyncPlugin from './plugins/SelectionSyncPlugin';
 
@@ -85,6 +86,7 @@ export default function Editor({
               <TypewriterScrollPlugin active={typewriterActive} />
               <ContextMenuPlugin />
               <AuthorshipPlugin />
+              <PasteSpacingPlugin />
               <AuthorshipOverlayPlugin />
               <AtomDecorationPlugin />
               <DefinitionScanPlugin />

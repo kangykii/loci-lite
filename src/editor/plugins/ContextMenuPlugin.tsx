@@ -12,16 +12,17 @@ import { useSearchableDocuments } from '../../hooks/useSearchableDocuments';
 import { markdownTransformers } from '../config/markdownTransformers';
 import { useAuthorshipEditorContext } from '../context/AuthorshipEditorContext';
 import { useEditorChromeContext } from '../context/EditorChromeContext';
+import { buildAuthorshipDocIndex } from '../lib/authorshipIndex';
 import {
   findIntersectingAnnotation,
   intersectionRange,
 } from '../lib/contextMenuAnnotations';
 import {
-  clickedMarkdownOffset,
-  selectedMarkdownRange,
+  clickedVisibleTextOffset,
+  selectedVisibleTextRange,
   textForRange,
   wordRangeAtOffset,
-  type MarkdownRange,
+  type VisibleTextRange,
 } from '../lib/contextMenuRanges';
 
 type MenuState = {
@@ -30,7 +31,7 @@ type MenuState = {
   selectedText: string;
   lookupText: string;
   annotationId: string | null;
-  markRange: MarkdownRange | null;
+  markRange: VisibleTextRange | null;
 };
 
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
@@ -49,20 +50,20 @@ export default function ContextMenuPlugin() {
 
     const handleContextMenu = (event: MouseEvent) => {
       let selectedText = '';
-      let markdown = '';
+      let visibleText = '';
       editor.getEditorState().read(() => {
-        markdown = $convertToMarkdownString(markdownTransformers);
+        visibleText = buildAuthorshipDocIndex().docText;
         const selection = $getSelection();
         if ($isRangeSelection(selection) && !selection.isCollapsed()) {
           selectedText = selection.getTextContent().trim();
         }
       });
 
-      const selectionRange = selectedMarkdownRange(root);
-      const clickedOffset = selectionRange ? null : clickedMarkdownOffset(root, event);
+      const selectionRange = selectedVisibleTextRange(root);
+      const clickedOffset = selectionRange ? null : clickedVisibleTextOffset(root, event);
       const candidateRange =
         selectionRange ??
-        (clickedOffset === null ? null : wordRangeAtOffset(markdown, clickedOffset));
+        (clickedOffset === null ? null : wordRangeAtOffset(visibleText, clickedOffset));
       const annotation = findIntersectingAnnotation(annotations, candidateRange);
 
       event.preventDefault();
@@ -70,7 +71,7 @@ export default function ContextMenuPlugin() {
         x: event.clientX,
         y: event.clientY,
         selectedText,
-        lookupText: selectedText || textForRange(markdown, candidateRange),
+        lookupText: selectedText || textForRange(visibleText, candidateRange),
         annotationId: annotation?.id ?? null,
         markRange: intersectionRange(annotation, candidateRange),
       });

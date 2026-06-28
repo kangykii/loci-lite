@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AtomPopup from '../components/atoms/AtomPopup';
 import BottomBar from '../components/shell/BottomBar';
@@ -18,6 +19,7 @@ import { useEditorChromeEntry } from '../hooks/useEditorChromeEntry';
 import { useFocusMode } from '../hooks/useFocusMode';
 import { useTypewriterMode } from '../hooks/useTypewriterMode';
 import {
+  outlineEntriesForDisplay,
   outlineEntriesFromMarkdown,
   scrollToOutlineHeading,
 } from '../lib/outlineNavigation';
@@ -33,6 +35,10 @@ type EditorViewProps = {
 type PendingBookmarkDelete = {
   id: string;
   sourceText: string;
+};
+
+type OutlineRowStyle = CSSProperties & {
+  '--outline-depth': number;
 };
 
 export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }: EditorViewProps) {
@@ -137,6 +143,11 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
 
     return outlineEntriesFromMarkdown(state.markdown);
   }, [state]);
+
+  const visibleOutlineEntries = useMemo(
+    () => outlineEntriesForDisplay(outlineEntries, documentTitle),
+    [documentTitle, outlineEntries],
+  );
 
   useEffect(() => {
     if (state.status === 'ready') {
@@ -308,11 +319,18 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
             >
               <p className="outline-panel-title">{documentTitle}</p>
               <nav aria-label="Outline sections" className="outline-nav">
-                {outlineEntries.length > 0 ? (
-                  outlineEntries.map((entry) => (
+                {visibleOutlineEntries.length > 0 ? (
+                  visibleOutlineEntries.map((entry) => (
                     <button
+                      aria-label={`H${entry.level}: ${entry.text}`}
+                      data-level={entry.level}
                       key={`${entry.text}-${entry.index}`}
                       onClick={() => scrollToOutlineHeading(editorRootRef.current, entry.index)}
+                      style={
+                        {
+                          '--outline-depth': Math.min(entry.level - 1, 4),
+                        } as OutlineRowStyle
+                      }
                       type="button"
                     >
                       {entry.text}

@@ -113,27 +113,70 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
 
 .outline-nav {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-1);
   overflow-y: auto;
 }
 
 .outline-nav button {
+  position: relative;
+  min-height: calc(var(--space-8) + var(--space-1));
   border: 0;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 0;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.35;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
+  padding-left: calc(var(--space-2) + var(--outline-depth) * var(--space-4));
   text-align: left;
-  transition: color var(--dur-fast) ease;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease;
 }
 
 .outline-nav button:hover {
+  background: color-mix(in srgb, var(--shell-chrome-bg-strong) 72%, transparent);
   color: var(--text-primary);
+}
+
+.outline-nav button[data-level='1'] {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.outline-nav button[data-level='2'] {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.outline-nav button[data-level='4'],
+.outline-nav button[data-level='5'],
+.outline-nav button[data-level='6'] {
+  font-size: var(--text-xs);
+}
+
+.outline-nav button:not([data-level='1'])::before {
+  content: '';
+  position: absolute;
+  top: var(--space-2);
+  bottom: var(--space-2);
+  left: calc(var(--space-2) + (var(--outline-depth) - 1) * var(--space-4));
+  width: 1px;
+  background: var(--border);
 }
 
 .editor-root .editor-paragraph,
 .editor-root p {
   margin: 0 0 var(--space-4);
+}
+
+.editor-root .editor-paragraph:has(> br:only-child),
+.editor-root p:has(> br:only-child) {
+  min-height: var(--space-3);
+  margin: 0 0 var(--space-2);
+  line-height: 0.7;
 }
 
 .editor-root .editor-heading-h1,
@@ -283,25 +326,30 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   --atom-highlight-fill: var(--atom-highlight-definition);
 }
 
-/* ── Authorship mode — range overlay ── */
+/* ── Authorship mode — native text colour highlights ── */
 
-::highlight(loci-authorship-paste) {
-  color: var(--authorship-paste-fallback);
+::highlight(loci-authorship-1) {
+  color: var(--authorship-tone-1);
 }
 
-.authorship-overlay-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
+::highlight(loci-authorship-2) {
+  color: var(--authorship-tone-2);
 }
 
-.authorship-overlay-range {
-  position: absolute;
-  border-radius: var(--radius-sm);
-  background-image: var(--authorship-paste-wash);
-  opacity: 0.34;
-  pointer-events: none;
+::highlight(loci-authorship-3) {
+  color: var(--authorship-tone-3);
+}
+
+::highlight(loci-authorship-4) {
+  color: var(--authorship-tone-4);
+}
+
+::highlight(loci-authorship-5) {
+  color: var(--authorship-tone-5);
+}
+
+::highlight(loci-authorship-6) {
+  color: var(--authorship-tone-6);
 }
 
 /* ── Focus mode — paragraph dimming ── */

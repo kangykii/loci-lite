@@ -3,9 +3,7 @@ import { Copy, Edit3, FolderOpen, Pin, PinOff, Trash2 } from 'lucide-react';
 import ContextMenu, { type ContextMenuEntry } from '../components/ui/ContextMenu';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import RenameNoteDialog from '../components/documents/RenameNoteDialog';
-import { displayTitleFromMarkdown } from '../lib/documentMeta';
-import { withMarkdownTitle } from '../lib/noteMarkdownTitle';
-import { duplicateFile, readFile, revealFile, writeFile } from '../lib/tauri';
+import { duplicateFile, revealFile } from '../lib/tauri';
 import { initDb } from '../store/db';
 import {
   getFileById,
@@ -52,8 +50,6 @@ export function useDocumentContextMenu({
     void (async () => {
       const file = await getFileById(document.id);
       if (!file) return;
-      const markdown = await readFile(file.path);
-      await writeFile(file.path, withMarkdownTitle(markdown, title));
       await updateTitle(file.id, title.trim() || 'Untitled');
       setRenameTarget(null);
       onChanged();
@@ -66,14 +62,12 @@ export function useDocumentContextMenu({
       const file = await getFileById(document.id);
       if (!file) return;
       const path = await duplicateFile(file.path);
-      const markdown = withMarkdownTitle(await readFile(path), `${document.title} Copy`);
-      await writeFile(path, markdown);
       const now = Date.now();
       const id = crypto.randomUUID();
       await insertFile({
         id,
         path,
-        title: displayTitleFromMarkdown(markdown, path),
+        title: `${document.title} Copy`,
         openedAt: now,
         createdAt: now,
         editedAt: now,

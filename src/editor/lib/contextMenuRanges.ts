@@ -1,4 +1,4 @@
-export type MarkdownRange = {
+export type VisibleTextRange = {
   spanStart: number;
   spanEnd: number;
 };
@@ -15,7 +15,11 @@ function nodeTextLength(node: Node): number {
   return node.textContent?.length ?? 0;
 }
 
-function domPointToMarkdownOffset(root: HTMLElement, target: Node, offset: number): number | null {
+function domPointToVisibleTextOffset(
+  root: HTMLElement,
+  target: Node,
+  offset: number,
+): number | null {
   let currentOffset = 0;
   let found: number | null = null;
   let previousBlockHadText = false;
@@ -43,40 +47,42 @@ function domPointToMarkdownOffset(root: HTMLElement, target: Node, offset: numbe
   return found;
 }
 
-export function selectedMarkdownRange(root: HTMLElement): MarkdownRange | null {
+export function selectedVisibleTextRange(root: HTMLElement): VisibleTextRange | null {
   const selection = window.getSelection();
   if (!selection || selection.isCollapsed || !selection.anchorNode || !selection.focusNode) {
     return null;
   }
   if (!root.contains(selection.anchorNode) || !root.contains(selection.focusNode)) return null;
 
-  const anchor = domPointToMarkdownOffset(root, selection.anchorNode, selection.anchorOffset);
-  const focus = domPointToMarkdownOffset(root, selection.focusNode, selection.focusOffset);
+  const anchor = domPointToVisibleTextOffset(root, selection.anchorNode, selection.anchorOffset);
+  const focus = domPointToVisibleTextOffset(root, selection.focusNode, selection.focusOffset);
   if (anchor === null || focus === null || anchor === focus) return null;
   return { spanStart: Math.min(anchor, focus), spanEnd: Math.max(anchor, focus) };
 }
 
-export function clickedMarkdownOffset(root: HTMLElement, event: MouseEvent): number | null {
+export function clickedVisibleTextOffset(root: HTMLElement, event: MouseEvent): number | null {
   const doc = document as DocumentWithCaret;
   const position = doc.caretPositionFromPoint?.(event.clientX, event.clientY);
   if (position) {
-    return domPointToMarkdownOffset(root, position.offsetNode, position.offset);
+    return domPointToVisibleTextOffset(root, position.offsetNode, position.offset);
   }
   const range = doc.caretRangeFromPoint?.(event.clientX, event.clientY);
-  return range ? domPointToMarkdownOffset(root, range.startContainer, range.startOffset) : null;
+  return range
+    ? domPointToVisibleTextOffset(root, range.startContainer, range.startOffset)
+    : null;
 }
 
-export function wordRangeAtOffset(markdown: string, offset: number): MarkdownRange {
-  let start = Math.max(0, Math.min(offset, markdown.length));
+export function wordRangeAtOffset(text: string, offset: number): VisibleTextRange {
+  let start = Math.max(0, Math.min(offset, text.length));
   let end = start;
-  while (start > 0 && /[\p{L}\p{N}'-]/u.test(markdown[start - 1])) start -= 1;
-  while (end < markdown.length && /[\p{L}\p{N}'-]/u.test(markdown[end])) end += 1;
+  while (start > 0 && /[\p{L}\p{N}'-]/u.test(text[start - 1])) start -= 1;
+  while (end < text.length && /[\p{L}\p{N}'-]/u.test(text[end])) end += 1;
   return start === end
-    ? { spanStart: start, spanEnd: Math.min(markdown.length, start + 1) }
+    ? { spanStart: start, spanEnd: Math.min(text.length, start + 1) }
     : { spanStart: start, spanEnd: end };
 }
 
-export function textForRange(markdown: string, range: MarkdownRange | null): string {
+export function textForRange(text: string, range: VisibleTextRange | null): string {
   if (!range) return '';
-  return markdown.slice(range.spanStart, range.spanEnd).trim();
+  return text.slice(range.spanStart, range.spanEnd).trim();
 }
