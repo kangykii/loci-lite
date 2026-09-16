@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ListFilter } from 'lucide-react';
+import DocumentRowSkeleton from '../components/documents/DocumentRowSkeleton';
+import DocumentFilterMenu from '../components/documents/DocumentFilterMenu';
 import DocumentsProjectList from '../components/documents/DocumentsProjectList';
 import DocumentsStatus from '../components/documents/DocumentsStatus';
 import BrowseDeleteBin from '../components/ui/BrowseDeleteBin';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import SearchField from '../components/ui/SearchField';
+import { useDelayedFlag } from '../hooks/useDelayedFlag';
 import { useDeleteDocument } from '../hooks/useDeleteDocument';
 import { useDocumentContextMenu } from '../hooks/useDocumentContextMenu';
 import { useDocumentProjectFolders } from '../hooks/useDocumentProjectFolders';
@@ -36,8 +38,11 @@ export default function DocumentsView({
 }: DocumentsViewProps) {
   const canCreate = isTauri();
   const [searchQuery, setSearchQuery] = useState('');
+  const [scope, setScope] = useState<'all' | 'pinned' | 'projects' | 'loose'>('all');
+  const [sort, setSort] = useState<'recent' | 'title'>('recent');
   const [pendingDelete, setPendingDelete] = useState<PendingDocumentDelete | null>(null);
   const { documents, status, refresh } = useSearchableDocuments();
+  const showLoadingSkeleton = useDelayedFlag(status === 'loading');
   const { remove, isDeleting, error: deleteError, clearError } = useDeleteDocument();
   const { dissolveProject, groupDocuments, removeDocumentFromProject } =
     useDocumentProjectFolders({ documents, onChanged: refresh });
@@ -48,9 +53,16 @@ export default function DocumentsView({
   });
   const hasActiveSearch = searchQuery.trim().length > 0;
   const visibleDocuments = useMemo(() => {
-    if (!hasActiveSearch) return documents;
-    return documents.filter((document) => matchesSearch(document.haystack, searchQuery));
-  }, [documents, hasActiveSearch, searchQuery]);
+    const filtered = documents.filter((document) => {
+      if (hasActiveSearch && !matchesSearch(document.haystack, searchQuery)) return false;
+      if (scope === 'pinned') return document.pinned;
+      if (scope === 'projects') return Boolean(document.projectGroupLabel);
+      if (scope === 'loose') return !document.projectGroupLabel;
+      return true;
+    });
+
+    return sort === 'title' ? [...filtered].sort((left, right) => left.title.localeCompare(right.title)) : filtered;
+  }, [documents, hasActiveSearch, scope, searchQuery, sort]);
 
   useEffect(() => {
     void refresh();
@@ -80,6 +92,12 @@ export default function DocumentsView({
   return (
     <main className="app-shell documents-view">
       <section className="documents-stack" aria-label="Documents">
+        <header className="library-header">
+          <h1>Library</h1>
+          <button className="library-new-note" disabled={!canCreate || isCreating} onClick={onCreateNote} type="button">
+            + Note
+          </button>
+        </header>
         <div className="documents-controls">
           <SearchField
             aria-label="Global search"
@@ -87,10 +105,7 @@ export default function DocumentsView({
             placeholder="Global search..."
             value={searchQuery}
           />
-          <button className="documents-filter" disabled type="button">
-            <ListFilter size={15} strokeWidth={1.5} />
-            Filter
-          </button>
+          <DocumentFilterMenu onScopeChange={setScope} onSortChange={setSort} scope={scope} sort={sort} />
           <BrowseDeleteBin acceptKind="document" disabled={!canCreate} onDrop={handleDropOnBin} />
         </div>
         <DocumentsStatus
@@ -101,18 +116,29 @@ export default function DocumentsView({
           status={status}
           visibleCount={visibleDocuments.length}
         />
-        <DocumentsProjectList
-          canCreate={canCreate}
-          documents={documents}
-          isCreating={isCreating}
-          onContextMenu={documentMenu.openMenu}
-          onCreateNote={onCreateNote}
-          onDissolveProject={(memberIds, groupLabel) => void dissolveProject(memberIds, groupLabel)}
-          onOpenEditor={onOpenEditor}
-          onProjectDrop={(draggedId, targetId) => void groupDocuments(draggedId, targetId)}
-          onRemoveFromProject={(fileId) => void removeDocumentFromProject(fileId)}
-          searchQuery={searchQuery}
-        />
+        {showLoadingSkeleton ? (
+          <div className="documents-list">
+            {[0, 1, 2, 3].map((index) => (
+              <DocumentRowSkeleton index={index} key={index} />
+            ))}
+          </div>
+        ) : status === 'loading' ? null : (
+          // DocumentsProjectRows always renders its create-card alongside the
+          // list — skip mounting it during the (sub-buffer) loading window so
+          // it doesn't flash alone before real rows land next to it.
+          <DocumentsProjectList
+            canCreate={canCreate}
+            documents={visibleDocuments}
+            isCreating={isCreating}
+            onContextMenu={documentMenu.openMenu}
+            onCreateNote={onCreateNote}
+            onDissolveProject={(memberIds, groupLabel) => void dissolveProject(memberIds, groupLabel)}
+            onOpenEditor={onOpenEditor}
+            onProjectDrop={(draggedId, targetId) => void groupDocuments(draggedId, targetId)}
+            onRemoveFromProject={(fileId) => void removeDocumentFromProject(fileId)}
+            searchQuery={searchQuery}
+          />
+        )}
       </section>
       <ConfirmDialog
         error={deleteError}

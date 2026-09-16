@@ -9,6 +9,9 @@ private.key.pub
 node_modules
 dist
 src-tauri/target
+crates/*/target
+playwright-report
+test-results
 
 .cursor
 .vs

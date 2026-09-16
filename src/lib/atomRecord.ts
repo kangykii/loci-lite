@@ -2,29 +2,11 @@ import type { AtomRecord, CreateAtomInput } from './atomTypes';
 import { initDb } from '../store/db';
 import { createAtom, updateAtom } from '../store/atoms.store';
 
-export function buildAtomRecord(input: CreateAtomInput): AtomRecord {
-  const sourceText = input.sourceText.trim();
-  const answer = input.answer.trim();
-
-  return {
-    id: input.id ?? crypto.randomUUID(),
-    fileId: input.fileId,
-    type: input.type,
-    question: sourceText,
-    answer,
-    sourceText,
-    groupLabel: null,
-    spanStart: input.spanStart,
-    spanEnd: input.spanEnd,
-    reminderDueAt: input.type === 'reminder' ? input.reminderDueAt ?? null : null,
-    reminderSurfacedAt: null,
-    createdAt: Date.now(),
-  };
-}
-
-export async function saveAtomRecord(record: AtomRecord): Promise<void> {
+// Id/timestamp/defaulting logic (previously `buildAtomRecord` here) now lives
+// server-side in loci-core's create_atom, shared with loci-mcp's MCP tool.
+export async function saveAtomRecord(input: CreateAtomInput): Promise<AtomRecord> {
   await initDb();
-  await createAtom(record);
+  return createAtom(input);
 }
 
 export async function updateAtomRecord(

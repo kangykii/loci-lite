@@ -7,8 +7,10 @@ import {
 } from '../../lib/reminderPresets';
 import SegmentedControl from '../ui/SegmentedControl';
 
+export type AnnotationType = AtomType | 'reference';
+
 export type AtomSavePayload = {
-  type: AtomType;
+  type: AnnotationType;
   sourceText: string;
   content: string;
   reminderDueAt: number | null;
@@ -19,24 +21,27 @@ export type AtomPopupMode = 'create' | 'edit';
 type AtomPopupProps = {
   mode?: AtomPopupMode;
   selectedText: string;
-  initialType?: AtomType;
+  initialType?: AnnotationType;
   initialContent?: string;
   headerLabel?: string;
   saveLabel?: string;
-  typeOptions?: AtomType[];
+  typeOptions?: AnnotationType[];
   isSaving?: boolean;
   onSave: (payload: AtomSavePayload) => void;
   onClose: () => void;
 };
 
-const TYPE_OPTIONS: { type: AtomType; label: string }[] = [
+const TYPE_OPTIONS: { type: AnnotationType; label: string }[] = [
   { type: 'definition', label: 'Definition' },
-  { type: 'note', label: 'Note' },
+  { type: 'reference', label: 'Reference' },
   { type: 'reminder', label: 'Reminder' },
+  // Old notes remain editable, but new annotations are references instead.
+  { type: 'note', label: 'Note' },
 ];
 
-const PLACEHOLDERS: Record<AtomType, string> = {
+const PLACEHOLDERS: Record<AnnotationType, string> = {
   definition: 'Define this term...',
+  reference: 'AGLC4…',
   note: 'Add a note...',
   reminder: 'What should this remind you of?',
 };
@@ -44,7 +49,7 @@ const PLACEHOLDERS: Record<AtomType, string> = {
 export default function AtomPopup({
   mode = 'create',
   selectedText,
-  initialType = 'note',
+  initialType = 'reference',
   initialContent = '',
   headerLabel,
   saveLabel,
@@ -53,7 +58,7 @@ export default function AtomPopup({
   onSave,
   onClose,
 }: AtomPopupProps) {
-  const [type, setType] = useState<AtomType>(initialType);
+  const [type, setType] = useState<AnnotationType>(initialType);
   const [content, setContent] = useState(initialContent);
   const [sourceDraft, setSourceDraft] = useState(selectedText);
   const [reminderPreset, setReminderPreset] = useState<ReminderPresetId>('tomorrow');
@@ -64,16 +69,20 @@ export default function AtomPopup({
   const titleId = useId();
   const resolvedHeader = headerLabel ?? 'Bookmark';
   const resolvedSaveLabel = saveLabel ?? (mode === 'edit' ? 'Save changes' : 'Save');
-  const availableTypeOptions = TYPE_OPTIONS.filter((option) =>
-    typeOptions ? typeOptions.includes(option.type) : true,
-  );
+  const availableTypeOptions = TYPE_OPTIONS.filter((option) => {
+    if (typeOptions) {
+      return typeOptions.includes(option.type);
+    }
+
+    return option.type !== 'note' || (mode === 'edit' && initialType === 'note');
+  });
 
   useEffect(() => {
     if (mode === 'edit') {
       setType(initialType);
       setContent(initialContent);
     } else {
-      setType('note');
+      setType('reference');
       setContent('');
     }
 
@@ -87,7 +96,7 @@ export default function AtomPopup({
       return;
     }
 
-    setType(availableTypeOptions[0]?.type ?? 'note');
+    setType(availableTypeOptions[0]?.type ?? 'reference');
   }, [availableTypeOptions, type]);
 
   useEffect(() => {

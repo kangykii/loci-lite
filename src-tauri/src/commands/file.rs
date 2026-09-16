@@ -3,7 +3,7 @@ use std::process::Command;
 
 use tauri::AppHandle;
 
-use super::note_paths::{ensure_notes_path, notes_dir, unique_note_path};
+use super::note_paths::{ensure_notes_path, notes_dir, reserve_unique_note_path};
 
 #[tauri::command]
 
@@ -20,7 +20,7 @@ pub fn create_note(
 ) -> Result<String, String> {
     let notes = notes_dir(&app)?;
 
-    let path = unique_note_path(&notes, &slug)?;
+    let path = reserve_unique_note_path(&notes, &slug)?;
 
     fs::write(&path, initial_contents).map_err(|error| error.to_string())?;
 
@@ -65,7 +65,7 @@ pub fn duplicate_file(app: AppHandle, path: String) -> Result<String, String> {
         .file_stem()
         .and_then(|name| name.to_str())
         .unwrap_or("untitled");
-    let target = unique_note_path(&notes, &format!("{stem}-copy"))?;
+    let target = reserve_unique_note_path(&notes, &format!("{stem}-copy"))?;
     fs::copy(&source, &target).map_err(|error| error.to_string())?;
     Ok(target.to_string_lossy().into_owned())
 }

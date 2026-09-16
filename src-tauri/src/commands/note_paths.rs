@@ -42,24 +42,35 @@ fn slugify(slug: &str) -> String {
     }
 }
 
-pub(crate) fn unique_note_path(notes: &Path, slug: &str) -> Result<PathBuf, String> {
+/// Atomically claims a unique `.md` path under `notes` for `slug`, creating an
+/// empty file to reserve it. Uses `create_new` (O_EXCL / CREATE_NEW) instead of
+/// check-then-create, so two concurrent callers racing on the same slug (e.g. two
+/// fast "new note" clicks) can never both win the same filename — the loser's
+/// `create_new` fails with `AlreadyExists` and it simply tries the next suffix.
+pub(crate) fn reserve_unique_note_path(notes: &Path, slug: &str) -> Result<PathBuf, String> {
     let sanitized = slugify(slug);
     if sanitized.is_empty() {
         return Err("Slug must not be empty.".into());
     }
 
-    let mut candidate = notes.join(format!("{sanitized}.md"));
-    if !candidate.exists() {
-        return Ok(candidate);
-    }
-
-    let mut suffix = 2;
+    let mut suffix: Option<u32> = None;
     loop {
-        candidate = notes.join(format!("{sanitized}-{suffix}.md"));
-        if !candidate.exists() {
-            return Ok(candidate);
+        let candidate = match suffix {
+            None => notes.join(format!("{sanitized}.md")),
+            Some(value) => notes.join(format!("{sanitized}-{value}.md")),
+        };
+
+        match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&candidate)
+        {
+            Ok(_) => return Ok(candidate),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                suffix = Some(suffix.map_or(2, |value| value + 1));
+            }
+            Err(error) => return Err(error.to_string()),
         }
-        suffix += 1;
     }
 }
 

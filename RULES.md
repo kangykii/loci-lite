@@ -310,7 +310,7 @@ A task is not done until all of these are true:
 - [ ] Theme uses dual-layer tokens (`data-theme` + `prefers-color-scheme` fallback); DESIGN updated
 - [ ] Notebook themes store ids, set `data-theme` mode + `data-notebook-theme` variant, and gate paid covers through Modern Writer or `cosmetics.slug`
 - [ ] Every theme path defines `--selection-bg` and `--selection-text`; selection styling uses native `::selection`
-- [ ] Editor bar has prompt field; no Focus/Authorship/Atoms text buttons
+- [ ] Editor bar has prompt field; no Focus/Atoms text buttons
 - [ ] Mode toggles use `AppleToggle` in overflow menu only
 - [ ] Focus mode toggle wired via `useFocusMode` + overflow `AppleToggle` (not a bar text button)
 - [ ] `FocusModePlugin` has no `store/` imports; active block follows caret (`selection.anchor`), not hover/scroll
@@ -348,16 +348,6 @@ A task is not done until all of these are true:
 - [ ] Stack popup uses `--bookmark-popup-card-w` / `--bookmark-popup-card-h`; back-face pen opens `AtomPopup` edit mode (delete is bin-only on browse)
 - [ ] Tauri main window has `dragDropEnabled: false` when browse HTML5 DnD is used
 - [ ] Definition shortcut uses `definitionShortcutBridge` + `useEditorAtomBridge` — no `store/` in Lexical plugins/transformers
-- [ ] Authorship paste always recorded when `fileId` set; visibility gated by `authorship-visible` on `.editor-root` only
-- [ ] Authorship paste spans use captured pre-paste visible selection/caret intent when available; generic visible-text diff is fallback only
-- [ ] Authorship toggle in overflow menu only; wired via `useAuthorshipMode` + `useEditorAuthorshipBridge` (not a bar text button)
-- [ ] `AuthorshipPlugin` and `ContextMenuPlugin` have no `store/` imports — annotations via `AuthorshipEditorContext`
-- [ ] Authorship spans use visible editor-text offsets only (`coordinate_system='visible_text'`), never Markdown offsets
-- [ ] Authorship paint uses native CSS Highlight text colouring for every source; do not use duplicated text overlays for authorship
-- [ ] Authorship colour uses the universal `--authorship-tone-1` through `--authorship-tone-6` palette only; no hardcoded rgba in `editor.css` for authorship
-- [ ] Authorship is visual-only runtime colouring derived from SQLite; it must not create authorship text nodes, split Lexical text for provenance, or write provenance into bookmark nodes
-- [ ] Authorship can visually overlap bookmark spans, but bookmarks and paste provenance must not become each other's durable data model
-- [ ] Mark as mine is based on selected/clicked visible-text ranges from context annotations; it subtracts only that range and preserves surrounding pasted text plus bookmark nodes
 - [ ] TypeScript has no `any` types unless explicitly justified in a comment
 - [ ] Notification host portaled from `NotificationProvider` in `App.tsx` — max 3 chips top-right
 - [ ] Save/error ack via `useNotifications()` in hooks (not `settings.store` in views); no third-party toast libraries

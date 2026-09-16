@@ -76,10 +76,12 @@ export function useFindHighlight(
   mode: BarMode,
   query: string,
   matchIndex: number,
+  isActivePane = true,
 ): void {
   const scrollKeyRef = useRef('');
 
   useEffect(() => {
+    if (!isActivePane) return;
     const root = editorRootRef.current;
     if (!root || mode !== 'find' || query.trim() === '' || !supportsCustomHighlight()) {
       clearFindHighlights();
@@ -111,5 +113,5 @@ export function useFindHighlight(
       clearFindHighlights();
       scrollKeyRef.current = '';
     };
-  }, [editorRootRef, matchIndex, mode, query]);
+  }, [editorRootRef, isActivePane, matchIndex, mode, query]);
 }

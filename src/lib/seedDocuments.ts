@@ -31,7 +31,7 @@ Use **Recent** on Home or a row on **Documents** to return to a note.
 - **Outline** — headings from your saved markdown in a frosted panel over a dim scrim.
 - **Atomise** — primary action (visual only until AI is wired).
 - **Prompt field** — shell for future find, replace, or AI.
-- **⋮ menu** — **Focus** dims non-active blocks and hides chrome; **Authorship** shows/hides paste-provenance colour (paste is always recorded).
+- **⋮ menu** — **Focus** dims non-active blocks and hides chrome.
 
 > Tip: Run the desktop app with \`corepack pnpm tauri dev\`. Browser-only \`pnpm dev\` cannot create files or persist notes.
 `,
@@ -69,7 +69,7 @@ Shell panels (titlebar, cards, editor bar, outline) use transparent \`--shell-ch
 
 ## Not wired yet
 
-- Authorship paste wash (toggle in ⋮ menu), bookmark highlight toggle, AI atomise.
+- Bookmark highlight toggle, AI atomise.
 - Context menu and selection bar plugins.
 
 Edit this note freely — it is yours like any other file.

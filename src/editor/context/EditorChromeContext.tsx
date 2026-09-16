@@ -1,9 +1,11 @@
 import { createContext, useContext, type ReactNode } from 'react';
+import type { ReferenceSelection } from '../lib/referenceBridge';
 
 export type BookmarkRequestDetail = {
   selectedText: string;
   spanStart: number | null;
   spanEnd: number | null;
+  referenceSelection: ReferenceSelection | null;
 };
 
 export type SelectionDetail = {
@@ -25,6 +27,7 @@ export type EditorChromeContextValue = {
   onBookmarkRequest: (detail: BookmarkRequestDetail) => void;
   onDefinitionShortcut: (detail: DefinitionShortcutDetail) => void | Promise<void>;
   onOpenDocument: (fileId: string) => void;
+  onOpenNewTab?: () => void;
   onSelectionChange: (detail: SelectionDetail) => void;
 };
 

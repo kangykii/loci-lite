@@ -16,12 +16,15 @@
         "title": "Loci Notepad",
         "width": 1200,
         "height": 800,
+        "decorations": false,
+        "shadow": false,
+        "transparent": true,
         "dragDropEnabled": false,
         "scrollBarStyle": "fluentOverlay"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: https://asset.localhost data:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://checkout.stripe.com; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: https://asset.localhost data:; font-src 'self' data:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
     }
   },
   "plugins": {
@@ -36,9 +39,6 @@
       "windows": {
         "installMode": "passive"
       }
-    },
-    "oauth": {
-      "ports": [54321]
     }
   },
   "bundle": {

@@ -5,6 +5,7 @@ import {
   startBrowseDrag,
 } from '../../lib/browseDrag';
 import type { SearchableDocument } from '../../hooks/useSearchableDocuments';
+import DocumentCover from './DocumentCover';
 
 type DocumentProjectMemberRowProps = {
   displayName: string;
@@ -52,6 +53,7 @@ export default function DocumentProjectMemberRow({
       onDrop={(event) => event.stopPropagation()}
       onKeyDown={handleKeyDown}
     >
+      <DocumentCover alt="" src={document.previewImage} />
       <span className="document-copy">
         <strong>{document.title}</strong>
         <span>{document.meta}</span>

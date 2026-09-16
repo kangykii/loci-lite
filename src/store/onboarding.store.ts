@@ -4,7 +4,6 @@ export type LearnableFeature =
   | 'focus'
   | 'typewriter'
   | 'bookmarks'
-  | 'authorship'
   | 'fonts'
   | 'find';
 
@@ -14,7 +13,6 @@ const FEATURES: LearnableFeature[] = [
   'focus',
   'typewriter',
   'bookmarks',
-  'authorship',
   'fonts',
   'find',
 ];

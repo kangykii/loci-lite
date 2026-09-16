@@ -1,162 +1,46 @@
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import type { Theme } from '../../lib/theme';
 import type { ViewName } from '../../hooks/useViewTransition';
 import ShellSidebarLibrary from './ShellSidebarLibrary';
 import ShellSidebarNav from './ShellSidebarNav';
 
-export type SidebarPhase = 'entering' | 'idle' | 'leaving' | 'closed';
-
 type ShellSidebarProps = {
+  activeFileId: string | null;
   activeView: ViewName;
-  isOpen: boolean;
-  isCreating?: boolean;
   libraryRevision: number;
   profileName?: string | null;
   theme: Theme;
-  onClose: () => void;
-  onCreateNote: () => void;
-  onGoHome: () => void;
-  onOpenBookmarks: () => void;
   onOpenDocument: (fileId: string) => void;
-  onOpenDocumentsPage: () => void;
   onOpenProfile: () => void;
   onOpenSettings: () => void;
-  onPhaseChange?: (phase: SidebarPhase) => void;
   onThemeToggle: () => void;
 };
 
 export default function ShellSidebar({
+  activeFileId,
   activeView,
-  isOpen,
-  isCreating,
   libraryRevision,
   profileName,
   theme,
-  onClose,
-  onCreateNote,
-  onGoHome,
-  onOpenBookmarks,
   onOpenDocument,
-  onOpenDocumentsPage,
   onOpenProfile,
   onOpenSettings,
-  onPhaseChange,
   onThemeToggle,
 }: ShellSidebarProps) {
-  const [shouldRender, setShouldRender] = useState(isOpen);
-  const [phase, setPhase] = useState<SidebarPhase>(isOpen ? 'entering' : 'closed');
-  const panelRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    onPhaseChange?.(phase);
-  }, [onPhaseChange, phase]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setShouldRender(true);
-      setPhase('entering');
-      window.requestAnimationFrame(() => panelRef.current?.focus());
-      return;
-    }
-
-    if (shouldRender) {
-      setPhase('leaving');
-    }
-  }, [isOpen, shouldRender]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (document.body.classList.contains('focus-mode-active') && isOpen) {
-      onClose();
-      return;
-    }
-
-    const observer = new MutationObserver(() => {
-      if (document.body.classList.contains('focus-mode-active') && isOpen) {
-        onClose();
-      }
-    });
-
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, [isOpen, onClose]);
-
-  if (!shouldRender) {
-    return null;
-  }
-
-  return createPortal(
-    <div className="shell-sidebar-layer" data-state={phase} role="presentation">
-      <button
-        aria-label="Close sidebar"
-        className="shell-sidebar-scrim"
-        onClick={onClose}
-        type="button"
+  return (
+    <aside aria-label="Notes sidebar" className="shell-sidebar-panel">
+      <ShellSidebarLibrary
+        activeFileId={activeFileId}
+        listRefreshKey={libraryRevision}
+        onOpenDocument={onOpenDocument}
       />
-      <aside
-        aria-label="Library sidebar"
-        aria-modal="true"
-        className="shell-sidebar-panel"
-        data-state={phase}
-        data-transition="sidebar"
-        onAnimationEnd={(event) => {
-          if (event.currentTarget !== event.target) {
-            return;
-          }
-
-          if (phase === 'leaving') {
-            setShouldRender(false);
-            setPhase('closed');
-          } else if (phase === 'entering') {
-            setPhase('idle');
-          }
-        }}
-        ref={panelRef}
-        role="dialog"
-        tabIndex={-1}
-      >
-        <ShellSidebarNav
-          activeView={activeView}
-          isCreating={isCreating}
-          onCreateNote={onCreateNote}
-          onGoHome={onGoHome}
-          onOpenBookmarks={onOpenBookmarks}
-          onOpenSettings={onOpenSettings}
-          onThemeToggle={onThemeToggle}
-          placement="primary"
-          theme={theme}
-        />
-        <ShellSidebarLibrary
-          isOpen={isOpen}
-          listRefreshKey={libraryRevision}
-          onOpenDocument={onOpenDocument}
-          onOpenDocumentsPage={onOpenDocumentsPage}
-        />
-        <ShellSidebarNav
-          activeView={activeView}
-          onGoHome={onGoHome}
-          onOpenBookmarks={onOpenBookmarks}
-          onOpenProfile={onOpenProfile}
-          onOpenSettings={onOpenSettings}
-          onThemeToggle={onThemeToggle}
-          placement="secondary"
-          profileName={profileName}
-          theme={theme}
-        />
-      </aside>
-    </div>,
-    document.body,
+      <ShellSidebarNav
+        activeView={activeView}
+        onOpenProfile={onOpenProfile}
+        onOpenSettings={onOpenSettings}
+        onThemeToggle={onThemeToggle}
+        profileName={profileName}
+        theme={theme}
+      />
+    </aside>
   );
 }

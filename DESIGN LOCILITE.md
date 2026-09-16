@@ -11,11 +11,11 @@ This is not Canvas. Canvas is a document *engine*. Lite is a writing *room*.
 
 ### Colour direction — Light mode (Washi paper)
 
-Light mode uses a **warm high-contrast paper** palette: warm hued off-white base (`#F7F2E8`), deeper fibre shadow (`#EFE7D9`), darker fibrous sheet surfaces (`#EEE5D8` / `#F4EDE3`), and warm sumi ink text (`#1D150E`). Slightly warmer and more fibrous than iA Writer’s neutral `#F5F6F6` — not pure white, not grey UI white. The page background is flat `--bg` only; no atmospheric gradients on `html` or `body`.
+Light mode uses a **warm high-contrast paper** palette: warm hued off-white base (`#F7F2E8`), deeper fibre shadow (`#EFE7D9`), lifted fibrous sheet surfaces (`#FBF7EF` / `#FEFBF6`) that sit lighter than the base so cards read as paper laid on the page rather than a duller patch of it, and warm sumi ink text (`#1D150E`). Slightly warmer and more fibrous than iA Writer's neutral `#F5F6F6` — not pure white, not grey UI white. The page background is flat `--bg` only; no atmospheric gradients on `html` or `body`.
 
 ### Colour direction — Dark mode (Charcoal Claude)
 
-Dark mode uses the **Charcoal Claude** palette: near-neutral charcoal base (`#171615`), warm surface (`#1F1D1C`), cream text (`#EDE6DC`), muted brown-gray chrome (`#443E38`), and a burnt-orange accent (`#B86830`). Warmth lives in the accent only — closest to iA dark, editorial not neon. The page background is flat `--bg` only; no atmospheric gradients on `html` or `body`. Accent colour appears on one primary action per view only.
+Dark mode uses the **Charcoal Claude** palette: near-neutral charcoal base (`#171615`), lifted warm surface (`#232120`), cream text (`#EDE6DC`), muted brown-gray chrome (`#443E38`), and a burnt-orange accent (`#B86830`). Warmth lives in the accent only — closest to iA dark, editorial not neon. The page background is flat `--bg` only; no atmospheric gradients on `html` or `body`. Accent colour appears on one primary action per view only.
 
 **Theme control:** Light tokens live on `:root`. Charcoal Claude applies when the OS prefers dark (`:root:not([data-theme='light'])`) or when the user sets `html[data-theme='dark']`. Explicit light choice uses `html[data-theme='light']`. Account → Notebooks stores a notebook theme id in the same persisted `localStorage` preference; applying a notebook sets the mode-compatible `data-theme` plus `data-notebook-theme` for palette variants. Every theme path owns native text selection via `--selection-bg` and `--selection-text`; selection uses `::selection` only, stays readable over editor prose, and never falls back to system blue or a custom overlay.
 
@@ -30,6 +30,8 @@ Three width roles — do not conflate them:
 - **Editor column** (`--editor-col-w`): fluid `min(--editor-col-max, 100vw - 2 * --editor-gutter)`; grows with window up to a prose max (`70ch`) with a 48-64px side-padding floor.
 - **Shell browse column** (`--shell-content-max`): home, workspace, documents, atoms, and settings; scales with viewport up to a cap.
 - **Chrome insets** (`--shell-inset-x`): shared horizontal gutter for the titlebar and `.app-shell` so nav and content align.
+
+The desktop window minimum is derived from the current monitor's usable width and height (48% each, converted from physical to logical units), not a fixed pixel size. Split editing has a separate content gate: the available `.view-stage` must be at least `58rem` wide. A narrower window disables the split option and collapses an existing split to its first pane. The seam is `--split-seam-w` (the same inset as the window frame), painted with `--split-seam-bg`: frame-bezel colour in light mode and warm pale `#F1ECE2` in dark mode.
 
 ---
 
@@ -55,24 +57,23 @@ Implemented in `src/styles/tokens.css`. Every value a component needs already ex
 :root {
 
   /* ── Shell chrome dimensions ── */
-  --titlebar-h:        3.5vh;
+  --titlebar-h:        clamp(2rem, 3.25vh, 2.375rem);
   --titlebar-nav-gap:  var(--space-1);
-  --sidebar-w:       15vw;
+  --sidebar-w:       clamp(calc(var(--u) * 12), 15vw, calc(var(--u) * 16));
   --sidebar-rail-w:  2.5vw;
   --bottom-bar-h:    3rem;
   --bottom-bar-collapsed-h: 4px;
 
   /* ── Window chrome (Windows Tauri frameless) ── */
-  --window-chrome-h:           calc(var(--u) * 1.75);
-  --window-chrome-hit-h:       var(--space-2);
-  --window-chrome-hide-delay:  250ms;
-  --window-control-size:       calc(var(--u) * 1.25);
-  --window-control-gap:        var(--space-3);
-  --window-control-rest:       color-mix(in srgb, var(--text-tertiary) 55%, transparent);
-  --window-control-icon:       color-mix(in srgb, var(--text-primary) 88%, transparent);
-  --window-control-close-hover:    #ff5f57;
-  --window-control-minimize-hover: #febc2e;
-  --window-control-maximize-hover: #28c840;
+  /* --titlebar-h is the chrome height and layout-clearance source. */
+  --window-chrome-bg:          #171615;
+  --window-chrome-fg:          #F7F2E8;
+  --window-chrome-border:      color-mix(in srgb, var(--window-chrome-fg) 18%, transparent);
+  --window-control-hover-bg:   color-mix(in srgb, var(--window-chrome-fg) 14%, transparent);
+  --window-control-w:          clamp(2.25rem, 3.25vw, 2.75rem);
+  --window-frame-inset:        var(--space-1);
+  --window-frame-radius:       var(--radius-lg);
+  --window-frame-bezel:        var(--window-chrome-bg);
 
   /* ── Editor column ── */
   --editor-gutter:   clamp(3rem, 5vw, 4rem);
@@ -133,9 +134,9 @@ Implemented in `src/styles/tokens.css`. Every value a component needs already ex
   /* ── Light mode colours (washi paper) ── */
   --bg:               #F7F2E8;
   --bg-deep:          #EFE7D9;          /* scrims, depth behind overlays */
-  --surface:          #EEE5D8;
-  --surface-strong:   #F4EDE3;
-  --surface-solid:    #EEE5D8;
+  --surface:          #FBF7EF;          /* lighter than --bg — cards lift, not sink */
+  --surface-strong:   #FEFBF6;          /* lighter still — the modal/popover tier */
+  --surface-solid:    #FBF7EF;
 
   /* ── Shell chrome (transparent glass + backdrop-filter) ── */
   --shell-chrome-bg:         rgba(247, 242, 232, 0.82);
@@ -144,8 +145,8 @@ Implemented in `src/styles/tokens.css`. Every value a component needs already ex
   --shell-chrome-blur:       20px;
 
   --text-primary:     #1D150E;
-  --text-secondary:   rgba(29, 21, 14, 0.70);
-  --text-tertiary:    rgba(29, 21, 14, 0.48);
+  --text-secondary:   #5E574F;          /* fixed hex, not text-primary at opacity — renders identically on any surface */
+  --text-tertiary:    #8E887F;          /* fixed hex, same reason */
 
   --accent:           #A85F32;          /* muted terracotta — one accent, used sparingly */
   --accent-subtle:    rgba(168, 95, 50, 0.11);
@@ -160,9 +161,9 @@ Implemented in `src/styles/tokens.css`. Every value a component needs already ex
   /* ── Dark mode colours (Charcoal Claude) ── */
   --bg-dark:            #171615;
   --bg-deep-dark:       #121110;
-  --surface-dark:       #1F1D1C;
-  --surface-strong-dark: #262321;
-  --surface-solid-dark: #1F1D1C;
+  --surface-dark:       #232120;        /* lighter than --bg-dark, widened from the previous near-1:1 gap */
+  --surface-strong-dark: #2B2825;
+  --surface-solid-dark: #232120;
 
   --shell-chrome-bg-dark:         rgba(31, 29, 28, 0.52);
   --shell-chrome-bg-strong-dark:  rgba(31, 29, 28, 0.72);
@@ -170,8 +171,8 @@ Implemented in `src/styles/tokens.css`. Every value a component needs already ex
   --shell-chrome-blur:            20px;
 
   --text-primary-dark:  #EDE6DC;
-  --text-secondary-dark: rgba(237, 230, 220, 0.60);
-  --text-tertiary-dark: rgba(237, 230, 220, 0.30);
+  --text-secondary-dark: #97938C;       /* fixed hex — see light-mode note above */
+  --text-tertiary-dark: #575451;
 
   --accent-dark:        #B86830;        /* burnt orange — warmth in accent only */
   --accent-subtle-dark: rgba(184, 104, 48, 0.12);
@@ -287,9 +288,13 @@ Applied app-wide on boot via [`useDefaultEditorFontSetting.ts`](src/hooks/useDef
 
 - `--bg`: flat page background only.
 - `--surface`: browse content surfaces (search fields, creation cards, document/recent rows, bookmark faces).
+- **Theme-relative browse contrast:** when a control or card boundary must be visible, use `--ui-contrast-edge`—a 50% mix of the active `--text-primary` and `--surface`—rather than a fixed grey or beige. Use `--ui-contrast-muted` (60%) for browse metadata. These tokens are only for elements on `--surface`; they retain the same visual contrast relationship in every theme and support the WCAG 2.2 1.4.11 3:1 non-text-contrast baseline for interactive boundaries.
 - `--surface-strong`: menus, modals, and popovers only.
-- Remaining hierarchy comes from typography weight and spacing — not extra boxes, borders, or shadows.
-
+- Remaining hierarchy comes from typography weight and spacing, plus one deliberate elevation step on browse content: `.creation-card`, `.document-row`, `.document-project-folder` carry `--border-strong` and `--shadow-sm` at rest (`--shadow-md` on hover/focus) so a card reads as an object sitting on the page, not a same-toned patch of it. This is content elevation, not shell chrome — shell chrome (titlebar, editor bar, outline panel) stays flat and shadow-free per the Glassmorphism rules below. `.recent-row` keeps its single top-rule divider at rest and only gains `--shadow-sm` on hover, since a resting shadow on a fully transparent row would float with nothing under it.
+- **Boxes are never the contrast mechanism. Interaction is.** This applies to two distinct cases:
+  - **Form fields** (text inputs, textareas, selects) are borderless in every state, including `:focus` — a background-colour step (e.g. `--bg-deep` inside a `--surface-strong` popover) is what marks them as a target, not a `border`. Suppress the default UA focus ring (`outline: none`) and replace it with a state you already own: a background shift on `:focus` (`color-mix` toward `--surface-strong`), the caret itself (`caret-color: var(--accent)`), or — where a field toggles into edit mode, per `AtomPopup`'s source field — nothing but the caret appearing. A visible black focus ring on an input is a bug, not a stray style — trace it to a missing `outline: none` before adding anything else.
+  - **Interactive rows and cards** (`.document-row`, `.recent-row`, `.document-project-folder`, `.document-project-member-row`) signal `:hover` / `:focus-visible` with a background lift alone (`color-mix` toward `--surface-strong`) — never by conjuring a `border-color` into existence on a previously-transparent border. A row that is plain at rest and gains a full outline on hover is the same violation as a bordered input; delete the `border-color` line from the interaction rule and let the background do the work. `.recent-row`'s top-rule divider between list items is a single-edge separator, not a box, and stays.
+  - **Exempt, by design, not oversight:** panel edges that must read against an arbitrary backdrop (`ConfirmDialog`, popovers, `.document-row.is-project-drop-target`-style drag targets), buttons, and persistent selected/active-state indicators (`.profile-notebook-cover.is-active`, `.profile-subscription-card.is-active`) may use `--border` / `--border-strong` / `--accent` as a ring. The test: does the border represent a functional state (this is where a drag will drop, this is the selected item) rather than merely "you are hovering over a row"? Functional states may keep a ring; plain hover/focus on a list item may not.
 - Browse content surfaces use `--surface`; shell chrome uses `--shell-chrome-bg`. Do not use shell chrome tokens for cards, rows, search fields, or bookmark faces.
 - One accent element per view. Always the primary action.
 - `--accent` on buttons, active toggles, bookmark highlight wash, and selected states only.
@@ -297,7 +302,7 @@ Applied app-wide on boot via [`useDefaultEditorFontSetting.ts`](src/hooks/useDef
 - `--editor-prose` for editor body, lists, and headings — solid full-opacity warm near-black; never opacity tints.
 - `--text-secondary` for chrome labels, metadata, placeholder text, blockquotes.
 - `--text-tertiary` for hints, timestamps, inactive states.
-- `--text-secondary` and `--text-tertiary` remain opacity-based for chrome hierarchy; prose must not use opacity tints.
+- `--text-secondary` and `--text-tertiary` are fixed hex, not `--text-primary` at opacity — a diluted-ink token renders a different grey depending on what surface sits behind it (`--bg` vs. a `--surface-strong` popover vs. an `--accent-subtle` chip), which silently varies the contrast of every timestamp, hint, and placeholder depending on where a designer drops it. Fixed hex renders identically everywhere it's used. Prose (`--editor-prose`) must not use opacity tints either, for the same reason.
 - No pure `#000000` or `#FFFFFF` anywhere. All colours are tokenised.
 - All shadows use the warm-tinted shadow tokens, never `rgba(0,0,0,N)` in light mode.
 - Dark mode primary accent is burnt orange (`--accent-dark` / `#B86830`), used sparingly — warmth only in the accent.
@@ -307,7 +312,7 @@ Applied app-wide on boot via [`useDefaultEditorFontSetting.ts`](src/hooks/useDef
 
 ## Glassmorphism rules
 
-- Shell chrome (titlebar, editor bar, outline panel) uses low-alpha `--shell-chrome-*` backgrounds with `backdrop-filter: blur(var(--shell-chrome-blur))` so panels read as **transparent glass** over flat `--bg`. Browse content gets exactly one surface step via `--surface` — not shell chrome tokens. No panel `box-shadow`; `--shell-chrome-border` is `transparent`.
+- Shell chrome (editor bar and outline panel) uses low-alpha `--shell-chrome-*` backgrounds with `backdrop-filter: blur(var(--shell-chrome-blur))` so panels read as **transparent glass** over flat `--bg`. The native-replacement window bar is the deliberate exception: a permanent, flat, theme-inverted frame. Browse content gets exactly one surface step via `--surface` — not shell chrome tokens. No panel `box-shadow`; `--shell-chrome-border` is `transparent`.
 - **Desktop Tauri is the aesthetic source of truth** for sign-off (`corepack pnpm tauri dev`). WebView2 may composite blur subtly; do not treat browser tab parity as acceptance criteria.
 - `main.tsx` adds `html.is-tauri` for future hooks; it does **not** raise chrome opacity. `@supports not (backdrop-filter: blur(1px))` alone applies a modest legibility bump. No OS Mica/vibrancy in v1.
 - Frosted panels are flat and seamless at rest.
@@ -322,46 +327,6 @@ Applied app-wide on boot via [`useDefaultEditorFontSetting.ts`](src/hooks/useDef
 - Dark mode is Charcoal Claude: near-neutral charcoal base with burnt-orange accent.
 - Page background is flat `var(--bg)` only — no page-level gradients.
 - Shell chrome sits close to the background; browse surfaces use `--surface` so the one content step reads clearly. Hover may gently brighten toward `--surface-strong`.
-
----
-
-## Authorship mode — provenance colouring
-
-Authorship mode marks visible words by origin. Default **off** app-wide (Settings → **Default authorship highlights**); overflow **Authorship** `AppleToggle` overrides for the current note session only. Paste is **always** recorded in SQLite when a note is open; the toggle controls **visibility** only (`.editor-root.authorship-visible`). Typed text is never annotated, and manual edits inside sourced text become user-written words immediately.
-
-**Live in v1:** paste provenance only. Paste is **always** recorded in SQLite as visible-text spans when a note is open; the toggle controls **visibility** only (`.editor-root.authorship-visible`). Typed text is never annotated.
-
-| Origin | Visual treatment (when toggle on) | Implementation |
-|---|---|---|
-| User-written | No decoration — clean | Default editor state |
-| Pasted | iA-style technicolor text over the sourced words | SQLite annotation + CSS Highlight text ranges |
-| AI-generated | Same rainbow paint treatment when `source='ai'` rows exist | Reserved source in schema |
-
-```css
-/* tokens.css — dual-layer light/dark (data-theme + prefers-color-scheme fallback) */
---authorship-tone-1: …;
---authorship-tone-2: …;
---authorship-tone-3: …;
---authorship-tone-4: …;
---authorship-tone-5: …;
---authorship-tone-6: …;
-
-/* editor.css — native CSS Highlight ranges; no duplicate text overlay */
-::highlight(loci-authorship-1) {
-  color: var(--authorship-tone-1);
-}
-```
-
-Authorship rendering must be non-mutating: no inline authorship spans, no Lexical authorship nodes, and no authorship metadata on bookmark nodes.
-The colour is native text colouring: CSS Highlight ranges paint token text directly, with no duplicate overlay glyphs, no whitespace fragments, and no line-box backgrounds.
-Authorship must not use duplicated text overlays; they drift against editor antialiasing and can create ghost lines.
-The authorship rainbow is universal: every theme path uses the same six tones as light mode so provenance has one recognizable identity across notebooks.
-
-**Mark as mine:** select authored text, right-click → **Mark as mine** at the top of the context menu subtracts only that selected visible-text range from SQLite. Surrounding pasted text and bookmarks remain.
-
-Annotations live in SQLite only — not in the `.md` file. Decoration updates are non-persistent and must not change markdown output. Spans are visible editor-text character offsets (`span_start` / `span_end`, `coordinate_system='visible_text'`). See [`ARCHITECTURE LOCILITE.md`](ARCHITECTURE%20LOCILITE.md) **Authorship mode**.
-
-The treatment is intentionally subtle — coloured text, not a highlighter. The goal is awareness, not alarm.
 
 ---
 
@@ -381,7 +346,7 @@ Bookmarked spans (`.atom-definition`, `.atom-note`, `.atom-reminder`) show a **b
 }
 ```
 
-Toggle: overflow menu `AppleToggle` via [`useBookmarkHighlight.ts`](src/hooks/useBookmarkHighlight.ts). App-wide default in Settings → **Default bookmark highlight** via [`useEditorModeDefaultSettings.ts`](src/hooks/useEditorModeDefaultSettings.ts); overflow toggle overrides for the current note session only. On note open, `bookmark-highlight-on` is synced on `.editor-root` via `handleEditorRootRef` in [`EditorView.tsx`](src/views/EditorView.tsx) (same mount/re-sync pattern as focus and authorship).
+Toggle: overflow menu `AppleToggle` via [`useBookmarkHighlight.ts`](src/hooks/useBookmarkHighlight.ts). App-wide default in Settings → **Default bookmark highlight** via [`useEditorModeDefaultSettings.ts`](src/hooks/useEditorModeDefaultSettings.ts); overflow toggle overrides for the current note session only. On note open, `bookmark-highlight-on` is synced on `.editor-root` via `handleEditorRootRef` in [`EditorView.tsx`](src/views/EditorView.tsx) (same mount/re-sync pattern as focus).
 
 ---
 
@@ -410,8 +375,8 @@ Active block (caret’s paragraph, heading, list item, etc.): full opacity. All 
 | Class | Element | Role |
 |-------|---------|------|
 | `focus-active` | `.editor-root` | Enables block dimming |
-| `focus-mode-active` | `document.body` | Hides `.shell-header` + `.editor-bar` |
-| `chrome-offstage` | `document.body` | Hides editor bar only during note load; removed after `useDocument` ready (shell header stays visible) |
+| `focus-mode-active` | `document.body` | Hides `.editor-bar`; the permanent window bar remains available |
+| `chrome-offstage` | `document.body` | Hides editor bar only during note load; removed after `useDocument` ready |
 
 **Toggle:** overflow **Focus** `AppleToggle` in [`EditorBarMenu.tsx`](src/components/shell/EditorBarMenu.tsx) (not a bar text button). App-wide default in Settings → **Default focus mode**; overflow toggle overrides for the current note session only. **Exit:** `Escape` or [`FocusExitButton.tsx`](src/components/shell/FocusExitButton.tsx) (`‹`, top-left, `var(--text-tertiary)` → `var(--text-primary)` on hover).
 
@@ -429,12 +394,7 @@ Active block (caret’s paragraph, heading, list item, etc.): full opacity. All 
   transition: opacity 240ms ease;
 }
 
-/* Chrome hide — focus mode: shell header up + bar down; note entry: bar down only (chrome-offstage) */
-.focus-mode-active .shell-header {
-  transform: translateY(calc(-100% - var(--space-2)));
-  opacity: 0;
-}
-
+/* Chrome hide — focus mode and note entry affect the editor bar only. */
 .focus-mode-active .editor-bar,
 .chrome-offstage .editor-bar {
   transform: translateY(100%);
@@ -475,42 +435,36 @@ Caret locks at **40% viewport height** while typewriter mode is on. Scroll snaps
 
 ### Window chrome (Windows Tauri)
 
-Native OS decorations are disabled on Windows only (`set_decorations(false)` in [`lib.rs`](src-tauri/src/lib.rs)). A recessive **`.window-chrome-zone`** hit target sits above the frosted titlebar inside **`.shell-header`**. The **`.window-chrome`** strip (traffic lights + drag) is **hover-revealed** — idle it is invisible.
+Native OS decorations and the undecorated DWM shadow are disabled when the window is created (`decorations: false`, `shadow: false` in [`tauri.conf.json`](src-tauri/tauri.conf.json)). The native WebView is transparent so the CSS root shell can define the real rounded outer silhouette. Do not toggle decorations after WebView creation: that can retain non-client sizing and a Windows accent perimeter. The app draws one permanent **`.window-chrome`** rail: it is the Windows title bar and the visual window frame, not app navigation.
 
-- **Hit zone:** height `--window-chrome-hit-h`; always present at the top edge; transparent; no frosted styling.
-- **Strip (revealed):** height `--window-chrome-h`; transparent (flat `--bg` shows through); **no** `--shell-chrome-bg`, blur, or box-shadow. Reveals on pointer enter, `:focus-within`, or while `is-revealed` (leave debounce `--window-chrome-hide-delay` / 250ms via [`useWindowChrome.ts`](src/hooks/useWindowChrome.ts)).
-- **Idle layout:** titlebar sits at `--space-2` from the window top with no permanent chrome gap (`margin-top: 0`). Revealed: titlebar nudges down `--space-1`.
-- **Traffic lights:** right-aligned minimize → maximize → close (Windows order); `--window-control-size` circles; muted `--window-control-rest` at rest; macOS semantic hover tokens; Lucide icons visible while strip is revealed.
-- **Drag:** remaining strip width uses `-webkit-app-region: drag`; controls and titlebar use `no-drag`. Double-click drag strip toggles maximize.
+- **Frame:** Tauri `html` and `body` stay transparent; only `#root` uses `--window-chrome-bg` and owns the visible outer silhouette, clipped with both `--window-frame-radius` and a matching inset `clip-path`. Never put an opaque Tauri background on `body`: when `html` is transparent, WebView2 propagates the body background to its rectangular canvas and defeats the body's rounded corners. All three layers are locked to the viewport with `overflow: hidden`. The title rail is the window bar; the narrow `--window-frame-inset` bevel around it therefore inherits and inverts with that same token. `.app-frame` is fixed directly beneath the rail, inset on its other three sides, rounded with the same radius, and clips its active view to preserve every inner corner. Neither the native window nor `.app-frame` draws a perimeter border. The outer shell never scrolls; each active `[data-view]` owns vertical scrolling.
+- **Strip:** height `--titlebar-h`, flat, opaque, and always visible. It shares the outer window color, has only its top corners rounded, and has no bottom divider. It uses `--window-chrome-*` tokens rather than frosted shell-chrome tokens, blur, or shadows.
+- **Stacking:** the permanent frame bevel is drawn in a pointer-transparent overlay above page chrome and dialogs, with the window strip above it. It remains the outermost silhouette even while split-pane bars or popups are open.
+- **Theme:** light app themes use the near-black bar with warm light glyphs; dark app themes invert to a warm pale bar with dark glyphs. Notebook themes inherit their matching `data-theme` mode.
+- **Controls:** left-aligned Loci navigation is sidebar, New note, Search, Back, and Forward; each has a functional callback. A small rounded context switcher then provides Library and Bookmarks in the positions that Claude’s chat/code switcher occupies. The native controls remain right-aligned in Windows order — minimize, maximize/restore, close — as Lucide `Minus`, `Square`/`Copy`, and `X` glyphs. Native controls are full-height rectangular targets; the Loci context switcher uses a restrained rounded boundary and the same neutral hover treatment.
+- **Drag:** remaining strip width uses `-webkit-app-region: drag`; controls use `no-drag`. Double-click drag strip toggles maximize.
 - **Tauri-only:** [`WindowChrome.tsx`](src/components/shell/WindowChrome.tsx) returns null in browser dev; window API calls live in [`lib/tauri.ts`](src/lib/tauri.ts) only.
 - **User-facing name:** **Loci Notepad** (taskbar, About, window title). Dev identifiers remain Loci Lite.
 
-**Forbidden:** native Windows accent title bar; always-visible window chrome strip; frosted/blur on `.window-chrome`; `--accent` on window controls; `@tauri-apps/api/window` imports outside `lib/tauri.ts`.
+**Forbidden:** enabling the undecorated native shadow; changing decorations after WebView creation; a CSS perimeter or title-bar divider; a disconnected title bar or a fixed accent border that disagrees with the active theme; native Windows accent title bar; hover-reveal chrome; frosted/blur or shadows on `.window-chrome`; macOS traffic-light controls; clipping the page inside the frame; `--accent` on window controls; `@tauri-apps/api/window` imports outside `lib/tauri.ts`.
 
-### Sidebar trigger
+### Floating translucent action pill (reserved pattern)
 
-The titlebar navigation is superseded by a fixed bottom-left `.shell-sidebar-trigger` action strip **outside** `.shell-header`. It contains Lucide `PanelLeft`, `Plus`, and `Bookmark` icon buttons (`size={15}` / `strokeWidth={1.5}`): sidebar, New note, and Bookmarks. Window chrome remains separate: `.window-chrome-zone` stays at the top and keeps the Windows drag/traffic-light behavior.
+The former fixed bottom-left `.shell-sidebar-trigger` has been removed because its sidebar, New note, and Bookmarks actions are now permanently available in the Windows rail. Do not restore a second global navigation strip.
 
-The trigger opens the slide-over sidebar. Do not put Documents, Bookmarks, Settings, Theme, or Profile buttons back in the header; those controls live in the sidebar.
+Its visual treatment remains an approved pattern for future contextual tools: a compact, see-through floating pill with a quiet warm glass surface, hairline neutral border, full pill radius, and restrained blur. Icons use `--text-tertiary` at rest and move only to `--text-secondary` on hover/focus; individual icon targets do not gain opaque fills. Use it only for transient, local actions where the underlying page should remain perceptible.
 
 ```css
-.shell-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  padding: var(--space-2) var(--shell-inset-x) 0;
-}
-
-.shell-sidebar-trigger {
-  position: fixed;
-  bottom: var(--space-6);
-  left: var(--shell-inset-x);
-  z-index: 110;
+.floating-action-pill {
   display: flex;
   align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--shell-chrome-border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--shell-chrome-bg) 76%, transparent);
   color: var(--text-tertiary);
+  backdrop-filter: blur(var(--shell-chrome-blur));
 }
 ```
 
@@ -529,15 +483,27 @@ Global save/error feedback via [`NotificationProvider`](src/hooks/useNotificatio
 
 ### Sidebar
 
-`ShellSidebar` is an edge-attached temporary overlay, not a layout column. It is portaled to `document.body`, sits above the app/editor chrome and below the Tauri window controls, and uses the existing `data-transition="sidebar"` enter/leave keyframes. The editor column never reflows or shrinks while it is open.
+`ShellSidebar` is a docked shell column, rendered inside `.app-frame` before `.view-stage` — never a portal, modal, scrim, or focus trap. It is open by default and shares the app frame through `grid-template-columns: var(--sidebar-w) minmax(0, 1fr)`. The existing Windows rail control and `Ctrl/Cmd+Shift+L` remain the explicit retract/restore actions; retracting removes the column and restores the content pane to full width. The sidebar never auto-dismisses when a document opens.
 
-Contents are the former titlebar controls plus the document library: enlarged **Loci**, **New note**, **Bookmarks**, bottom utility rows for **Settings**, **Theme**, **Profile**, and a searchable notes list with no document-row icons. Full **Documents** browse remains via Library **View all**. Opening a document dismisses the sidebar immediately. Bookmarks and Settings still use their full browse/settings views; bookmark flashcards, stack drag/drop, and document delete do not move into the sidebar.
+The rail is deliberately not a second global navigation strip: Library, Bookmarks, New note, Search, history, and the existing editor bar remain in the Windows rail or document chrome. Its only content is five recently opened notes, up to three pinned notes not already present in Recent, and bottom utility rows for **Settings**, **Theme**, and **Profile**. Recent rows are compact single-line entries: title left, abbreviated relative-open time right (`2m`, `14hr`, `3d`); no previews, document icons, search input, chevrons, card borders, or persistent row menus. The active note uses a restrained neutral wash. Bookmarks and Settings continue to use their existing full views; bookmark flashcards, stack drag/drop, document delete, and the existing editor outline panel do not move into the sidebar.
 
-**Profile row:** the only visible sign of an account. Signed out — `UserCircle` icon + "Profile" opens the auth dialog. Signed in — `.shell-sidebar-avatar` initial chip (`calc(var(--u) * 1.25)` circle, `--accent-subtle` fill, `--accent-text` initial) + **Account**, ellipsized; click dismisses the sidebar and opens the full Account view. No account state ever appears in the titlebar, editor, or browse views.
+**Profile row:** the only visible sign of an account. Signed out — `UserCircle` icon + "Profile" opens the auth dialog. Signed in — `.shell-sidebar-avatar` initial chip (`calc(var(--u) * 1.25)` circle, `--accent-subtle` fill, `--accent-text` initial) + **Account**, ellipsized; click opens the full Account view while the rail stays docked. No account state ever appears in the titlebar, editor, or browse views.
 
 ### Boot screen
 
 Long startup uses `.boot-screen`: flat `--bg`, no card, no scrim, no header. A single paper-related line and three bouncing dots sit bottom-right at `right: var(--shell-inset-x)` / `bottom: var(--space-6)`. First launch defaults to light mode; stored notebook themes still apply before paint.
+
+### Loading states
+
+Every in-app loading moment — opening a note, populating a browse list, the bookmark grid — uses a **skeleton stencil**, never a spinner, a dot bouncer, or bare "Loading…" text. A skeleton renders the real row/card container class with its content swapped for pulsing placeholder blocks, so the layout is already correct and nothing shifts once real content lands.
+
+- **Motion:** [`skeleton.css`](src/styles/skeleton.css) — `.skeleton-block` pulses opacity (`skeleton-pulse`, 1.5s ease-in-out, `1 → 0.45 → 1`), never a sweeping shimmer gradient. A moving highlight reads as dashboard energy; the writer-room direction stays quiet. Respects `prefers-reduced-motion` (pulse off, fixed 0.6 opacity). Fill colour is `--border-strong`, no accent.
+- **Shape discipline:** a skeleton reuses the real component's own container class (`.document-row`, `.recent-row`, `.shell-sidebar-document`, the bookmark flashcard face) plus `.is-skeleton` (disables pointer events only) — see [`DocumentRowSkeleton.tsx`](src/components/documents/DocumentRowSkeleton.tsx), [`RecentRowSkeleton.tsx`](src/components/home/RecentRowSkeleton.tsx), [`ShellSidebarDocumentSkeleton.tsx`](src/components/shell/ShellSidebarDocumentSkeleton.tsx), [`AtomCardSkeleton.tsx`](src/components/atoms/AtomCardSkeleton.tsx). [`Skeleton.tsx`](src/components/ui/Skeleton.tsx) is the shared placeholder-block primitive every one of these composes from.
+- **Editor:** [`EditorSkeleton.tsx`](src/components/editor/EditorSkeleton.tsx) stencils a document page — a title-width line plus a few paragraphs of varying-width lines — inside the same `--editor-col-w` / `--editor-gutter` / `--editor-pad-v` box the real prose renders in. Shown for both editor loading states: before `useDocument` resolves, and again (as `.editor-entry-loading`) between `ready` and `isEditorRevealed`.
+- **Call sites:** [`EditorView.tsx`](src/views/EditorView.tsx) (note open, both phases), [`DocumentsView.tsx`](src/views/DocumentsView.tsx) (4 rows in place of `DocumentsProjectList`), [`RecentFiles.tsx`](src/components/home/RecentFiles.tsx) (3 rows), [`ShellSidebarLibrary.tsx`](src/components/shell/ShellSidebarLibrary.tsx) (3 rows), [`AtomPanel.tsx`](src/components/atoms/AtomPanel.tsx) (4 cards in the flashcard grid).
+- **Exception — Boot screen:** the one loading state that keeps the dots-and-paper-line treatment above, since cold start happens before any view or content model exists — there is no row/card shape yet to stencil. Everything downstream of first paint stencils instead.
+
+**Forbidden:** spinners; progress bars/circles/percentages; bare "Loading…" text with no visual affordance; shimmer/sweep gradients; skeleton shapes that don't match their real component's container class and sizing.
 
 ## Profile dialog and account page
 
@@ -549,7 +515,7 @@ First signup setup: after the signup code creates a session, an empty `profiles.
 
 Full Account view: `.account-view` / `.account-stack` uses the same shell browse width as Settings. Top welcome copy reads **Welcome, {name}**. Identity row uses `.profile-avatar` circle (`calc(var(--u) * 2.25)`, accent-subtle/accent-text initial), name/email stack, and `.profile-tier` pill chip. The editable **Name** field saves through the profile notification pattern. **Modern Writer** appears as a restrained premium account section: Standard users see one accent **Upgrade** button for the $2.99/month Stripe Checkout flow; active subscribers see **Manage billing** for Stripe Billing Portal. **Notebooks** renders long rectangular cover buttons from the notebook theme registry: sharp left cover corners, subtly rounded right corners, a left spine, no folded/bookmark corner, and a quiet selected check inside the cover. Free notebooks are selectable; Modern Writer / owned cosmetic notebooks remain visible but locked until subscription or matching `cosmetics.slug` ownership. Then a top-ruled action row with bordered **Sign out** in `--destructive` text. Weight never exceeds 600.
 
-Gesture and shortcut behavior: `Ctrl/Cmd+Shift+L` toggles the sidebar instantly. Trackpad swipes use an accumulated horizontal delta with direction lock in [`shellSidebarGesture.ts`](src/lib/shellSidebarGesture.ts) / [`useShellSidebarGesture.ts`](src/hooks/useShellSidebarGesture.ts):
+Gesture and shortcut behavior: `Ctrl/Cmd+Shift+L` retracts/restores the docked sidebar. Trackpad swipes use an accumulated horizontal delta with direction lock in [`shellSidebarGesture.ts`](src/lib/shellSidebarGesture.ts) / [`useShellSidebarGesture.ts`](src/hooks/useShellSidebarGesture.ts):
 
 | Constant | Value | Role |
 |---|---|---|
@@ -562,10 +528,7 @@ Gesture and shortcut behavior: `Ctrl/Cmd+Shift+L` toggles the sidebar instantly.
 
 `preventDefault()` runs as soon as a valid horizontal gesture is recognized so Windows Tauri / WebView2 cannot pan the page while the edge pull accumulates. Commits still occur only after the threshold is crossed. Commits are blocked while the sidebar is animating (`entering` / `leaving` phase). Gesture handling must ignore form fields, dialogs, modifier-wheel gestures, and active text selection.
 
-While open, the editor/page column does not reflow or shift — the sidebar slides over a static `.view-stage`.
-Horizontal page translations on swipe navigation are replaced by a neutral edge-pull affordance: `html[data-sidebar-gesture='right']` reveals `.shell-sidebar-edge-pull-left` for sidebar open, and `html[data-sidebar-gesture='left']` reveals `.shell-sidebar-edge-pull-right` for quick nav. Gesture progress uses `--sidebar-gesture-progress` and `--sidebar-gesture-pull-x`; the affordance uses neutral shell tokens only (`--shell-chrome-bg-strong`, `--border`, `--text-secondary`, `--radius-pill`, `--space-*`, `--dur-fast`, `--ease-out`) and never `--accent`. `html`, `body`, `#root`, `.view-stage`, and `[data-view]` suppress horizontal overscroll; close/open view transitions are opacity-only; no full-page translate occurs. Home recent list uses `data-stagger="horizontal"`.
-
-Sidebar search follows the Home/Documents browse rule: live case-insensitive substring search through `useSearchableDocuments` + `matchesSearch`; no fuzzy, regex, or Enter-submit search.
+The sidebar is part of the layout while present, so the main pane grows or contracts only after the user explicitly retracts/restores it. The document editor remains centered in the resulting pane; its existing editor bar retains its controls and moves with the pane so it never overlaps the rail. Swipe navigation has no persistent or edge-pull visual; the obsolete bottom action pill is not used as gesture feedback. `html`, `body`, `#root`, `.view-stage`, and `[data-view]` suppress horizontal overscroll; close/open view transitions are opacity-only; no full-page translate occurs. Home recent list uses `data-stagger="horizontal"`.
 
 ### Search field
 
@@ -635,7 +598,7 @@ Shared bookmark create/edit modal ([`AtomPopup.tsx`](src/components/atoms/AtomPo
 
 **Answer field:** `.atom-popup-content` inside `.atom-popup-content-wrap` — borderless, `resize: none`, no boxed textarea; top rule separator only (`border-top: 1px solid var(--border)`). Placeholder `--text-tertiary`.
 
-**Save:** `.atom-popup-save` — `--radius-md`, `min-height: calc(var(--u) * 2.25)`, `background: var(--accent)`, label `var(--surface-solid)`; matches confirm-dialog primary button sizing.
+**Save:** `.atom-popup-save` — `--radius-md`, `min-height: calc(var(--u) * 2.25)`, `background: color-mix(in srgb, var(--accent) 85%, var(--text-primary))`, label `var(--surface-solid)`; matches confirm-dialog primary button sizing. The 85%-accent mix (not raw `--accent`) is the standard fill for every solid primary-action button — `.profile-button-primary`, `.extract-dialog-confirm`, `.rename-note-actions button[type='submit']` all use the same formula, deepened further to 75% on `:hover` — so the one accent stays a single hue while its fill clears comfortable label contrast.
 
 ### Settings page
 
@@ -645,13 +608,13 @@ Opened from the sidebar Settings row (`SettingsView`). Not a persistent left-nav
 - **Sections:** `.settings-section` + `.settings-section-title` (Editor, Keyboard shortcuts, AI, Data, About).
 - **Rows:** `.settings-row` — label and optional `.settings-row-description` on the left; control or hint on the right. Frosted row background uses `var(--shell-chrome-bg)` like document search panels.
 - **Placeholders:** `.settings-coming-soon`, `.settings-hint`, disabled `.settings-input`, disabled `.settings-text-button` — `--text-tertiary` only; no accent on this view.
-- **Live controls:** **Editor font** — Classic / Modern / Typewriter via shared [`SegmentedControl`](src/components/ui/SegmentedControl.tsx); app-wide default via [`useDefaultEditorFontSetting.ts`](src/hooks/useDefaultEditorFontSetting.ts); applied on boot and on each selection. **Default font size** — up/down stepper (14–24px) in Editor section; app-wide default via [`useDefaultFontSizeSetting.ts`](src/hooks/useDefaultFontSizeSetting.ts); per-note overrides from editor bar arrows persist as `font_size_{fileId}`. **Default focus mode**, **Default authorship highlights**, and **Default bookmark highlight** — `AppleToggle` rows wired via [`useEditorModeDefaultSettings.ts`](src/hooks/useEditorModeDefaultSettings.ts); each applies when a note opens; editor overflow menu toggles override for the current note only. **Typewriter sounds** — `AppleToggle` (`layout="switch-only"`) in Editor section; description “Subtle keyclick feedback while typing”; default off; wired via [`useTypewriterSoundSetting.ts`](src/hooks/useTypewriterSoundSetting.ts) (no `settings.store` import in the view).
+- **Live controls:** **Editor font** — Classic / Modern / Typewriter via shared [`SegmentedControl`](src/components/ui/SegmentedControl.tsx); app-wide default via [`useDefaultEditorFontSetting.ts`](src/hooks/useDefaultEditorFontSetting.ts); applied on boot and on each selection. **Default font size** — up/down stepper (14–24px) in Editor section; app-wide default via [`useDefaultFontSizeSetting.ts`](src/hooks/useDefaultFontSizeSetting.ts); per-note overrides from editor bar arrows persist as `font_size_{fileId}`. **Default focus mode** and **Default bookmark highlight** — `AppleToggle` rows wired via [`useEditorModeDefaultSettings.ts`](src/hooks/useEditorModeDefaultSettings.ts); each applies when a note opens; editor overflow menu toggles override for the current note only. **Typewriter sounds** — `AppleToggle` (`layout="switch-only"`) in Editor section; description “Subtle keyclick feedback while typing”; default off; wired via [`useTypewriterSoundSetting.ts`](src/hooks/useTypewriterSoundSetting.ts) (no `settings.store` import in the view).
 - **Theme:** not shown on Settings; Account → Notebooks owns explicit notebook theme selection, including locked Modern Writer / owned cosmetic covers.
 - **Forbidden:** modal settings drawer; per-view `rem` width caps; accent on disabled rows or placeholder actions.
 
 ### Floating editor bar
 
-Implemented as `.editor-bar` — a centered frosted pill portaled to `document.body` (not inside `[data-view]`). Horizontally inset-anchored like the titlebar (`left` / `right: var(--shell-inset-x)`, `margin-inline: auto`). **Note entry:** [`useEditorChromeEntry.ts`](src/hooks/useEditorChromeEntry.ts) sets `chrome-offstage` on `body` while the document loads; after `ready`, the **editor bar** slides in with the same 360ms transition as focus exit (shell header stays visible throughout). Editor shell open transition is opacity-only; document scroll uses `html` `overflow-y: auto` with minimal overlay scrollbar per **Scrollbars** section above.
+Implemented as `.editor-bar` — a centered frosted pill portaled to `document.body` (not inside `[data-view]`). Horizontally inset-anchored like the titlebar (`left` / `right: var(--shell-inset-x)`, `margin-inline: auto`). **Note entry:** [`useEditorChromeEntry.ts`](src/hooks/useEditorChromeEntry.ts) sets `chrome-offstage` on `body` while the document loads; after `ready`, the **editor bar** slides in with the same 360ms transition as focus exit (shell header stays visible throughout). Editor shell open transition is opacity-only. In Tauri, document scrolling, restoration, find/outline targeting, and the minimal overlay scrollbar all use the active editor `[data-view]`; browser fallback retains the window scroll root.
 
 Child order: **arrows** → **centre label** → **prompt field** → **Outline** → **overflow menu** (vertical `⋮`).
 
@@ -659,7 +622,9 @@ Child order: **arrows** → **centre label** → **prompt field** → **Outline*
 - **Centre label:** faint `var(--text-tertiary)` text. Shows word count by default, font size for two seconds after arrow-driven font changes, and `n / total` or `0 results` in find mode.
 - **Prompt field:** `.bb-prompt` / `.bb-prompt-input` shell for find/replace and future prompt. Placeholder: “Find, replace, or prompt...”. Geist `var(--font-sans)`. `Ctrl/Cmd+F` focuses the field without entering find mode; find mode activates only when the query is non-empty. Active find paints neutral `--find-match-wash` / `--find-active-wash` highlights on `.editor-root` via [`useFindHighlight.ts`](src/hooks/useFindHighlight.ts); navigation scroll follows the active match.
 - **Outline:** `ListTree` + label; `aria-pressed` when outline panel is open.
-- **Overflow menu:** `MoreVertical` icon (vertical triple-dot); opens `.editor-bar-menu-panel` above the trigger. Contains **Focus**, **Typewriter**, **Authorship**, and **Bookmark highlight** rows with `AppleToggle` switches and shortcut labels, plus destructive **Delete note**. Delete opens confirm dialog before removal. Future AI atomise is not on the bar. Typewriter sound is **not** in the overflow menu — Settings only.
+- **Overflow menu:** `MoreVertical` icon (vertical triple-dot); opens `.editor-bar-menu-panel` above the trigger. Contains **Focus**, **Typewriter**, and **Bookmark highlight** rows with `AppleToggle` switches and shortcut labels, plus destructive **Delete note**. Delete opens confirm dialog before removal. Future AI atomise is not on the bar. Typewriter sound is **not** in the overflow menu — Settings only.
+- **Close tab:** a neutral overflow action flushes pending text and title saves before closing. In a single view it returns Home; in a split it removes that pane and returns to a single document. Each split pane owns its own stationary floating bar, portaled into a sibling overlay outside the pane scroll surface; click a bar to activate its note and use its find, font, and menu controls. Focus mode hides only its own bar.
+- **Open new tab:** shown in the Actions cards of an empty untitled note. A popup chooses another registered document and either replaces this pane or opens it next to this pane. Split editing keeps both documents mounted with independent scroll surfaces. The seam is the frame colour and can be dragged or moved with arrow keys while preserving a rem-scaled writing-width minimum on both sides. Its top and bottom shape comes from the pane's inset rounded corners, not decorative caps. Actions cards reflow as two equal cards on one row and the third across the next row when space allows; only the narrowest panes stack all three.
 
 ### Definition typing shortcut
 
@@ -671,6 +636,12 @@ Live-only alternative to the bookmark popup for **definitions**:
 - Skips fenced code blocks, inline code, and existing atom nodes. Term ≤ 120 chars; definition ≤ 2000 chars.
 - Save failure: revert to plain `term` + `.editor-shortcut-error` (`var(--destructive)`).
 - Layer: Lexical `replace` → [`definitionShortcutBridge.ts`](src/editor/lib/definitionShortcutBridge.ts) → [`useEditorAtomBridge.ts`](src/hooks/useEditorAtomBridge.ts); plugins never import `store/`.
+
+### References
+
+- The selected-text annotation popup offers **Reference** in place of new **Note** annotations. Its content field accepts the citation text (for example, `AGLC4`).
+- Saving a reference leaves the selected prose unchanged and appends a one-based superscript marker. References are stored only in the note Markdown as `[^citation]`; they never create an atom, bookmark card, or SQLite bookmark row.
+- The outline has separate **Contents** and **References** tabs. References appear in document order as `1. citation`; selecting one scrolls to its superscript marker. Typing or pasting the same Markdown form also creates a reference marker.
 
 ```css
 .editor-bar {
@@ -861,7 +832,7 @@ Shared destructive confirmation (`.confirm-dialog-layer` + `.confirm-dialog` in 
 
 The outline toggle lives on the floating editor bar (`ListTree` + “Outline”, `aria-pressed` when open). The writing column stays centered and fluid at `--editor-col-w`; opening the outline does not reserve a layout column.
 
-When open, `.outline-layer` covers the viewport: scrim (click to close) and `.outline-panel` centered on screen. Panel header is the **document display name** (sans, semibold) — not the word “Outline”. `nav` lists section headings only; if the first Markdown heading matches the document display name, it is hidden from the nav so the title appears once. Rows use heading level for minimal hierarchy: H1 primary/medium, H2 slightly indented, deeper headings progressively indented and quieter with a subtle token-colour guide only. Clicking a heading scrolls the document to that heading via [`outlineNavigation.ts`](src/lib/outlineNavigation.ts) and shared [`scrollEditorTarget.ts`](src/lib/scrollEditorTarget.ts) — same eased navigation scroll as find (anchor `--editor-scroll-target-ratio`, duration `--dur-editor-scroll`, easing `--ease-out`). The panel **stays open** after navigation. Close via scrim or bar toggle only.
+When open, `.outline-layer` covers the viewport: scrim (click to close) and `.outline-panel` centered on screen. Panel header is the **document display name** (sans, semibold) — not the word “Outline”. A segmented control separates **Contents** (headings) from **References**. If the first Markdown heading matches the document display name, it is hidden from Contents so the title appears once. Rows use heading level for minimal hierarchy: H1 primary/medium, H2 slightly indented, deeper headings progressively indented and quieter with a subtle token-colour guide only. References appear as their document-order number plus citation text. Clicking a heading or reference scrolls to its matching editor marker via [`outlineNavigation.ts`](src/lib/outlineNavigation.ts) and shared [`scrollEditorTarget.ts`](src/lib/scrollEditorTarget.ts) — same eased navigation scroll as find (anchor `--editor-scroll-target-ratio`, duration `--dur-editor-scroll`, easing `--ease-out`). The panel **stays open** after navigation. Close via scrim or bar toggle only.
 
 ```css
 .editor-layout {
@@ -1020,7 +991,7 @@ Browse view for saved bookmarks. Uses `.app-shell.atoms-view` with `.atoms-stack
 
 App-native context menus use the shared `.context-menu` surface (`--surface-strong`) and Lucide icons. Separators are structural: they separate clipboard/open actions, constructive metadata actions, reveal/navigation actions, and destructive actions. **Reveal in Finder and Delete must never be adjacent without a separator.**
 
-**Editor grouping:** Cut, Copy, Paste / Bookmark, Mark as mine / Look up "{word}", Search in notes. Bookmark appears only with selected text. Mark as mine appears only on authorship-marked text. Look up appears on macOS only.
+**Editor grouping:** Cut, Copy, Paste / Bookmark / Look up "{word}", Search in notes. Bookmark appears only with selected text. Look up appears on macOS only.
 
 **Note row grouping:** Pin or Unpin / Rename, Duplicate / Reveal in Finder / Delete. Delete is destructive and still opens `ConfirmDialog`. These menus appear on Home recent rows and Documents rows only, never in the sidebar.
 
@@ -1081,7 +1052,7 @@ Rules:
 - Never `transition: all`
 - Only transition `opacity`, `transform`, `color`, `background`, `border-color`
 - Editor find/outline navigation scroll uses JS rAF easing with `--dur-editor-scroll` + `--ease-out` via `scrollEditorTarget.ts`; typewriter caret scroll remains instant
-- Focus mode dimming uses asymmetric 380ms / 240ms opacity — atmosphere, not snap toggle; chrome slide uses `var(--ease-out)` at 360ms (not yet migrated to `--dur-focus-*`)
+- Focus mode dimming uses asymmetric 380ms / 240ms opacity — atmosphere, not snap toggle; its editor bar slide uses `var(--ease-out)` at 360ms (not yet migrated to `--dur-focus-*`)
 - Shell chrome uses `--dur-base` or `--dur-fast`
 - No spring easing in the editor writing surface — spring is for popups and accent interactions only
 
@@ -1099,7 +1070,6 @@ UI-agnostic orchestration for view swaps, search lists, and (CSS-ready) surfaces
 | **Search stagger** | `data-stagger` on list wrapper; `--stagger-index` per row | [`useSearchStagger.ts`](src/hooks/useSearchStagger.ts) in Home/Documents; [`useStagedProjectItems.ts`](src/hooks/useStagedProjectItems.ts) for Documents project membership changes | Live |
 | **Stack card switch** | `data-stack-leave` then `data-stack-enter` on `.bookmark-stack-popup-card` | [`BookmarkStackPopup.tsx`](src/components/atoms/BookmarkStackPopup.tsx) + [`BookmarkStackPopupCard.tsx`](src/components/atoms/BookmarkStackPopupCard.tsx) | Live |
 | **Modal** | `data-transition="modal"` + `data-state` | Future: popup roots (`AtomPopup`, `ConfirmDialog`) | CSS only |
-| **Sidebar** | `data-transition="sidebar"` + `data-state` on panel; scrim fade on `.shell-sidebar-layer[data-state]` | [`ShellSidebar.tsx`](src/components/shell/ShellSidebar.tsx) | Live |
 
 ### View names
 
@@ -1131,12 +1101,11 @@ UI-agnostic orchestration for view swaps, search lists, and (CSS-ready) surfaces
 - Nav disabled for the duration of the two-phase transition
 - Distinct from in-card flip (`rotateY`, `--dur-slow` on `.bookmark-flashcard-inner`)
 
-### Sidebar overlay
+### Sidebar retraction
 
-- Panel: `--sidebar-shift-enter` (16px) / `--sidebar-shift-leave` (8px); enter `--dur-sidebar-enter` (400ms, `--ease-out`); leave `--dur-sidebar-leave` (240ms, `--ease-in`)
-- Scrim: fade tied to `.shell-sidebar-layer[data-state]` — `--dur-sidebar-scrim-enter` / `--dur-sidebar-scrim-leave`
-- Underlay: none — `.view-stage` stays fixed; sidebar overlays without shifting page content
-- Close note: opacity-only close transition; enter 300ms / leave 200ms
+- The rail is mounted only while visible and uses `.app-frame.has-sidebar` to claim `var(--sidebar-w)` as a grid track.
+- Retraction is an explicit shell-layout change, not a modal animation: there is no scrim, portal, panel enter/leave keyframe, or focus management.
+- Opening a note keeps the current rail state. The existing editor open/close transitions remain opacity-only.
 
 ### Files
 
@@ -1194,7 +1163,7 @@ Never use custom filled SVGs, emoji, or icon fonts.
 | Panel header text "Outline" | Document display name |
 | `top: titlebar + inset` on centered outline panel | `50%` + `translate(-50%, -50%)` |
 | Theme toggle without `data-theme` + token docs | Dual-layer tokens in `tokens.css` + DESIGN |
-| Focus / Authorship / Atoms as bar text buttons | Prompt field + overflow `AppleToggle` menu |
+| Focus / Atoms as bar text buttons | Prompt field + overflow `AppleToggle` menu |
 | Pill `.bb-toggle` on floating editor bar | `AppleToggle` in menu panel |
 | Accent on prompt, arrows, or outline | Neutral text tokens; active `AppleToggle` only |
 | Inline filter chips on Bookmarks browse surface | Filter popover (`.bookmark-filter-panel`) only |
@@ -1206,10 +1175,10 @@ Never use custom filled SVGs, emoji, or icon fonts.
 | Native browser search clear buttons | Lucide `X` via `.search-field-clear` |
 | Bookmark search on `answer` or document title | `sourceText` only in `AtomPanel` |
 | `readFile` / `listAllFiles` in browse view components | `useSearchableDocuments` hook only |
-| Native OS decorations on Windows Tauri | Frameless + hover-revealed `.window-chrome` traffic lights |
-| Always-visible window chrome strip | Hover-revealed from `--window-chrome-hit-h` hit zone only |
-| Frosted/blur on `.window-chrome` | Flat transparent strip; frosted titlebar only |
-| `--accent` on window controls | Traffic-light hover tokens only |
+| Native OS decorations on Windows Tauri | Frameless + permanent `.window-chrome` with Windows glyph controls |
+| Hover-revealed window chrome | Permanent `--titlebar-h` top bar |
+| Frosted/blur or shadows on `.window-chrome` | Flat, theme-inverted window frame |
+| `--accent` or traffic-light colours on window controls | Neutral glyphs and hover surface tokens only |
 | `@tauri-apps/api/window` outside `lib/tauri.ts` | Window helpers in `lib/tauri.ts` |
 | `window.confirm` or instant delete without dialog | `ConfirmDialog` + `useDeleteDocument` / `useAtoms.removeAtom` |
 | `invoke('delete_file')` outside `lib/tauri.ts` | `useDeleteDocument` hook only |

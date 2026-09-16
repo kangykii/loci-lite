@@ -58,12 +58,15 @@ export function computeStackMerge(
     ...new Set([...draggedMembers.map((entry) => entry.id), ...targetMembers.map((entry) => entry.id)]),
   ];
 
+  // Prefer whichever side already has a group label, so an existing custom stack
+  // name (keyed by that label in stackNames.store) survives the merge instead of
+  // being silently discarded in favor of a freshly generated label.
   let groupLabel: string;
 
   if (targetLabel) {
     groupLabel = targetLabel;
   } else if (draggedLabel) {
-    groupLabel = crypto.randomUUID();
+    groupLabel = draggedLabel;
   } else {
     groupLabel = crypto.randomUUID();
   }

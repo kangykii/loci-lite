@@ -50,8 +50,9 @@ export function useBottomBar(fileId: string, editorText: string) {
   }, [fileId]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--editor-font-size-override', `${fontSize}px`);
-  }, [fontSize]);
+    const target = document.querySelector<HTMLElement>(`[data-editor-scroll="${fileId}"]`);
+    target?.style.setProperty('--editor-font-size-override', `${fontSize}px`);
+  }, [fileId, fontSize]);
 
   useEffect(() => {
     setMatchIndex((current) => Math.min(current, Math.max(matchTotal - 1, 0)));

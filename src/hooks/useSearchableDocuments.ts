@@ -1,13 +1,15 @@
 import { useCallback, useState } from 'react';
 import {
   displayTitleForFile,
+  editorSnapshotFromMarkdown,
   excerptFromMarkdown,
+  previewImageFromMarkdown,
 } from '../lib/documentMeta';
 import { formatOpenedAt } from '../lib/formatRelativeTime';
 import { resurfaceDueReminders } from '../lib/resurfaceReminders';
 import { isTauri, readFile } from '../lib/tauri';
 import { initDb } from '../store/db';
-import { listAllFiles } from '../store/files.store';
+import { listFilesByEditedAt } from '../store/files.store';
 
 export type SearchableDocument = {
   id: string;
@@ -15,6 +17,7 @@ export type SearchableDocument = {
   title: string;
   meta: string;
   preview: string;
+  previewImage: string | null;
   haystack: string;
   pinned: boolean;
   projectGroupLabel: string | null;
@@ -45,7 +48,9 @@ export function useSearchableDocuments() {
       } catch (cause) {
         console.warn('Failed to resurface due reminders before document refresh', cause);
       }
-      const records = await listAllFiles();
+      // The library is a retrieval surface, so its default order should reflect
+      // the note the person was actively working in—not merely the last one opened.
+      const records = await listFilesByEditedAt();
 
       const rows = await Promise.all(
         records.map(async (file) => {
@@ -64,8 +69,9 @@ export function useSearchableDocuments() {
             id: file.id,
             path: file.path,
             title,
-            meta: formatOpenedAt(file.openedAt),
+            meta: formatOpenedAt(file.editedAt),
             preview,
+            previewImage: previewImageFromMarkdown(markdown, file.path) ?? editorSnapshotFromMarkdown(markdown, title),
             haystack: `${title}\n${markdown}`,
             pinned: file.pinned,
             projectGroupLabel: file.projectGroupLabel,

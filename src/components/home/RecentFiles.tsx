@@ -1,7 +1,9 @@
 import type { CSSProperties } from 'react';
 import type { MouseEvent } from 'react';
 
+import RecentRowSkeleton from './RecentRowSkeleton';
 import SearchField from '../ui/SearchField';
+import { useDelayedFlag } from '../../hooks/useDelayedFlag';
 import type { SearchableDocument } from '../../hooks/useSearchableDocuments';
 
 type RecentFilesProps = {
@@ -29,6 +31,8 @@ export default function RecentFiles({
   onDocumentContextMenu,
   listStaggerLeaving = false,
 }: RecentFilesProps) {
+  const showLoadingSkeleton = useDelayedFlag(status === 'loading');
+
   return (
     <section aria-label="Recent files">
       <div className="library-controls">
@@ -45,10 +49,6 @@ export default function RecentFiles({
         </button>
       </div>
 
-      {status === 'loading' ? (
-        <p className="library-status">Loading recent notes…</p>
-      ) : null}
-
       {status === 'ready' && !hasLibrary ? (
         <p className="library-status">No notes yet. Create one above.</p>
       ) : null}
@@ -58,6 +58,9 @@ export default function RecentFiles({
       ) : null}
 
       <div className={`recent-list${listStaggerLeaving ? ' leaving' : ''}`} data-stagger="horizontal">
+        {showLoadingSkeleton
+          ? [0, 1, 2].map((index) => <RecentRowSkeleton index={index} key={index} />)
+          : null}
         {files.map((file, index) => (
           <button
             className="recent-row"

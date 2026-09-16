@@ -2,6 +2,7 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $getSelection, $isRangeSelection, type LexicalEditor } from 'lexical';
 import { useEffect, useRef } from 'react';
 import { useEditorChromeContext } from '../context/EditorChromeContext';
+import { NON_PERSISTENT_DECORATION_TAG } from '../lib/editorUpdateTags';
 
 function clearAllFocusAttributes(editor: LexicalEditor) {
   const rootElement = editor.getRootElement();
@@ -67,8 +68,12 @@ export default function FocusModePlugin() {
   }, [editor, isFocusMode]);
 
   useEffect(() => {
-    return editor.registerUpdateListener(() => {
-      if (!isFocusModeRef.current) {
+    // Background decoration passes (bookmark/definition scans elsewhere in the
+    // document) commit their own editor.update() with no real caret movement.
+    // Without this check, every one of those re-runs the clear+reapply of
+    // data-focus, flickering the dimmed blocks while the user is just reading.
+    return editor.registerUpdateListener(({ tags }) => {
+      if (!isFocusModeRef.current || tags.has(NON_PERSISTENT_DECORATION_TAG)) {
         return;
       }
 

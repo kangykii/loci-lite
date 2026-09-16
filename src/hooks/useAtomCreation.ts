@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { AtomSavePayload } from '../components/atoms/AtomPopup';
-import { buildAtomRecord, saveAtomRecord } from '../lib/atomRecord';
+import { insertReference, type ReferenceSelection } from '../editor/lib/referenceBridge';
+import { saveAtomRecord } from '../lib/atomRecord';
 import { dispatchBookmarkCreated } from '../lib/pluginLifecycle';
 import type { AtomRecord } from '../lib/atomTypes';
 import { markFeatureLearned } from '../store/onboarding.store';
@@ -11,6 +12,7 @@ type PopupState = {
   spanStart: number | null;
   spanEnd: number | null;
   fileId: string;
+  referenceSelection: ReferenceSelection | null;
 };
 
 export function useAtomCreation(onCreated?: (atom: AtomRecord) => void) {
@@ -28,6 +30,7 @@ export function useAtomCreation(onCreated?: (atom: AtomRecord) => void) {
       spanStart: number | null,
       spanEnd: number | null,
       fileId: string,
+      referenceSelection: ReferenceSelection | null,
     ) => {
       const trimmed = text.trim();
       if (!trimmed || !fileId) {
@@ -39,6 +42,7 @@ export function useAtomCreation(onCreated?: (atom: AtomRecord) => void) {
         spanStart,
         spanEnd,
         fileId,
+        referenceSelection,
       });
       setError(null);
     },
@@ -66,7 +70,19 @@ export function useAtomCreation(onCreated?: (atom: AtomRecord) => void) {
       setError(null);
 
       try {
-        const atom = buildAtomRecord({
+        if (payload.type === 'reference') {
+          if (!popup.referenceSelection || !insertReference({
+            citation: answer,
+            selection: popup.referenceSelection,
+          })) {
+            throw new Error('The selected text changed before the reference could be inserted.');
+          }
+
+          setPopup(null);
+          return;
+        }
+
+        const atom = await saveAtomRecord({
           fileId: popup.fileId,
           type: payload.type,
           sourceText,
@@ -75,8 +91,6 @@ export function useAtomCreation(onCreated?: (atom: AtomRecord) => void) {
           spanEnd: popup.spanEnd,
           reminderDueAt: payload.reminderDueAt,
         });
-
-        await saveAtomRecord(atom);
         void markFeatureLearned('bookmarks');
         onCreated?.(atom);
         dispatchBookmarkCreated({ text: sourceText, type: payload.type });

@@ -1,4 +1,4 @@
-import { ChevronRight, FileText } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import {
   consumeBrowseDragClick,
@@ -7,6 +7,7 @@ import {
 } from '../../lib/browseDrag';
 import type { SearchableDocument } from '../../hooks/useSearchableDocuments';
 import { useDocumentDrop } from './documentDrop';
+import DocumentCover from './DocumentCover';
 
 type DocumentRowProps = {
   canDrag: boolean;
@@ -64,12 +65,10 @@ export default function DocumentRow({
       onKeyDown={handleKeyDown}
       {...dropHandlers}
     >
-      <span className="document-icon">
-        <FileText size={16} strokeWidth={1.5} />
-      </span>
+      <DocumentCover alt="" src={document.previewImage} />
       <span className="document-copy">
         <strong>{document.title}</strong>
-        <span>{document.meta}</span>
+        <span className="document-details">{document.meta}</span>
       </span>
       <ChevronRight size={16} strokeWidth={1.5} />
     </div>

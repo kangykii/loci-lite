@@ -6,6 +6,7 @@ import {
   type LexicalEditor,
 } from 'lexical';
 import { useEffect, useRef } from 'react';
+import { NON_PERSISTENT_DECORATION_TAG } from '../lib/editorUpdateTags';
 
 const LOCK_RATIO = 0.4;
 
@@ -19,7 +20,7 @@ type ScrollTarget =
   | { kind: 'element'; el: HTMLElement };
 
 function resolveScrollTarget(editorEl: HTMLElement): ScrollTarget {
-  const dataView = editorEl.closest('[data-view]');
+  const dataView = editorEl.closest<HTMLElement>('[data-editor-scroll]');
 
   if (dataView) {
     const overflowY = getComputedStyle(dataView).overflowY;
@@ -44,7 +45,20 @@ function scrollInstant(delta: number, target: ScrollTarget): void {
   }
 }
 
-function getCaretRect(): DOMRect | null {
+// A range collapsed inside a *brand new, still-empty* paragraph (the moment
+// right after pressing Enter) is a well-known contentEditable/Selection API
+// flaky spot: getBoundingClientRect()/getClientRects() can report a zeroed-out
+// rect because there's no text run yet for the browser to anchor a line box
+// to. Treat that shape as untrustworthy rather than scrolling based on it.
+function isUsableRect(rect: DOMRect | null | undefined): rect is DOMRect {
+  if (!rect) {
+    return false;
+  }
+
+  return !(rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0);
+}
+
+function getNativeCaretRect(): DOMRect | null {
   const nativeSelection = window.getSelection();
 
   if (!nativeSelection || nativeSelection.rangeCount === 0) {
@@ -54,23 +68,42 @@ function getCaretRect(): DOMRect | null {
   const range = nativeSelection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
 
-  if (rect.height > 0) {
+  if (rect.height > 0 && isUsableRect(rect)) {
     return rect;
   }
 
   const clientRects = range.getClientRects();
+  const fromClientRects = clientRects[0];
 
-  if (clientRects.length > 0) {
-    return clientRects[0] ?? null;
+  if (isUsableRect(fromClientRects)) {
+    return fromClientRects;
   }
 
-  return rect;
+  return isUsableRect(rect) ? rect : null;
 }
 
-function repositionCaret(scrollTarget: ScrollTarget): void {
-  const rect = getCaretRect();
+// Falls back to the DOM element Lexical says the caret is in (reliable even
+// with no text yet, e.g. a freshly created empty paragraph) when the native
+// Selection API can't give us a trustworthy rect.
+function getCaretRect(editor: LexicalEditor, anchor: AnchorPosition): DOMRect | null {
+  const native = getNativeCaretRect();
+
+  if (native) {
+    return native;
+  }
+
+  const element = editor.getElementByKey(anchor.key);
+  const elementRect = element?.getBoundingClientRect();
+
+  return isUsableRect(elementRect) ? elementRect : null;
+}
+
+function repositionCaret(editor: LexicalEditor, anchor: AnchorPosition, scrollTarget: ScrollTarget): void {
+  const rect = getCaretRect(editor, anchor);
 
   if (!rect) {
+    // No trustworthy measurement this frame — skip rather than scroll blind.
+    // The next keystroke re-triggers this and self-corrects.
     return;
   }
 
@@ -137,8 +170,13 @@ export default function TypewriterScrollPlugin({ active }: TypewriterScrollPlugi
   }, [active, editor]);
 
   useEffect(() => {
-    return editor.registerUpdateListener(({ editorState }) => {
-      if (!activeRef.current) {
+    // Background decoration passes (e.g. an atom/definition scan elsewhere in
+    // the document) can split or replace text nodes and force the current
+    // selection to re-resolve to a new node key even though the user didn't
+    // move their caret — without this check that reads as caret movement and
+    // yanks the scroll position out from under whatever the user is doing.
+    return editor.registerUpdateListener(({ editorState, tags }) => {
+      if (!activeRef.current || tags.has(NON_PERSISTENT_DECORATION_TAG)) {
         return;
       }
 
@@ -170,7 +208,7 @@ export default function TypewriterScrollPlugin({ active }: TypewriterScrollPlugi
         }
 
         scrollTargetRef.current = resolveScrollTarget(root);
-        repositionCaret(scrollTargetRef.current);
+        repositionCaret(editor, anchor, scrollTargetRef.current);
       });
     });
   }, [editor]);
@@ -192,7 +230,7 @@ export default function TypewriterScrollPlugin({ active }: TypewriterScrollPlugi
     if (anchor) {
       lastAnchorRef.current = anchor;
       requestAnimationFrame(() => {
-        repositionCaret(scrollTargetRef.current);
+        repositionCaret(editor, anchor, scrollTargetRef.current);
       });
     }
   }, [active, editor]);

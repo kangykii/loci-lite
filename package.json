@@ -7,10 +7,13 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test:regression": "playwright test --project=chromium",
+    "test:regression:update": "playwright test --project=chromium --update-snapshots",
+    "test:regression:all": "playwright test",
+    "test:regression:update:all": "playwright test --update-snapshots"
   },
   "dependencies": {
-    "@fabianlars/tauri-plugin-oauth": "2",
     "@fontsource/geist-sans": "^5.2.5",
     "@lexical/code": "^0.45.0",
     "@lexical/extension": "^0.45.0",
@@ -19,9 +22,8 @@
     "@lexical/react": "^0.45.0",
     "@lexical/rich-text": "^0.45.0",
     "@lexical/utils": "^0.45.0",
-    "@stripe/stripe-js": "^9.8.0",
-    "@supabase/supabase-js": "^2.108.1",
     "@tauri-apps/api": "2",
+    "@tauri-apps/plugin-dialog": "~2",
     "@tauri-apps/plugin-sql": "~2",
     "@tauri-apps/plugin-updater": "~2.10.1",
     "lexical": "^0.45.0",
@@ -30,6 +32,7 @@
     "react-dom": "19"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tauri-apps/cli": "2",
     "@types/react": "^19.2.16",
     "@types/react-dom": "^19.2.3",

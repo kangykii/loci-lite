@@ -56,10 +56,18 @@
   will-change: auto;
 }
 
-/* Editor fixed chrome (bar, outline, focus exit) must not be clipped or re-contained */
+/* The editor owns its scroll region; chrome remains inside each editor view. */
 [data-view]:has(.editor-view) {
-  overflow: visible;
+  overflow: hidden;
   scrollbar-gutter: auto;
+}
+
+html.is-tauri [data-view]:has(.editor-view) {
+  overflow: hidden;
+}
+
+html.is-tauri [data-view]:has(.editor-panes.is-split) {
+  overflow-y: hidden;
 }
 
 /* ── Tab transitions ── */
@@ -444,46 +452,7 @@
   }
 }
 
-/* ── Sidebar ── */
-/* Slides in from left, leaves faster */
-
-[data-transition='sidebar'][data-state='entering'] {
-  animation: sidebar-enter var(--dur-sidebar-enter) var(--ease-out) both;
-}
-
-[data-transition='sidebar'][data-state='leaving'] {
-  animation: sidebar-leave var(--dur-sidebar-leave) var(--ease-in) both;
-}
-
-@keyframes sidebar-enter {
-  from {
-    opacity: 0;
-    transform: translateX(calc(var(--sidebar-shift-enter) * -1));
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes sidebar-leave {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-
-  to {
-    opacity: 0;
-    transform: translateX(calc(var(--sidebar-shift-leave) * -1));
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  [data-transition='sidebar'] {
-    animation-duration: 1ms;
-  }
-
   [data-view][data-transition='close'] {
     animation-duration: 1ms;
   }

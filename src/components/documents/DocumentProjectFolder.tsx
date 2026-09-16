@@ -1,4 +1,4 @@
-import { ChevronDown, Folder } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import {
   consumeBrowseDragClick,
@@ -68,12 +68,12 @@ export default function DocumentProjectFolder({
       onKeyDown={handleKeyDown}
       {...dropHandlers}
     >
-      <span className="document-icon">
-        <Folder size={16} strokeWidth={1.5} />
-      </span>
       <span className="document-copy">
         <strong>{displayName}</strong>
-        <span>{label}</span>
+        <span className="document-project-count">{label}</span>
+        <span className="document-project-recent">
+          {item.members.slice(0, 3).map((document) => document.title).join(' · ')}
+        </span>
       </span>
       <button
         aria-expanded={isExpanded}

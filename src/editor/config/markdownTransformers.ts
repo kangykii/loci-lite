@@ -19,6 +19,7 @@ import {
 import type { LexicalNode } from 'lexical';
 import { type ElementNode } from 'lexical';
 import { DEFINITION_SHORTCUT } from './definitionShortcutTransformer';
+import { REFERENCE } from './referenceTransformer';
 
 export const HR: ElementTransformer = {
   dependencies: [HorizontalRuleNode],
@@ -47,6 +48,7 @@ export const markdownTransformers: Array<Transformer> = [
   ORDERED_LIST,
   CODE,
   DEFINITION_SHORTCUT,
+  REFERENCE,
   BOLD_ITALIC_STAR,
   BOLD_STAR,
   ITALIC_STAR,

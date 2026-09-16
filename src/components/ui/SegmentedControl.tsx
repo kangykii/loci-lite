@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 
 type SegmentedControlOption<T extends string> = {
+  disabled?: boolean;
   label: string;
   value: T;
 };
@@ -48,7 +49,7 @@ export default function SegmentedControl<T extends string>({
             aria-checked={isActive}
             aria-label={option.label}
             className={`segmented-control__option${isActive ? ' is-active' : ''}`}
-            disabled={disabled}
+            disabled={disabled || option.disabled}
             key={option.value}
             onClick={() => onChange(option.value)}
             role="radio"

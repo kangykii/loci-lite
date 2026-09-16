@@ -6,6 +6,28 @@
   font-size: var(--text-sm);
 }
 
+.editor-skeleton {
+  display: grid;
+  gap: var(--space-6);
+  max-width: var(--editor-col-w);
+  margin: var(--editor-pad-v) auto 0;
+  padding-inline: var(--editor-gutter);
+}
+
+.editor-skeleton-title {
+  height: 1.6em;
+  width: 45%;
+}
+
+.editor-skeleton-paragraph {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.editor-skeleton-line {
+  height: 0.85em;
+}
+
 .editor-shortcut-error {
   margin: 0 0 var(--space-3);
   color: var(--destructive);
@@ -14,24 +36,45 @@
 
 .editor-view {
   position: relative;
-  min-height: 100vh;
-  padding-bottom: calc(var(--bottom-bar-h) + var(--space-12));
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+  padding-bottom: 0;
 }
 
 .editor-view.app-shell {
   padding-inline: 0;
 }
 
-html:not(.editor-revealed) .editor-view .editor-layout {
-  visibility: hidden;
-  pointer-events: none;
+.editor-scroll {
+  min-height: 0;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(var(--bottom-bar-h) + var(--space-12));
 }
 
-html:not(.editor-revealed) .editor-view .editor-entry-loading {
+.editor-view:not(.is-revealed) .editor-layout {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+.editor-view:not(.is-revealed) .editor-entry-loading {
   position: relative;
   z-index: 1;
 }
 
+/*
+ * Reveal fades in rather than popping — visibility flips to visible the
+ * instant .editor-revealed lands (no delay needed going hidden → visible),
+ * while opacity eases from 0 → 1 over the same beat as other content arrivals.
+ * The hidden state above sets transition: none so nothing animates while the
+ * document is still loading underneath.
+ */
 .editor-layout {
   display: block;
   width: 100%;
@@ -39,6 +82,14 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   margin-inline: auto;
   padding-block: var(--editor-pad-v);
   padding-inline: var(--editor-gutter);
+  opacity: 1;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor-layout {
+    transition-duration: 1ms;
+  }
 }
 
 .editor-frame {
@@ -47,6 +98,47 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   min-height: calc(140vh - var(--titlebar-h));
   margin: 0;
   padding: 0;
+}
+
+.editor-title {
+  display: block;
+  width: 100%;
+  margin: 0 0 var(--space-6);
+  border: 0;
+  background: transparent;
+  outline: none;
+  color: var(--editor-prose);
+  caret-color: var(--accent);
+  font-family: var(--editor-font-family);
+  font-size: var(--editor-h1);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: var(--editor-heading-line-height);
+  padding: 0;
+}
+
+.editor-title::placeholder {
+  color: var(--text-tertiary);
+}
+
+.editor-body-wrap {
+  position: relative;
+}
+
+.editor-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  color: var(--text-tertiary);
+  font-family: var(--editor-font-family);
+  font-size: var(--editor-font-size-override, var(--editor-text));
+  /* This overlays the first editable paragraph, so it must use the same
+     line box as normal prose. A distinct empty-paragraph line height makes
+     the ghost text and the first typed character jump between states. */
+  line-height: var(--editor-line-height);
+  pointer-events: none;
+  user-select: none;
 }
 
 .editor-root {
@@ -63,10 +155,135 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.new-note-actions {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  z-index: 5;
+  display: grid;
+  justify-items: stretch;
+  gap: var(--space-3);
+  width: min(40rem, calc(100% - var(--space-4)));
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  text-align: center;
+}
+
+.new-note-actions-label {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.new-note-actions-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  pointer-events: auto;
+}
+
+.new-note-actions-cards .new-note-action:last-child {
+  grid-column: 1 / -1;
+}
+
+@container (max-width: 26rem) {
+  .new-note-actions-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .new-note-actions-cards .new-note-action:last-child {
+    grid-column: auto;
+  }
+}
+
+.new-note-action.creation-card {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.new-note-action.is-drag-over {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.new-note-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.new-note-actions-status {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.new-note-actions-error {
+  margin: 0;
+  color: var(--destructive);
+  font-size: var(--text-sm);
+  pointer-events: auto;
+}
+
+.extract-dialog {
+  width: min(28rem, calc(100vw - 2 * var(--shell-inset-x)));
+}
+
+.extract-dialog-input,
+.extract-dialog-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 0;
+  outline: none;
+  border-radius: var(--radius-md);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  caret-color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  transition: background var(--dur-fast) ease;
+}
+
+.extract-dialog-input {
+  padding: var(--space-2) var(--space-3);
+}
+
+.extract-dialog-textarea {
+  min-height: 12rem;
+  resize: vertical;
+  padding: var(--space-3);
+}
+
+.extract-dialog-input:focus,
+.extract-dialog-textarea:focus {
+  background: color-mix(in srgb, var(--bg-deep) 70%, var(--surface-strong));
+}
+
+.extract-dialog-input:disabled,
+.extract-dialog-textarea:disabled {
+  opacity: 0.6;
+}
+
+.extract-dialog-confirm {
+  background: color-mix(in srgb, var(--accent) 85%, var(--text-primary));
+  color: var(--destructive-on);
+}
+
+.extract-dialog-confirm:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 75%, var(--text-primary));
+}
+
 .outline-layer {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 90;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: inherit;
   pointer-events: none;
 }
 
@@ -86,9 +303,9 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   top: 50%;
   left: 50%;
   display: grid;
-  width: var(--outline-panel-w);
-  max-height: var(--outline-panel-centered-max-h);
-  grid-template-rows: auto minmax(0, 1fr);
+  width: min(36rem, calc(100% - 2 * var(--space-6)));
+  height: min(34rem, calc(100% - 2 * var(--outline-panel-inset-y)));
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: var(--space-4);
   border: 1px solid var(--shell-chrome-border);
   border-radius: var(--radius-lg);
@@ -107,14 +324,39 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   margin: 0;
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: var(--text-base);
-  font-weight: 600;
+  font-size: clamp(var(--text-xl), 1.8vw, var(--text-2xl));
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
 }
 
 .outline-nav {
   display: grid;
   gap: var(--space-1);
+  min-height: 0;
   overflow-y: auto;
+}
+
+.outline-nav--enter {
+  animation: outline-list-enter var(--dur-fast) var(--ease-out) both;
+}
+
+@keyframes outline-list-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outline-nav--enter {
+    animation-duration: 1ms;
+  }
 }
 
 .outline-nav button {
@@ -143,7 +385,8 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
 
 .outline-nav button[data-level='1'] {
   color: var(--text-primary);
-  font-weight: 500;
+  font-size: var(--text-base);
+  font-weight: 600;
 }
 
 .outline-nav button[data-level='2'] {
@@ -157,7 +400,111 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   font-size: var(--text-xs);
 }
 
-.outline-nav button:not([data-level='1'])::before {
+.editor-panes {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.editor-panes.is-split {
+  display: grid;
+  height: 100%;
+  grid-template-columns: minmax(0, var(--split-left-fr)) var(--split-seam-w) minmax(0, var(--split-right-fr));
+  background: var(--split-seam-bg);
+}
+
+.editor-pane-slot {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  container-type: inline-size;
+}
+
+.editor-pane {
+  height: 100%;
+  min-height: 0;
+}
+
+.editor-panes.is-split .editor-pane-slot {
+  height: 100%;
+}
+
+.editor-panes.is-split .editor-pane {
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.editor-panes.is-split .editor-pane-slot:first-child { grid-column: 1; grid-row: 1; }
+.editor-panes.is-split .editor-pane-slot:last-child { grid-column: 3; grid-row: 1; }
+
+.editor-panes.is-split .editor-pane-slot:first-child .editor-pane {
+  border-radius: 0 var(--window-frame-radius) var(--window-frame-radius) 0;
+}
+
+.editor-panes.is-split .editor-pane-slot:last-child .editor-pane {
+  border-radius: var(--window-frame-radius) 0 0 var(--window-frame-radius);
+}
+
+.editor-split-divider {
+  position: relative;
+  z-index: 50;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  width: calc(var(--space-4) * 2);
+  height: 100%;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+  padding: 0;
+}
+
+/* The split container's background is not sufficient here: pane chrome is
+ * layered above the panes and can cover it. Paint the visible seam on the
+ * divider itself, which is the topmost split-local layer. Its wider button
+ * box remains the drag target; this pseudo-element is only the 1-frame-wide
+ * visual line. */
+.editor-split-divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--split-seam-w);
+  background: var(--split-seam-bg);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.editor-split-divider:focus-visible {
+  outline: 1px solid var(--text-secondary);
+  outline-offset: calc(-1 * var(--space-2));
+}
+
+.editor-panes.is-split .editor-view {
+  height: 100%;
+  min-height: 100%;
+}
+
+.editor-panes.is-split .editor-layout {
+  max-width: 100%;
+  padding-inline: clamp(var(--space-6), 4vw, var(--editor-gutter));
+}
+
+.editor-panes.is-split .editor-frame {
+  min-height: 140vh;
+}
+
+.outline-nav button[data-kind='reference'] {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.outline-nav button[data-kind='heading']:not([data-level='1'])::before {
   content: '';
   position: absolute;
   top: var(--space-2);
@@ -170,13 +517,6 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
 .editor-root .editor-paragraph,
 .editor-root p {
   margin: 0 0 var(--space-4);
-}
-
-.editor-root .editor-paragraph:has(> br:only-child),
-.editor-root p:has(> br:only-child) {
-  min-height: var(--space-3);
-  margin: 0 0 var(--space-2);
-  line-height: 0.7;
 }
 
 .editor-root .editor-heading-h1,
@@ -272,6 +612,26 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   font-family: var(--editor-font-family);
   font-size: 0.9em;
   padding: 0.1em 0.35em;
+  /* An inline code span can end up wrapping a hard line break — a Shift+Enter
+     typed mid-span, or (more commonly) pasted HTML from an external source
+     where Lexical's default paste importer keeps one <code> run intact across
+     a <br>. Without this, the padded background box defaults to
+     box-decoration-break: slice — reserving full top/bottom padding as if it
+     were one continuous box — which renders oversized and bleeds down into
+     the next line instead of breaking cleanly per line, same fix already
+     used for the bookmark highlight wash below. */
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.editor-root .editor-reference {
+  margin-left: 0.08em;
+  color: var(--accent-text);
+  cursor: default;
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 0;
+  text-decoration: none;
 }
 
 .editor-root .editor-code-block,
@@ -326,32 +686,6 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   --atom-highlight-fill: var(--atom-highlight-definition);
 }
 
-/* ── Authorship mode — native text colour highlights ── */
-
-::highlight(loci-authorship-1) {
-  color: var(--authorship-tone-1);
-}
-
-::highlight(loci-authorship-2) {
-  color: var(--authorship-tone-2);
-}
-
-::highlight(loci-authorship-3) {
-  color: var(--authorship-tone-3);
-}
-
-::highlight(loci-authorship-4) {
-  color: var(--authorship-tone-4);
-}
-
-::highlight(loci-authorship-5) {
-  color: var(--authorship-tone-5);
-}
-
-::highlight(loci-authorship-6) {
-  color: var(--authorship-tone-6);
-}
-
 /* ── Focus mode — paragraph dimming ── */
 
 .editor-root.focus-active
@@ -377,28 +711,11 @@ html:not(.editor-revealed) .editor-view .editor-entry-loading {
   transition: opacity 240ms ease;
 }
 
-/* ── Focus mode — chrome hide/show ── */
-
-.shell-header {
-  transition: transform 360ms var(--ease-out), opacity 360ms ease;
-}
-
-.window-chrome-zone {
-  transition: transform 360ms var(--ease-out), opacity 360ms ease;
-}
-
-.focus-mode-active .shell-header,
-.focus-mode-active .window-chrome-zone {
-  transform: translateY(calc(-100% - var(--space-2)));
-  opacity: 0;
-  pointer-events: none;
-}
-
 .editor-bar {
   transition: transform 360ms var(--ease-out), opacity 360ms ease;
 }
 
-.focus-mode-active .editor-bar,
+.editor-bar.is-focus-hidden,
 .chrome-offstage .editor-bar {
   transform: translateY(100%);
   opacity: 0;

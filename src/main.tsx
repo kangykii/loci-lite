@@ -1,11 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import './lib/env';
-import { getSession } from './lib/auth';
-import { hasRemote } from './lib/env';
 import { seedBaseDocumentsIfNeeded } from './lib/seedDocuments';
 import { resurfaceDueReminders } from './lib/resurfaceReminders';
-import { syncRemoteProfile } from './lib/syncRemoteProfile';
 import { isTauri } from './lib/tauri';
 import { initDb } from './store/db';
 import { initInstallDate } from './store/onboarding.store';
@@ -19,15 +15,16 @@ import './styles/tokens.css';
 import './styles/scrollbars.css';
 import './styles/transitions.css';
 import './styles/base.css';
+import './styles/skeleton.css';
 import './styles/segmented-control.css';
 import './styles/shell.css';
 import './styles/search-field.css';
 import './styles/sidebar.css';
-import './styles/sidebar-edge-pull.css';
 import './styles/settings.css';
 import './styles/home.css';
 import './styles/documents.css';
 import './styles/document-projects.css';
+import './styles/library-contrast.css';
 import './styles/atoms.css';
 import './styles/bookmark-stack-folder.css';
 import './styles/atom-popup.css';
@@ -106,6 +103,19 @@ async function boot() {
     return;
   }
 
+  // This route is only enabled by the Playwright web server. Keeping the
+  // fixture behind a build-time flag means production never mounts it or
+  // touches its test data.
+  if (import.meta.env.VITE_REGRESSION_FIXTURE === 'editor') {
+    const { default: EditorRegressionFixture } = await import('./regression/EditorRegressionFixture');
+    root.render(
+      <StrictMode>
+        <EditorRegressionFixture />
+      </StrictMode>,
+    );
+    return;
+  }
+
   if (isTauri()) {
     try {
       await initDb();
@@ -116,19 +126,6 @@ async function boot() {
       reportStartupError('Local database could not be initialized', error);
       return;
     }
-  }
-
-  if (hasRemote) {
-    void getSession()
-      .then((session) => {
-        if (session) {
-          return syncRemoteProfile();
-        }
-        return undefined;
-      })
-      .catch((err) => {
-        console.warn('Remote session check failed — app continues offline:', err);
-      });
   }
 
   root.render(

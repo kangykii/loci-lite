@@ -32,9 +32,7 @@ export function useEditorAtomBridge(
 
   const handleAtomCreated = useCallback(
     (record: AtomRecord) => {
-      if (record.type !== 'reminder') {
-        setCreatedAtom(atomRecordToDecoration(record));
-      }
+      setCreatedAtom(atomRecordToDecoration(record));
       void atoms.loadForFile(fileId);
 
       if (record.type === 'definition') {
@@ -54,7 +52,13 @@ export function useEditorAtomBridge(
 
   const handleBookmarkRequest = useCallback(
     (detail: BookmarkRequestDetail) => {
-      atomCreation.openPopup(detail.selectedText, detail.spanStart, detail.spanEnd, fileId);
+      atomCreation.openPopup(
+        detail.selectedText,
+        detail.spanStart,
+        detail.spanEnd,
+        fileId,
+        detail.referenceSelection,
+      );
     },
     [atomCreation, fileId],
   );
@@ -108,6 +112,7 @@ export function useEditorAtomBridge(
       spans?.spanStart ?? null,
       spans?.spanEnd ?? null,
       fileId,
+      null,
     );
   }, [atomCreation, fileId, markdown, selection]);
 

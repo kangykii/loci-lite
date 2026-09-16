@@ -5,7 +5,7 @@
 
 ## What Loci Lite is
 
-Loci Lite is a local-first markdown editor for students. The user writes in `.md` files stored on disk. The app adds on top of raw markdown: focus mode (paragraph dimming), authorship mode (paste provenance wash — AI reserved), manual atoms with separate behaviours (definitions become Bookmarks flashcards, notes become editor-only wiki annotations, reminders resurface notes later), and future **atomisation** (AI-generated flashcard Q&A from selection). There is no sync, no collaboration, no image support, no heavy tables. The editor is the product.
+Loci Lite is a local-first markdown editor for students. The user writes in `.md` files stored on disk. The app adds on top of raw markdown: focus mode (paragraph dimming), manual atoms with separate behaviours (definitions become Bookmarks flashcards, notes become editor-only wiki annotations, reminders resurface notes later), and future **atomisation** (AI-generated flashcard Q&A from selection). There is no sync, no collaboration, no image support, no heavy tables. The editor is the product.
 
 UI colours are token-driven from `src/styles/tokens.css`. Dark mode follows the Charcoal Claude palette in `DESIGN LOCILITE.md`. Components never hardcode palette hex values. Shell layout widths are tokenized (`--shell-inset-x`, `--shell-content-max`, `--editor-col-w`); editor prose caps at `70ch` through tokens, and components must not hardcode browse or titlebar `rem` caps.
 
@@ -84,7 +84,7 @@ loci-lite/
 │   │   ├── confirm-dialog.css    # Shared delete confirmation modal
 │   │   ├── profile.css           # Account dialog: sign-in, identity, tier chip
 │   │   ├── settings.css          # Settings page sections and rows
-│   │   └── editor.css            # Lexical editor surface + atom/authorship overlay styling
+│   │   └── editor.css            # Lexical editor surface + atom decoration styling
 │   │
 │   ├── views/
 │   │   ├── HomeView.tsx          # Welcome + recent/search via useSearchableDocuments
@@ -92,17 +92,16 @@ loci-lite/
 │   │   ├── AtomsView.tsx         # Bookmark browse; definitions only + live sourceText search
 │   │   ├── SettingsView.tsx      # App settings, including local OpenAI key receiver
 │   │   ├── AccountView.tsx       # Full account page; welcome + notebook theme picker
-│   │   └── EditorView.tsx        # Editor + atom/authorship bridges, popup, outline, BottomBar
+│   │   └── EditorView.tsx        # Editor + atom bridge, popup, outline, BottomBar
 │   │
 │   ├── editor/
 │   │   ├── Editor.tsx            # Lexical composer + plugin assembly
 │   │   ├── context/
 │   │   │   ├── AtomEditorContext.tsx     # Atom data + delete callback into plugins
-│   │   │   ├── AuthorshipEditorContext.tsx  # Annotation list + paste/reconcile/remove callbacks
 │   │   │   └── EditorChromeContext.tsx   # Selection, bookmark, definition-shortcut callbacks
 │   │   ├── lib/
 │   │   │   ├── applyAtomDecorations.ts   # Wrap matching text with AtomNode
-│   │   │   ├── authorshipIndex.ts       # Visible text index for authorship matching
+│   │   │   ├── visibleTextIndex.ts      # Visible text index for context-menu word lookup
 │   │   │   ├── editorUpdateTags.ts      # Non-persistent decoration update tags
 │   │   │   ├── definitionShortcutBridge.ts  # Handler registry for Lexical → React (no store)
 │   │   │   ├── definitionShortcutReplace.ts   # $replaceDefinitionShortcut guards + AtomNode swap
@@ -121,14 +120,12 @@ loci-lite/
 │   │   │   ├── DefinitionShortcutPlugin.tsx  # Registers onDefinitionShortcut into bridge (live)
 │   │   │   ├── PersistPlugin.tsx         # Debounced save via onSave callback (live)
 │   │   │   ├── SelectionSyncPlugin.tsx   # Selection state to editor chrome (live)
-│   │   │   ├── ContextMenuPlugin.tsx     # Right-click Bookmark + Mark as mine (live)
+│   │   │   ├── ContextMenuPlugin.tsx     # Right-click Bookmark, lookup, search (live)
 │   │   │   ├── AtomDecorationPlugin.tsx  # Apply AtomNode from context (live)
 │   │   │   ├── DefinitionScanPlugin.tsx  # Debounced definition scan (live)
 │   │   │   ├── AtomHoverPlugin.tsx       # Tooltip on decorated spans (live)
 │   │   │   ├── FocusModePlugin.ts        # Live: caret-driven block dimming (data-focus)
 │   │   │   ├── TypewriterScrollPlugin.tsx  # Live: anchor-gated caret lock scroll
-│   │   │   ├── AuthorshipPlugin.tsx      # Live: paste recording + markdown span reconciliation
-│   │   │   ├── AuthorshipOverlayPlugin.tsx # Live: non-mutating authorship range renderer
 │   │   │   ├── AtomUnderlinePlugin.ts    # Superseded stub — not mounted
 │   │   │   └── SelectionBarPlugin.ts     # Planned: selection action bar
 │   │   ├── sound/
@@ -221,7 +218,6 @@ loci-lite/
 │   │   ├── useStackDisplayNames.ts # Load/rename stack folder display names
 │   │   ├── useAtomCreation.ts      # Bookmark popup; delegates to atomRecord helpers
 │   │   ├── useEditorAtomBridge.ts  # Composes atom hooks for EditorView
-│   │   ├── useEditorAuthorshipBridge.ts  # Loads annotations; paste/remove for EditorView
 │   │   ├── useFileTitle.ts         # Document title for Atoms scope line
 │   │   ├── useDocumentTitles.ts    # Batch-resolve files.title for bookmark cards
 │   │   ├── useBottomBar.ts         # Editor bar font/find/label state
@@ -234,7 +230,6 @@ loci-lite/
 │   │   ├── useTypewriterSoundSetting.ts  # SQLite typewriter_sound read/write for Settings + editor
 │   │   ├── useDefaultEditorFontSetting.ts  # Editor font preset (classic/modern/typewriter) boot + Settings
 │   │   ├── useDefaultFontSizeSetting.ts  # App-wide default editor font size for Settings
-│   │   ├── useAuthorshipMode.ts    # Authorship visibility toggle on .editor-root (session-only)
 │   │   ├── useAiWelcomeMessages.ts # Cached 5-message AI welcome rotation
 │   │   ├── useOpenAIKeySetting.ts  # Local OpenAI key setting
 │   │   ├── useSettings.ts          # App settings read/write
@@ -262,7 +257,6 @@ loci-lite/
 │   │   ├── atoms.store.ts          # Atom CRUD queries
 │   │   ├── projectFolderNames.store.ts # Project folder display names in settings KV
 │   │   ├── stackNames.store.ts     # Stack display names in settings KV
-│   │   ├── annotations.store.ts    # Authorship annotation queries
 │   │   ├── settings.store.ts       # Settings queries
 │   │   ├── onboarding.store.ts     # Install date + learned feature queries
 │   │   └── remote.store.ts         # Supabase profile, cosmetics, plugin entitlements (remoteCall only)
@@ -385,16 +379,6 @@ CREATE TABLE atoms (
   created_at   INTEGER NOT NULL
 );
 
--- Authorship annotations (provenance)
-CREATE TABLE annotations (
-  id          TEXT PRIMARY KEY,
-  file_id     TEXT NOT NULL REFERENCES files(id) ON DELETE CASCADE,
-  span_start  INTEGER NOT NULL,
-  span_end    INTEGER NOT NULL,
-  source      TEXT NOT NULL CHECK(source IN ('ai', 'paste')),
-  created_at  INTEGER NOT NULL
-);
-
 -- App-level settings (key/value)
 CREATE TABLE settings (
   key    TEXT PRIMARY KEY,
@@ -438,7 +422,7 @@ Remote Postgres only. Apply migrations `001` → `007` in order (Supabase SQL ed
 - **`lexicalConfig.ts`** — registers Lexical **package** nodes via shared `editorNodes`: `HeadingNode`, `QuoteNode` (`@lexical/rich-text`); `ListNode`, `ListItemNode` (`@lexical/list`); `CodeNode`, `CodeHighlightNode` (`@lexical/code`); `HorizontalRuleNode` (`@lexical/extension`). Exports `createEditorConfig(initialMarkdown?)` which seeds the document via `$convertFromMarkdownString` when markdown is provided.
 - **`markdownTransformers.ts`** — `HR`, `HEADING`, `QUOTE`, `UNORDERED_LIST`, `ORDERED_LIST`, `CODE`, `BOLD_ITALIC_STAR`, `BOLD_STAR`, `ITALIC_STAR`, `STRIKETHROUGH`. Does not include `LINK`, `CHECK_LIST`, `INLINE_CODE`, or underscore variants.
 - **`EditorView.tsx`** — loads a document by `fileId` via `useDocument`; passes disk markdown into `<Editor key={fileId} />`; outline title from registry `title`, headings parsed from saved markdown; first heading is display-filtered if it duplicates the title while original heading indexes stay intact for scroll; wires `BottomBar` state and shortcuts without Lexical/plugin store access.
-- **Smart Markdown paste** — [`smartMarkdownPaste.ts`](src/editor/lib/smartMarkdownPaste.ts) detects high-signal AI/Markdown plain-text clipboard content, collapses excessive blank-line runs outside fenced code, and parses it through a temporary Lexical editor using `editorNodes` + `markdownTransformers`; [`AuthorshipPlugin.tsx`](src/editor/plugins/AuthorshipPlugin.tsx) yields to Lexical rich paste when meaningful `text/html` is present, otherwise inserts parsed Markdown nodes at the live selection and tags the update as paste so provenance remains on the visible-text authorship path.
+- **Smart Markdown paste** — [`smartMarkdownPaste.ts`](src/editor/lib/smartMarkdownPaste.ts) detects high-signal AI/Markdown plain-text clipboard content, collapses excessive blank-line runs outside fenced code, and parses it through a temporary Lexical editor using `editorNodes` + `markdownTransformers`; it yields to Lexical rich paste when meaningful `text/html` is present, otherwise inserts parsed Markdown nodes at the live selection.
 - **Paste spacing intent** — [`PasteSpacingPlugin.tsx`](src/editor/plugins/PasteSpacingPlugin.tsx) observes paste-tagged Lexical updates only. It compares previous/current top-level empty paragraph keys and removes only newly pasted surplus empty paragraphs, keeping one pasted separator and leaving pre-existing or user-typed blank paragraphs intact. Save, load, close, reopen, rename, duplicate, and autosave never normalize blank lines.
 - **`App.tsx`** — `useViewTransition` + `navigateTo` for routing; tracks `activeFileId` separately; **New note** creates a file and opens the editor; editor view requires a selected `fileId`.
 - Scratch reference for current editor behaviour: [`notes.md`](notes.md) (non-canonical).
@@ -460,7 +444,7 @@ Remote Postgres only. Apply migrations `001` → `007` in order (Supabase SQL ed
 ### Context menus (implemented)
 
 - **Shared menu:** [`ContextMenu.tsx`](src/components/ui/ContextMenu.tsx) renders item/separator entries, hidden/disabled/destructive states, Escape dismissal, and viewport clamping. Styling lives in [`shell.css`](src/styles/shell.css).
-- **Editor menu:** [`ContextMenuPlugin.tsx`](src/editor/plugins/ContextMenuPlugin.tsx) owns only the Lexical right-click shell. Range helpers live in [`contextMenuRanges.ts`](src/editor/lib/contextMenuRanges.ts); authorship intersection helpers live in [`contextMenuAnnotations.ts`](src/editor/lib/contextMenuAnnotations.ts). The plugin emits bookmark/authorship callbacks through editor contexts and opens [`SearchInNotesModal.tsx`](src/components/editor/SearchInNotesModal.tsx) for cross-note matches.
+- **Editor menu:** [`ContextMenuPlugin.tsx`](src/editor/plugins/ContextMenuPlugin.tsx) owns only the Lexical right-click shell. Range helpers live in [`contextMenuRanges.ts`](src/editor/lib/contextMenuRanges.ts). The plugin emits bookmark callbacks through editor contexts and opens [`SearchInNotesModal.tsx`](src/components/editor/SearchInNotesModal.tsx) for cross-note matches.
 - **Note row menu:** [`useDocumentContextMenu.tsx`](src/hooks/useDocumentContextMenu.tsx) is used by Home recent rows and Documents rows only. It calls store/native bridges for pin, registry-title rename, duplicate, reveal, and confirmed delete. Rename updates `files.title` only; duplicate copies the Markdown body unchanged and gives the new registry row a `" Copy"` title. Sidebar library remains open-only.
 - **Bookmark menu:** [`useBookmarkContextMenu.tsx`](src/hooks/useBookmarkContextMenu.tsx) is used by bookmark cards/folders. Solo cards expose Edit/Delete; stack folders expose Rename/Delete stack. There are no note actions on bookmarks.
 - **Pinned notes / project groups:** migration [`005_file_pinned.sql`](src/store/migrations/005_file_pinned.sql) adds `files.pinned`; migration [`007_file_project_group_label.sql`](src/store/migrations/007_file_project_group_label.sql) adds `files.project_group_label` for Documents-only project folders. [`files.store.ts`](src/store/files.store.ts) maps both and sorts pinned rows before recent rows.
@@ -541,43 +525,8 @@ Shared bin styles: `.browse-delete-bin` in [`base.css`](src/styles/base.css) (Do
 ### Shell chrome (transparent glass)
 
 - **Tokens** ([`src/styles/tokens.css`](src/styles/tokens.css)): low-alpha `--shell-chrome-bg` / `--shell-chrome-bg-strong`, `transparent` border, `20px` blur per light/dark theme. `html.is-tauri` (from [`src/main.tsx`](src/main.tsx) via `isTauri()`) does not override opacity. `@supports not (backdrop-filter: …)` applies a modest legibility bump only when blur is unavailable.
-- **Styles:** [`shell.css`](src/styles/shell.css) (titlebar, editor bar; no chrome `box-shadow`), [`base.css`](src/styles/base.css) + browse views (cards/rows/search), [`editor.css`](src/styles/editor.css) (Lexical surface, outline, atom/authorship decorations). Scrim stays a flat `color-mix` overlay without blur. Hovers use `color-mix` between bg tokens, not full-strength strong fill.
+- **Styles:** [`shell.css`](src/styles/shell.css) (titlebar, editor bar; no chrome `box-shadow`), [`base.css`](src/styles/base.css) + browse views (cards/rows/search), [`editor.css`](src/styles/editor.css) (Lexical surface, outline, atom decorations). Scrim stays a flat `color-mix` overlay without blur. Hovers use `color-mix` between bg tokens, not full-strength strong fill.
 - **Out of scope v1:** native window transparency, Mica, Acrylic. Visual sign-off uses **`corepack pnpm tauri dev`** — see-through panels over `--bg`, not milky cards.
-
-### Authorship mode (implemented — paste v1)
-
-Paste provenance only in v1. AI `source='ai'` is reserved in schema; no AI wash or logging yet.
-
-**Layer boundary (hard):** Lexical plugins **never** import `store/` or `ai/`. [`useEditorAuthorshipBridge.ts`](src/hooks/useEditorAuthorshipBridge.ts) in [`EditorView.tsx`](src/views/EditorView.tsx) loads annotations via [`annotations.store.ts`](src/store/annotations.store.ts), then passes data and callbacks through [`AuthorshipEditorContext.tsx`](src/editor/context/AuthorshipEditorContext.tsx).
-
-**Paste flow:**
-1. [`AuthorshipPlugin.tsx`](src/editor/plugins/AuthorshipPlugin.tsx) registers smart Markdown paste at `COMMAND_PRIORITY_HIGH`; before either smart paste or rich `text/html` fallthrough, it captures the current visible-text selection/caret as paste intent.
-2. `registerUpdateListener` compares previous/current visible editor text from [`authorshipIndex.ts`](src/editor/lib/authorshipIndex.ts). On `PASTE_TAG`, paste intent anchors the inserted visible-text range; generic diff is fallback only when no intent was captured. There is no Markdown string search or last-occurrence fallback.
-3. `onPasteRecorded` on context → bridge `createAnnotation` (`source='paste'`, `coordinate_system='visible_text'`, `crypto.randomUUID()`). Legacy `NULL` coordinate rows are ignored because old Markdown-offset provenance cannot be safely converted.
-4. [`AuthorshipOverlayPlugin.tsx`](src/editor/plugins/AuthorshipOverlayPlugin.tsx) maps SQLite visible-text spans to current Lexical text ranges, splits them into non-whitespace token ranges, and paints them through named CSS Highlight ranges (`loci-authorship-1` → `loci-authorship-6`). It does not create overlay DOM, Lexical authorship nodes, split text, or store provenance on `AtomNode`.
-
-**Reload on open:** when `fileId` / `annotations` change, the overlay re-renders from SQLite offsets. There is no inline authorship node compatibility path; notes persist as Markdown, not Lexical JSON.
-
-**Visibility toggle:** [`useAuthorshipMode.ts`](src/hooks/useAuthorshipMode.ts) — loads app default from `editor_default_authorship` on note open; overflow **Authorship** `AppleToggle` overrides for the current note session only. Toggles `authorship-visible` on `.editor-root`. Paste is **always** recorded; toggle gates CSS wash per [`DESIGN LOCILITE.md`](DESIGN%20LOCILITE.md). Wired through overflow in [`EditorBarMenu.tsx`](src/components/shell/EditorBarMenu.tsx) via [`BottomBar.tsx`](src/components/shell/BottomBar.tsx).
-
-**Decoration isolation:** authorship overlay rendering does not mutate Lexical content. Atom decoration updates are tagged with [`NON_PERSISTENT_DECORATION_TAG`](src/editor/lib/editorUpdateTags.ts), and [`PersistPlugin.tsx`](src/editor/plugins/PersistPlugin.tsx) ignores that tag.
-
-**Mark as mine:** [`ContextMenuPlugin.tsx`](src/editor/plugins/ContextMenuPlugin.tsx) computes selected/clicked visible-text offsets, finds intersecting annotations from context, and sends `{ annotationId, spanStart, spanEnd }`. The bridge subtracts that range in SQLite, preserving surrounding pasted text and bookmark nodes.
-
-**Styles:** universal `--authorship-tone-1` through `--authorship-tone-6` in every active theme path in [`tokens.css`](src/styles/tokens.css); [`editor.css`](src/styles/editor.css) maps each named CSS Highlight range to one tone. Coexists with focus, typewriter, find highlights, and bookmark-highlight classes on `.editor-root`.
-
-**Persist:** annotations are SQLite-only. Saved `.md` remains plain prose with no provenance markers.
-
-**Verification** (`corepack pnpm tauri dev`):
-
-1. `corepack pnpm exec tsc --noEmit` && `corepack pnpm run build`
-2. Paste text → row in `annotations` (`source='paste'`); overlay appears when Authorship is on
-3. Overflow **Authorship** on → authorship colour; off → colour hidden, text unchanged
-4. Close and reopen note → decorations restore from SQLite when toggle on
-5. Select washed words → right-click → **Mark as mine** → only selected range loses authorship; reopen confirms
-6. Plain typing → no new annotation rows
-7. Focus + typewriter + authorship + bookmark highlight together → independent `.editor-root` classes, no conflicts
-8. Saved `.md` on disk contains pasted plain text only (no authorship syntax)
 
 ### Focus mode (implemented)
 - [`useFocusMode.ts`](src/hooks/useFocusMode.ts) in [`EditorView.tsx`](src/views/EditorView.tsx): loads app default from `editor_default_focus_mode` on note open; overflow toggle overrides for the current note session; toggles `focus-active` on `.editor-root`; `focus-mode-active` on `document.body` (`.shell-header` + `.editor-bar` slide off-screen); `Escape` exits
@@ -647,7 +596,7 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 
 ### Editor chrome entry (implemented)
 - [`useEditorChromeEntry.ts`](src/hooks/useEditorChromeEntry.ts) in [`EditorView.tsx`](src/views/EditorView.tsx): `chrome-offstage` on `document.body` on mount; removed after double `rAF` when `useDocument` is `ready` — **editor bar** slides in (shell header stays visible; focus mode still hides both)
-- **`handleEditorRootRef`** in [`EditorView.tsx`](src/views/EditorView.tsx) is the mount/re-sync point for all `.editor-root` mode classes: `authorship-visible`, `bookmark-highlight-on`, `focus-active`, `typewriter-active`. Editor mode hooks load app defaults async; the ref callback re-applies classes when defaults arrive after the root mounts (required for bookmark highlight defaults to apply on first open).
+- **`handleEditorRootRef`** in [`EditorView.tsx`](src/views/EditorView.tsx) is the mount/re-sync point for all `.editor-root` mode classes: `bookmark-highlight-on`, `focus-active`, `typewriter-active`. Editor mode hooks load app defaults async; the ref callback re-applies classes when defaults arrive after the root mounts (required for bookmark highlight defaults to apply on first open).
 - Editor `[data-view]` open/close transitions are **opacity-only** ([`transitions.css`](src/styles/transitions.css) `editor-open-enter` / `editor-close-leave` keyframes) — no shell `transform` during load
 - **Scrollbars:** shell/browse hidden in [`scrollbars.css`](src/styles/scrollbars.css); document `html` scroll — idle width 0 / `scrollbar-width: none`, active 3px pill while `html.is-scrolling` ([`useDocumentScrollbar.ts`](src/hooks/useDocumentScrollbar.ts), 800ms debounce); Windows `fluentOverlay` in `tauri.conf.json`; `::-webkit-scrollbar-button` suppressed
 
@@ -660,7 +609,7 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 - **Centre label** shows word count by default, the font size briefly after arrow font changes, or match progress / `0 results` in find mode
 - **Prompt field** opens find mode on focus/click or `Ctrl/Cmd+F`; [`useFindHighlight`](src/hooks/useFindHighlight.ts) highlights all matches and the active match in the editor surface
 - **Outline** toggle opens centered outline overlay; nav items show a minimal heading hierarchy and scroll to matching `h1–h6` in `.editor-root` via [`outlineNavigation.ts`](src/lib/outlineNavigation.ts) + shared [`scrollEditorTarget.ts`](src/lib/scrollEditorTarget.ts) (eased rAF scroll, `--editor-scroll-target-ratio` / `--dur-editor-scroll`); panel stays open after click; editor column does not reflow
-- **Overflow menu** — **Focus** `AppleToggle` wired to [`useFocusMode`](src/hooks/useFocusMode.ts); **Typewriter** `AppleToggle` wired to [`useTypewriterMode`](src/hooks/useTypewriterMode.ts) (default off, session-only; sound in Settings only); **Authorship** `AppleToggle` wired to [`useAuthorshipMode`](src/hooks/useAuthorshipMode.ts) (app default from Settings; session override); **Bookmark highlight** `AppleToggle` wired to [`useBookmarkHighlight`](src/hooks/useBookmarkHighlight.ts) (app default from Settings; session override); each row shows its keyboard shortcut
+- **Overflow menu** — **Focus** `AppleToggle` wired to [`useFocusMode`](src/hooks/useFocusMode.ts); **Typewriter** `AppleToggle` wired to [`useTypewriterMode`](src/hooks/useTypewriterMode.ts) (default off, session-only; sound in Settings only); **Bookmark highlight** `AppleToggle` wired to [`useBookmarkHighlight`](src/hooks/useBookmarkHighlight.ts) (app default from Settings; session override); each row shows its keyboard shortcut
 - Future AI atomise (`ai/actions/atomise.ts`) is not on the editor bar
 
 ### Sidebar navigation
@@ -709,7 +658,7 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 **Does not belong on Settings:**
 
 - Session or ephemeral UI (outline open, bottom bar hover, modal open).
-- Per-document state (authorship spans, atom groups, file path).
+- Per-document state (atom groups, file path).
 - Primary writing actions used while typing (for example, outline toggle) — stay on the editor bar.
 - One-click conveniences already on the titlebar unless explicitly consolidated (theme today).
 - Developer-only flags, build config, migrations.
@@ -729,7 +678,6 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 | `editor_default_font` | `classic` | `useDefaultEditorFontSetting` | Settings → Editor → Editor font; applied on boot |
 | `editor_default_font_size` | `17` | `useDefaultFontSizeSetting` | Settings → Editor → Default font size |
 | `editor_default_focus_mode` | `false` | `useEditorModeDefaultSettings` / `useFocusMode` | Settings → Editor → Default focus mode; applied on note open |
-| `editor_default_authorship` | `false` | `useEditorModeDefaultSettings` / `useAuthorshipMode` | Settings → Editor → Default authorship highlights; applied on note open |
 | `editor_default_bookmark_highlight` | `false` | `useEditorModeDefaultSettings` / `useBookmarkHighlight` | Settings → Editor → Default bookmark highlight; applied on note open |
 | `font_size_{fileId}` | falls back to `editor_default_font_size` | `useBottomBar` | Editor bottom bar arrows (per-note override) |
 | `document_scroll_{fileId}` | unset | `useDocumentScrollRestore` | Restores the last editor scroll position when reopening a note |
@@ -752,24 +700,22 @@ Manual bookmarks with three types — **definition**, **note**, **reminder** —
 4. Home / Documents: useSearchableDocuments (Home shows recent 10 when search empty; Documents groups `files.project_group_label` projects only in the View all page)
 5. New note / open row → activeFileId → EditorView
 6. useDocument load/save + PersistPlugin debounce (800ms)
-7. useEditorAtomBridge loads atoms + definitions; useEditorAuthorshipBridge loads annotations; Editor mounts plugins via context
+7. useEditorAtomBridge loads atoms + definitions; Editor mounts plugins via context
 8. Bookmarks tab: AtomsView loads listAllAtoms(); useDocumentTitles resolves per-card document names
 9. Bookmark: context menu → AtomPopup → createAtom → decoration + Bookmarks tab flashcards
 10. Browse drag: whole `.document-row` / `.bookmark-flashcard` → `writeDragPayload` → `BrowseDeleteBin` (`dragDropEnabled: false` on main window)
 11. Delete note: editor overflow or Documents bin drop → ConfirmDialog → useDeleteDocument; editor path → Home
 12. Delete bookmark: bin drop (browse) or editor tooltip → ConfirmDialog → useAtoms.removeAtom
 13. Focus mode: overflow **Focus** toggle → `useFocusMode` + `FocusModePlugin`; Esc or `‹` exits; chrome slides off-screen
-14. Authorship: paste → `AuthorshipPlugin` + `useEditorAuthorshipBridge` → `annotations` table; overflow **Authorship** toggle → `authorship-visible` wash; right-click span → **Mark as mine**
-15. Bottom bar: `useBottomBar(fileId, markdown)` loads `font_size_{fileId}`, applies `--editor-font-size-override`, derives word count and find labels, handles `Ctrl/Cmd+F` plus mode shortcuts from `EditorView`; `useFindHighlight` paints match highlights on `.editor-root`
-16. Sidebar: trigger / `Ctrl+Shift+L` / guarded right swipe opens `ShellSidebar`; document rows close the overlay then open the editor; left swipe from Home opens the most recent note and `useDocumentScrollRestore` restores saved scroll.
+14. Bottom bar: `useBottomBar(fileId, markdown)` loads `font_size_{fileId}`, applies `--editor-font-size-override`, derives word count and find labels, handles `Ctrl/Cmd+F` plus mode shortcuts from `EditorView`; `useFindHighlight` paints match highlights on `.editor-root`
+15. Sidebar: trigger / `Ctrl+Shift+L` / guarded right swipe opens `ShellSidebar`; document rows close the overlay then open the editor; left swipe from Home opens the most recent note and `useDocumentScrollRestore` restores saved scroll.
 ```
 
 **Target (not yet mounted):**
 
 ```
-1–15. As current
-16. Atomise → ai/actions/atomise.ts (AI-generated atoms, distinct from manual bookmarks)
-17. AI authorship logging + rainbow wash (`source='ai'`)
+1–14. As current
+15. Atomise → ai/actions/atomise.ts (AI-generated atoms, distinct from manual bookmarks)
 ```
 
 ---

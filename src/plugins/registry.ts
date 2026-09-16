@@ -6,7 +6,6 @@ export interface LociPlugin {
   slug: string;
   name: string;
   description: string;
-  tier: 'standard' | 'modern_writer';
   version: string;
 
   onInstall?: () => Promise<void>;
@@ -47,18 +46,15 @@ export function getAllPlugins(): LociPlugin[] {
   return Array.from(_registry.values());
 }
 
-export function getInstalledPlugins(entitlements: string[]): LociPlugin[] {
-  return getAllPlugins().filter(
-    (plugin) => plugin.tier === 'standard' || entitlements.includes(plugin.slug),
-  );
+export function getInstalledPlugins(): LociPlugin[] {
+  return getAllPlugins();
 }
 
 export async function dispatchHook<H extends PluginHook>(
   hook: H,
-  entitlements: string[],
   ...args: PluginHookArgs[H]
 ): Promise<void> {
-  const plugins = getInstalledPlugins(entitlements);
+  const plugins = getInstalledPlugins();
   for (const plugin of plugins) {
     const fn = plugin[hook];
     if (typeof fn !== 'function') continue;

@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   clearScreen: false,
   server: {
-    port: 1420,
+    port: Number(process.env.VITE_PORT ?? 1420),
     strictPort: true,
   },
 });

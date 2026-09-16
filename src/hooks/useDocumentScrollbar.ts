@@ -1,10 +1,15 @@
 import { useEffect } from 'react';
+import { getDocumentScrollTarget } from '../lib/documentScroll';
 
 const IDLE_MS = 800;
 
-export function useDocumentScrollbar() {
+export function useDocumentScrollbar(fileId?: string) {
   useEffect(() => {
-    const root = document.documentElement;
+    const root = fileId
+      ? document.querySelector<HTMLElement>(`[data-editor-scroll="${fileId}"]`)
+      : document.querySelector<HTMLElement>('[data-editor-scroll]');
+    if (!root) return;
+    const scrollTarget = getDocumentScrollTarget(root);
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
     const onScroll = () => {
@@ -15,12 +20,12 @@ export function useDocumentScrollbar() {
       }, IDLE_MS);
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    scrollTarget.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('scroll', onScroll);
+      scrollTarget.removeEventListener('scroll', onScroll);
       clearTimeout(idleTimer);
       root.classList.remove('is-scrolling');
     };
-  }, []);
+  }, [fileId]);
 }

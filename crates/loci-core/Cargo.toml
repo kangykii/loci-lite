@@ -1,0 +1,11 @@
+[package]
+name = "loci-core"
+version = "0.1.0"
+edition = "2021"
+description = "Shared read/write logic for Loci-Lite's files and atoms (bookmarks) tables, used by both the Tauri app and loci-mcp"
+
+[dependencies]
+sqlx = { version = "0.8", default-features = false, features = ["sqlite", "runtime-tokio", "macros"] }
+serde = { version = "1", features = ["derive"] }
+schemars = "1"
+uuid = { version = "1", features = ["v4"] }

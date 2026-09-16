@@ -3,12 +3,12 @@ import { useEffect, useId, useRef, useState } from 'react';
 import AppleToggle from '../ui/AppleToggle';
 
 type EditorBarMenuProps = {
-  isAuthorshipOn: boolean;
   isFocusMode: boolean;
   isBookmarkHighlightOn: boolean;
   isTypewriterOn: boolean;
   onDeleteNote: () => void;
-  onAuthorshipToggle: () => void;
+  onCloseTab: () => void;
+  isClosing: boolean;
   onBookmarkHighlightToggle: () => void;
   onFocusModeToggle: () => void;
   onTypewriterToggle: () => void;
@@ -23,12 +23,12 @@ type MenuToggleItem = {
 };
 
 export default function EditorBarMenu({
-  isAuthorshipOn,
   isFocusMode,
   isBookmarkHighlightOn,
   isTypewriterOn,
   onDeleteNote,
-  onAuthorshipToggle,
+  onCloseTab,
+  isClosing,
   onBookmarkHighlightToggle,
   onFocusModeToggle,
   onTypewriterToggle,
@@ -36,7 +36,6 @@ export default function EditorBarMenu({
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const focusId = useId();
-  const authorshipId = useId();
   const bookmarkHighlightId = useId();
   const typewriterId = useId();
 
@@ -97,13 +96,6 @@ export default function EditorBarMenu({
               shortcut: 'Ctrl+Shift+T',
             },
             {
-              checked: isAuthorshipOn,
-              id: authorshipId,
-              label: 'Authorship',
-              onToggle: onAuthorshipToggle,
-              shortcut: 'Ctrl+Shift+A',
-            },
-            {
               checked: isBookmarkHighlightOn,
               id: bookmarkHighlightId,
               label: 'Bookmark highlight',
@@ -125,6 +117,18 @@ export default function EditorBarMenu({
               />
             </div>
           ))}
+          <button
+            className="menu-item-row editor-bar-menu-action"
+            disabled={isClosing}
+            onClick={() => {
+              setIsOpen(false);
+              onCloseTab();
+            }}
+            role="menuitem"
+            type="button"
+          >
+            <span className="menu-item-label">{isClosing ? 'Saving…' : 'Close tab'}</span>
+          </button>
           <button
             className="menu-item-row editor-bar-menu-destructive"
             onClick={() => {

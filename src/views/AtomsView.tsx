@@ -12,7 +12,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useBookmarkStacks } from '../hooks/useBookmarkStacks';
 import { useDocumentTitles } from '../hooks/useDocumentTitles';
 import { useStackDisplayNames } from '../hooks/useStackDisplayNames';
-import type { AtomRecord } from '../lib/atomTypes';
+import type { AtomRecord, AtomType } from '../lib/atomTypes';
 import {
   buildBookmarkGridItems,
   resolveStackDisplayName,
@@ -288,7 +288,14 @@ export default function AtomsView({ listRefreshKey }: AtomsViewProps) {
             setUpdateError(null);
             setEditingAtom(null);
           }}
-          onSave={(payload) => handleUpdateAtom(editingAtom.id, payload)}
+          onSave={(payload) => {
+            if (payload.type !== 'reference') {
+              handleUpdateAtom(editingAtom.id, {
+                ...payload,
+                type: payload.type as AtomType,
+              });
+            }
+          }}
           saveLabel="Save changes"
           selectedText={editingAtom.sourceText}
           typeOptions={['definition']}

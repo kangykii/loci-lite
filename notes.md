@@ -58,9 +58,7 @@ import('/src/lib/stage2RegistrySmoke.ts').then((m) => m.runStage2RegistrySmoke()
 | `MarkdownPlugin` | Markdown **shortcuts while typing** (see below) |
 | `PersistPlugin` | Debounced markdown export → `onSave` → `useDocument` |
 | `SelectionSyncPlugin` | Reports selection to `EditorChromeContext` (bookmark bar visibility) |
-| `ContextMenuPlugin` | Right-click **Bookmark** on selected text; range-scoped **Mark as mine** for paste provenance |
-| `AuthorshipPlugin` | Paste intercept + markdown-span reconciliation for annotations |
-| `AuthorshipOverlayPlugin` | Non-mutating runtime overlay for SQLite authorship ranges |
+| `ContextMenuPlugin` | Right-click **Bookmark** on selected text |
 | `AtomDecorationPlugin` | Wraps saved atoms with `AtomNode` + CSS classes |
 | `DefinitionScanPlugin` | Debounced **1200ms** scan for definition terms in document text |
 | `AtomHoverPlugin` | Tooltip on decorated spans; delete via context callback |
@@ -68,7 +66,7 @@ import('/src/lib/stage2RegistrySmoke.ts').then((m) => m.runStage2RegistrySmoke()
 
 **Not mounted yet:** `AtomUnderlinePlugin` (superseded stub), `SelectionBarPlugin`.
 
-**Layer rule:** editor plugins read from context only — never from `store/` directly. `EditorView` wires [`useEditorAtomBridge`](src/hooks/useEditorAtomBridge.ts) and [`useEditorAuthorshipBridge`](src/hooks/useEditorAuthorshipBridge.ts).
+**Layer rule:** editor plugins read from context only — never from `store/` directly. `EditorView` wires [`useEditorAtomBridge`](src/hooks/useEditorAtomBridge.ts).
 
 ---
 
@@ -157,7 +155,7 @@ The same transformer set is used when `createEditorConfig(initialMarkdown)` runs
 | Links `[text](url)` | `LINK` not registered |
 | Task / checkbox lists `- [ ]` | `CHECK_LIST` not registered |
 | Images, tables, footnotes | Out of product scope / custom node stubs not wired |
-| Custom `editor/nodes/*` stubs (except `AtomNode`, `AuthorshipNode`) | Runtime uses `@lexical/rich-text`, `@lexical/list`, `@lexical/code`, `@lexical/extension` + `AtomNode` + `AuthorshipNode` |
+| Custom `editor/nodes/*` stubs (except `AtomNode`) | Runtime uses `@lexical/rich-text`, `@lexical/list`, `@lexical/code`, `@lexical/extension` + `AtomNode` |
 
 ---
 
@@ -165,7 +163,7 @@ The same transformer set is used when `createEditorConfig(initialMarkdown)` runs
 
 - Click and type in the document column.
 - **Select** text with mouse or keyboard.
-- **Copy / cut / paste** — standard browser behaviour; **paste** is recorded to `annotations` (SQLite) and rendered as non-persistent authorship decoration; toggle **Authorship** in ⋮ menu to show the authorship colour.
+- **Copy / cut / paste** — standard browser behaviour.
 - **Undo / redo** — typically `Ctrl+Z` / `Ctrl+Shift+Z` (Windows) or `Cmd+Z` / `Cmd+Shift+Z` (macOS) via `HistoryPlugin`.
 - **Line breaks** — `Enter` for new paragraph; `Shift+Enter` for soft line break (Lexical default).
 
@@ -181,7 +179,6 @@ The same transformer set is used when `createEditorConfig(initialMarkdown)` runs
 | **Outline** | Opens/closes overlay; headings parsed from saved markdown on load |
 | **Prompt field** | Typable shell; no find/replace or AI |
 | **⋮ menu → Focus** | `AppleToggle` wired to `useFocusMode` (chrome hide + block dimming) |
-| **⋮ menu → Authorship** | `AppleToggle` wired to `useAuthorshipMode` — shows/hides authorship colour (session-only) |
 
 ### Titlebar (on editor view)
 
@@ -204,7 +201,6 @@ The same transformer set is used when `createEditorConfig(initialMarkdown)` runs
 
 - Body: **Lora** (`--font-serif`) via `editor.css` + Lexical theme classes on `.editor-root`.
 - Atom decorations: `.atom-definition`, `.atom-note`, `.atom-reminder` on decorated spans.
-- Authorship paste colour: rendered from SQLite ranges by `AuthorshipOverlayPlugin`; visible when `.editor-root.authorship-visible` (overflow **Authorship** toggle). Authorship is visual-only and must not alter saved markdown or Lexical text nodes.
 - Layout width: editor is fluid (`--editor-col-w` = viewport minus `--editor-gutter`, soft-capped at `64rem`); browse views use `--shell-content-max`.
 - Shell chrome: `--shell-chrome-*` tokens in `tokens.css`; see `DESIGN LOCILITE.md` glassmorphism rules.
 
@@ -213,7 +209,6 @@ The same transformer set is used when `createEditorConfig(initialMarkdown)` runs
 ## Likely next wiring steps
 
 1. `Atomise` → `ai/actions/atomise.ts` (AI flashcards — distinct from manual bookmarks)
-2. AI authorship logging + rainbow wash (`source='ai'`)
-3. `INLINE_CODE`, `LINK`, or task lists — only if product wants them
-4. Outline driven from live Lexical heading nodes (today: parsed from saved markdown)
+2. `INLINE_CODE`, `LINK`, or task lists — only if product wants them
+3. Outline driven from live Lexical heading nodes (today: parsed from saved markdown)
 5. Fuzzy/regex browse search or SQLite FTS (v1 uses substring only)

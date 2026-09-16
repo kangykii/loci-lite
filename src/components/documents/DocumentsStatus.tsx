@@ -17,7 +17,6 @@ export default function DocumentsStatus({
 }: DocumentsStatusProps) {
   return (
     <>
-      {status === 'loading' ? <p className="library-status">Loading documents...</p> : null}
       {!canCreate ? (
         <p className="library-status desktop-only-hint" role="status">
           Open the Loci Notepad desktop app (<code>corepack pnpm tauri dev</code>) to create notes.

@@ -1,0 +1,21 @@
+/* The library's contrast contract is theme-relative: components borrow their
+   edge and metadata colour from the active ink + paper tokens, never a fixed
+   palette-specific neutral. */
+.document-row,
+.document-project-folder,
+.document-project-member-row,
+.document-project-cluster.is-expanded {
+  border-color: var(--ui-contrast-edge);
+}
+
+.document-copy .document-details,
+.document-project-folder .document-copy > span,
+.document-project-member-row span,
+.document-filter-panel > span {
+  color: var(--ui-contrast-muted);
+}
+
+.document-filter-panel,
+.document-filter-divider {
+  border-color: var(--ui-contrast-edge);
+}

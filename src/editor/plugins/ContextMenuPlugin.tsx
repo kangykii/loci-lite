@@ -1,6 +1,6 @@
 import { $convertToMarkdownString } from '@lexical/markdown';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { Bookmark, Check, Copy, Scissors, Search, Sparkles, Clipboard } from 'lucide-react';
+import { Bookmark, Copy, Scissors, Search, Sparkles, Clipboard } from 'lucide-react';
 import { $getSelection, $isRangeSelection } from 'lexical';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -10,19 +10,14 @@ import { findSpanInMarkdown } from '../../lib/atomSpans';
 import { lookupWord } from '../../lib/tauri';
 import { useSearchableDocuments } from '../../hooks/useSearchableDocuments';
 import { markdownTransformers } from '../config/markdownTransformers';
-import { useAuthorshipEditorContext } from '../context/AuthorshipEditorContext';
 import { useEditorChromeContext } from '../context/EditorChromeContext';
-import { buildAuthorshipDocIndex } from '../lib/authorshipIndex';
-import {
-  findIntersectingAnnotation,
-  intersectionRange,
-} from '../lib/contextMenuAnnotations';
+import { buildVisibleTextIndex } from '../lib/visibleTextIndex';
+import type { ReferenceSelection } from '../lib/referenceBridge';
 import {
   clickedVisibleTextOffset,
   selectedVisibleTextRange,
   textForRange,
   wordRangeAtOffset,
-  type VisibleTextRange,
 } from '../lib/contextMenuRanges';
 
 type MenuState = {
@@ -30,8 +25,7 @@ type MenuState = {
   y: number;
   selectedText: string;
   lookupText: string;
-  annotationId: string | null;
-  markRange: VisibleTextRange | null;
+  referenceSelection: ReferenceSelection | null;
 };
 
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
@@ -39,7 +33,6 @@ const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
 export default function ContextMenuPlugin() {
   const [editor] = useLexicalComposerContext();
   const { onBookmarkRequest, onOpenDocument } = useEditorChromeContext();
-  const { annotations, onMarkAsMine } = useAuthorshipEditorContext();
   const { documents, refresh } = useSearchableDocuments();
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
@@ -51,11 +44,24 @@ export default function ContextMenuPlugin() {
     const handleContextMenu = (event: MouseEvent) => {
       let selectedText = '';
       let visibleText = '';
+      let referenceSelection: ReferenceSelection | null = null;
       editor.getEditorState().read(() => {
-        visibleText = buildAuthorshipDocIndex().docText;
+        visibleText = buildVisibleTextIndex().docText;
         const selection = $getSelection();
         if ($isRangeSelection(selection) && !selection.isCollapsed()) {
           selectedText = selection.getTextContent().trim();
+          referenceSelection = {
+            anchor: {
+              key: selection.anchor.key,
+              offset: selection.anchor.offset,
+              type: selection.anchor.type,
+            },
+            focus: {
+              key: selection.focus.key,
+              offset: selection.focus.offset,
+              type: selection.focus.type,
+            },
+          };
         }
       });
 
@@ -64,7 +70,6 @@ export default function ContextMenuPlugin() {
       const candidateRange =
         selectionRange ??
         (clickedOffset === null ? null : wordRangeAtOffset(visibleText, clickedOffset));
-      const annotation = findIntersectingAnnotation(annotations, candidateRange);
 
       event.preventDefault();
       setMenu({
@@ -72,14 +77,13 @@ export default function ContextMenuPlugin() {
         y: event.clientY,
         selectedText,
         lookupText: selectedText || textForRange(visibleText, candidateRange),
-        annotationId: annotation?.id ?? null,
-        markRange: intersectionRange(annotation, candidateRange),
+        referenceSelection,
       });
     };
 
     root.addEventListener('contextmenu', handleContextMenu);
     return () => root.removeEventListener('contextmenu', handleContextMenu);
-  }, [annotations, editor]);
+  }, [editor]);
 
   const handleBookmark = useCallback(() => {
     if (!menu?.selectedText) return;
@@ -90,20 +94,10 @@ export default function ContextMenuPlugin() {
         selectedText: menu.selectedText,
         spanStart: spans?.spanStart ?? null,
         spanEnd: spans?.spanEnd ?? null,
+        referenceSelection: menu.referenceSelection,
       });
     });
   }, [editor, menu, onBookmarkRequest]);
-
-  const handleMarkAsMine = useCallback(() => {
-    if (!menu?.annotationId || !menu.markRange) return;
-    void Promise.resolve(
-      onMarkAsMine({
-        annotationId: menu.annotationId,
-        spanStart: menu.markRange.spanStart,
-        spanEnd: menu.markRange.spanEnd,
-      }),
-    ).catch(() => undefined);
-  }, [menu, onMarkAsMine]);
 
   const menuItems = useMemo<ContextMenuEntry[]>(() => {
     if (!menu) return [];
@@ -114,12 +108,11 @@ export default function ContextMenuPlugin() {
       { label: 'Paste', icon: <Clipboard size={16} strokeWidth={1.5} />, onClick: () => document.execCommand('paste') },
       { kind: 'separator' },
       { label: 'Bookmark', icon: <Bookmark size={16} strokeWidth={1.5} />, hidden: !menu.selectedText, onClick: handleBookmark },
-      { label: 'Mark as mine', icon: <Check size={16} strokeWidth={1.5} />, hidden: !menu.annotationId, onClick: handleMarkAsMine },
       { kind: 'separator' },
       { label: `Look up ${textLabel}`, icon: <Sparkles size={16} strokeWidth={1.5} />, hidden: !isMac || !menu.lookupText, onClick: () => void lookupWord(menu.lookupText) },
       { label: 'Search in notes', icon: <Search size={16} strokeWidth={1.5} />, disabled: !menu.lookupText, onClick: () => { void refresh(); setSearchQuery(menu.lookupText); } },
     ];
-  }, [handleBookmark, handleMarkAsMine, menu, refresh]);
+  }, [handleBookmark, menu, refresh]);
 
   return (
     <>

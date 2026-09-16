@@ -75,8 +75,8 @@
   display: grid;
   gap: var(--space-1);
   min-height: calc(var(--u) * 4);
-  border: 1px solid transparent;
-  border-top-color: color-mix(in srgb, var(--border) 55%, transparent);
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
   border-radius: var(--radius-lg);
   background: transparent;
   box-shadow: none;
@@ -84,12 +84,12 @@
   padding-block: var(--space-3);
   padding-inline: var(--space-4);
   text-align: left;
-  transition: background var(--dur-fast) ease, border-color var(--dur-fast) ease;
+  transition: background var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
 }
 
 .recent-row:hover, .recent-row:focus-visible {
-  border-color: var(--border);
   background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
+  box-shadow: var(--shadow-sm);
 }
 
 .recent-row:first-child { border-top-color: transparent; }

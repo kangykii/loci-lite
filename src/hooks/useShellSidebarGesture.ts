@@ -9,8 +9,6 @@ import {
   resetGestureAccumulator,
   isBlockedTarget,
   hasTextSelection,
-  setSidebarGestureVisual,
-  clearSidebarGestureVisual,
 } from '../lib/shellSidebarGesture';
 import type { ViewName } from './useViewTransition';
 
@@ -60,7 +58,6 @@ export function useShellSidebarGesture({
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      clearSidebarGestureVisual();
       resetGestureAccumulator(accumRef.current);
     };
   }, [isSidebarOpen, onCloseSidebar, onOpenSidebar]);
@@ -70,22 +67,18 @@ export function useShellSidebarGesture({
       const now = window.performance.now();
 
       if (now < cooldownUntilRef.current || isGestureLocked) {
-        clearSidebarGestureVisual();
         return;
       }
 
       if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
-        clearSidebarGestureVisual();
         resetGestureAccumulator(accumRef.current);
         return;
       }
       if (isBlockedTarget(event.target) || hasTextSelection()) {
-        clearSidebarGestureVisual();
         resetGestureAccumulator(accumRef.current);
         return;
       }
       if (!isHorizontalWheelEvent(event.deltaX, event.deltaY)) {
-        clearSidebarGestureVisual();
         resetGestureAccumulator(accumRef.current);
         return;
       }
@@ -97,14 +90,12 @@ export function useShellSidebarGesture({
         now,
       );
       if (!direction) {
-        clearSidebarGestureVisual();
         return;
       }
 
       const threshold = direction === 'right' ? GESTURE_COMMIT_OPEN : GESTURE_COMMIT_NAV;
 
       event.preventDefault();
-      setSidebarGestureVisual(direction, accumRef.current.sum, threshold);
 
       if (accumRef.current.sum < threshold) {
         return;
@@ -112,7 +103,6 @@ export function useShellSidebarGesture({
 
       cooldownUntilRef.current = now + GESTURE_COOLDOWN_MS;
       resetGestureAccumulator(accumRef.current);
-      clearSidebarGestureVisual();
 
       if (direction === 'right') {
         onOpenSidebar();
@@ -134,7 +124,6 @@ export function useShellSidebarGesture({
     window.addEventListener('wheel', handleWheel, { capture: true, passive: false });
     return () => {
       window.removeEventListener('wheel', handleWheel, { capture: true });
-      clearSidebarGestureVisual();
       resetGestureAccumulator(accumRef.current);
     };
   }, [

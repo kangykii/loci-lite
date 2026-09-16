@@ -7,7 +7,7 @@ Plugins extend Loci Lite without modifying core code.
 1. Create a folder: `src/plugins/your-plugin/`
 2. Create `index.ts` that calls `registerPlugin()`
 3. Import it in `src/plugins/index.ts`
-4. Add the slug to `plugin_entitlements` in Supabase for Modern Writer users
+4. Import it in `src/plugins/index.ts`
 
 ## Available hooks
 
@@ -17,7 +17,4 @@ Plugins extend Loci Lite without modifying core code.
 - `onNoteClose(fileId, wordCount)` — called when a note is closed
 - `onBookmark({ text, type })` — called when a bookmark is created
 
-## Tiers
-
-- `standard` — available to all users
-- `modern_writer` — requires active Modern Writer subscription
+Plugins are available to everyone; do not add account or subscription checks.

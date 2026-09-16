@@ -58,6 +58,81 @@ button {
   overscroll-behavior-x: none;
 }
 
+.app-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.app-frame.has-sidebar {
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+}
+
+.app-frame.has-sidebar .view-stage {
+  grid-column: 2;
+}
+
+html.is-tauri {
+  height: 100%;
+  min-height: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+/*
+ * Keep body transparent. When the root canvas is transparent, browsers
+ * propagate an opaque body background to the canvas and paint square corners
+ * outside body's border-radius. #root alone owns the visible window shape.
+ */
+html.is-tauri body {
+  height: 100%;
+  min-height: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+html.is-tauri #root {
+  height: 100%;
+  min-height: 0;
+  border-radius: var(--window-frame-radius);
+  background: var(--window-chrome-bg);
+  clip-path: inset(0 round var(--window-frame-radius));
+  overflow: hidden;
+}
+
+html.is-tauri .app-frame {
+  position: fixed;
+  top: calc(var(--titlebar-h) + var(--window-frame-inset));
+  right: var(--window-frame-inset);
+  bottom: var(--window-frame-inset);
+  left: var(--window-frame-inset);
+  min-height: 0;
+  margin: 0;
+  border-radius: var(--window-frame-radius);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+html.is-tauri .app-frame .app-shell {
+  min-height: 100%;
+  padding-top: var(--space-8);
+}
+
+html.is-tauri .app-frame .home-view.app-shell {
+  padding-top: var(--space-12);
+}
+
+html.is-tauri .app-frame .editor-view {
+  min-height: 100%;
+}
+
+html.is-tauri .app-frame .view-stage {
+  height: 100%;
+  min-height: 0;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
 .boot-screen {
   min-height: 100vh;
   background: var(--bg);
@@ -75,6 +150,12 @@ button {
   font-size: var(--text-sm);
 }
 
+/*
+ * Boot-screen-only bouncing dots. Every other loading state in the app uses
+ * skeleton placeholders (src/styles/skeleton.css) instead — this motif is
+ * scoped to the one screen that has no content shape to stencil yet (the
+ * app hasn't mounted a view at all during cold start).
+ */
 .boot-dots {
   display: inline-flex;
   align-items: center;
@@ -141,19 +222,24 @@ button {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  border: 1px solid var(--shell-chrome-border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   background: var(--surface);
   cursor: pointer;
   padding: var(--space-4);
   text-align: left;
-  transition: background var(--dur-fast) ease, transform var(--dur-base) var(--ease-out);
+  box-shadow: var(--shadow-sm);
+  transition:
+    background var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease,
+    transform var(--dur-base) var(--ease-out);
   backdrop-filter: blur(var(--shell-chrome-blur));
   -webkit-backdrop-filter: blur(var(--shell-chrome-blur));
 }
 
 .creation-card:hover {
   background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
+  box-shadow: var(--shadow-md);
   transform: translateY(calc(var(--space-1) * -1));
 }
 

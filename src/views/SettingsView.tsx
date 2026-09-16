@@ -4,19 +4,27 @@ import SettingsFontChoiceControl from '../components/settings/SettingsFontChoice
 import SettingsFontSizeControl from '../components/settings/SettingsFontSizeControl';
 import SettingsRow from '../components/settings/SettingsRow';
 import SettingsSection from '../components/settings/SettingsSection';
+import SettingsThemePicker from '../components/settings/SettingsThemePicker';
 import AppleToggle from '../components/ui/AppleToggle';
 import { useDefaultEditorFontSetting } from '../hooks/useDefaultEditorFontSetting';
 import { useDefaultFontSizeSetting } from '../hooks/useDefaultFontSizeSetting';
 import { useEditorModeDefaultSettings } from '../hooks/useEditorModeDefaultSettings';
 import { useOpenAIKeySetting } from '../hooks/useOpenAIKeySetting';
 import { useTypewriterSoundSetting } from '../hooks/useTypewriterSoundSetting';
+import type { Theme, ThemeDefaults } from '../lib/theme';
 
 const appVersion = '0.0.0';
 
-export default function SettingsView() {
+type SettingsViewProps = {
+  theme: Theme;
+  themeDefaults: ThemeDefaults;
+  onThemeSelect: (theme: Theme) => void;
+  onThemeDefaultSelect: (theme: Theme) => void;
+};
+
+export default function SettingsView({ onThemeDefaultSelect, onThemeSelect, theme, themeDefaults }: SettingsViewProps) {
   const typewriterSoundId = useId();
   const focusModeId = useId();
-  const authorshipId = useId();
   const bookmarkHighlightId = useId();
   const openAIKeyId = useId();
   const { soundOn, soundReady, toggleSound } = useTypewriterSoundSetting();
@@ -39,11 +47,9 @@ export default function SettingsView() {
     stepUp,
   } = useDefaultFontSizeSetting();
   const {
-    authorship,
     bookmarkHighlight,
     focusMode,
     ready: modeDefaultsReady,
-    toggleAuthorship,
     toggleBookmarkHighlight,
     toggleFocusMode,
   } = useEditorModeDefaultSettings();
@@ -85,19 +91,6 @@ export default function SettingsView() {
             />
           </SettingsRow>
           <SettingsRow
-            description="Show paste provenance wash when a note opens"
-            label="Default authorship highlights"
-          >
-            <AppleToggle
-              checked={authorship}
-              disabled={!modeDefaultsReady}
-              id={authorshipId}
-              label="Default authorship highlights"
-              layout="switch-only"
-              onChange={toggleAuthorship}
-            />
-          </SettingsRow>
-          <SettingsRow
             description="Show bookmark highlight wash when a note opens; per-session toggle stays in the editor overflow menu"
             label="Default bookmark highlight"
           >
@@ -125,12 +118,24 @@ export default function SettingsView() {
           </SettingsRow>
         </SettingsSection>
 
+        <SettingsSection title="Personalisation">
+          <div className="settings-theme-section">
+            <div>
+              <h3 className="settings-theme-title">Notebook theme</h3>
+              <p className="settings-row-description">Click to apply. Double-click a cover to make it the Sun or Moon sidebar quick-switch default.</p>
+            </div>
+            <SettingsThemePicker
+              onSelect={onThemeSelect}
+              onSetDefault={onThemeDefaultSelect}
+              theme={theme}
+              themeDefaults={themeDefaults}
+            />
+          </div>
+        </SettingsSection>
+
         <SettingsSection title="Keyboard shortcuts">
           <SettingsRow label="Open outline">
             <input className="settings-input" disabled type="text" value="⌘⇧O" readOnly />
-          </SettingsRow>
-          <SettingsRow label="Bookmark selection">
-            <input className="settings-input" disabled type="text" value="⌘⇧A" readOnly />
           </SettingsRow>
           <SettingsRow label="Save document">
             <input className="settings-input" disabled type="text" value="⌘S" readOnly />

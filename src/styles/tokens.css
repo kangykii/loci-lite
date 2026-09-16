@@ -1,10 +1,20 @@
 :root {
 
-  --titlebar-h: 3.5vh;
+  --titlebar-h: clamp(2rem, 3.25vh, 2.375rem);
+
+  --window-frame-inset: var(--space-1);
+
+  --window-frame-radius: var(--radius-lg);
+
+  --window-frame-bezel: var(--window-chrome-bg);
+
+  --split-seam-w: var(--window-frame-inset);
+
+  --split-seam-bg: var(--window-frame-bezel);
 
   --titlebar-nav-gap: var(--space-1);
 
-  --sidebar-w: 15vw;
+  --sidebar-w: clamp(calc(var(--u) * 12), 15vw, calc(var(--u) * 16));
 
   --sidebar-rail-w: 2.5vw;
 
@@ -12,25 +22,15 @@
 
   --bottom-bar-collapsed-h: 4px;
 
-  --window-chrome-h: calc(var(--u) * 1.75);
+  --window-chrome-bg: #171615;
 
-  --window-chrome-hit-h: var(--space-2);
+  --window-chrome-fg: #F7F2E8;
 
-  --window-chrome-hide-delay: 250ms;
+  --window-chrome-border: color-mix(in srgb, var(--window-chrome-fg) 18%, transparent);
 
-  --window-control-size: 12px;
+  --window-control-hover-bg: color-mix(in srgb, var(--window-chrome-fg) 14%, transparent);
 
-  --window-control-gap: 8px;
-
-  --window-control-rest: color-mix(in srgb, var(--text-tertiary) 55%, transparent);
-
-  --window-control-icon: color-mix(in srgb, var(--text-primary) 88%, transparent);
-
-  --window-control-close-hover: #ff5f57;
-
-  --window-control-minimize-hover: #febc2e;
-
-  --window-control-maximize-hover: #28c840;
+  --window-control-w: clamp(2.25rem, 3.25vw, 2.75rem);
 
   --editor-bar-min-w: min(36rem, calc(100% - 2 * var(--shell-inset-x)));
 
@@ -167,11 +167,11 @@
 
   --bg-deep: #EFE7D9;
 
-  --surface: #EEE5D8;
+  --surface: #FBF7EF;
 
-  --surface-strong: #F4EDE3;
+  --surface-strong: #FEFBF6;
 
-  --surface-solid: #EEE5D8;
+  --surface-solid: #FBF7EF;
 
   --shell-chrome-bg: rgba(247, 242, 232, 0.82);
 
@@ -183,9 +183,14 @@
 
   --text-primary: #1D150E;
 
-  --text-secondary: rgba(29, 21, 14, 0.70);
+  --text-secondary: #5E574F;
 
-  --text-tertiary: rgba(29, 21, 14, 0.48);
+  --text-tertiary: #8E887F;
+
+  /* Browse components resolve contrast from the active ink and paper, so the
+     same boundary hierarchy survives every light, dark, and notebook theme. */
+  --ui-contrast-edge: color-mix(in srgb, var(--text-primary) 50%, var(--surface));
+  --ui-contrast-muted: color-mix(in srgb, var(--text-primary) 60%, var(--surface));
 
   --accent: #A85F32;
 
@@ -197,20 +202,13 @@
 
   --atom-highlight-definition: color-mix(in srgb, var(--accent) 20%, transparent);
 
-  --atom-highlight-note: color-mix(in srgb, var(--text-tertiary) 28%, transparent);
+  --atom-highlight-note: color-mix(in srgb, var(--text-tertiary) 13%, transparent);
 
   --atom-highlight-reminder: color-mix(in srgb, var(--accent) 16%, transparent);
 
-  --find-match-wash: color-mix(in srgb, var(--text-tertiary) 38%, transparent);
+  --find-match-wash: color-mix(in srgb, var(--text-tertiary) 14%, transparent);
 
-  --find-active-wash: color-mix(in srgb, var(--text-secondary) 52%, transparent);
-
-  --authorship-tone-1: #B94A45;
-  --authorship-tone-2: #B44B8D;
-  --authorship-tone-3: #6263C8;
-  --authorship-tone-4: #2F79B8;
-  --authorship-tone-5: #4D8570;
-  --authorship-tone-6: #A96D16;
+  --find-active-wash: color-mix(in srgb, var(--text-secondary) 36%, transparent);
 
   --accent-text: #7A3F1D;
 
@@ -309,14 +307,6 @@
   --dur-modal-enter: 200ms;
   --dur-modal-leave: 150ms;
 
-  /* Sidebar */
-  --sidebar-shift-enter: var(--space-4);
-  --sidebar-shift-leave: var(--space-2);
-  --dur-sidebar-enter: 400ms;
-  --dur-sidebar-leave: 240ms;
-  --dur-sidebar-scrim-enter: 400ms;
-  --dur-sidebar-scrim-leave: 240ms;
-
   /* Focus mode — atmospheric, slow */
   --dur-focus-enter: 400ms;
   --dur-focus-leave: 360ms;
@@ -336,11 +326,20 @@
 
     --bg-deep: #121110;
 
-    --surface: #1F1D1C;
+    --surface: #232120;
 
-    --surface-strong: #262321;
+    --surface-strong: #2B2825;
 
-    --surface-solid: #1F1D1C;
+    --surface-solid: #232120;
+
+    --window-chrome-bg: #F1ECE2;
+    --split-seam-bg: #F1ECE2;
+
+    --window-chrome-fg: #1B1917;
+
+    --window-chrome-border: color-mix(in srgb, var(--window-chrome-fg) 16%, transparent);
+
+    --window-control-hover-bg: color-mix(in srgb, var(--window-chrome-fg) 10%, transparent);
 
     --shell-chrome-bg: rgba(31, 29, 28, 0.52);
 
@@ -354,9 +353,9 @@
 
     --editor-prose: #EDE6DC;
 
-    --text-secondary: rgba(237, 230, 220, 0.60);
+    --text-secondary: #97938C;
 
-    --text-tertiary: rgba(237, 230, 220, 0.30);
+    --text-tertiary: #575451;
 
     --accent: #B86830;
 
@@ -365,13 +364,6 @@
     --selection-bg: #7A4A2E;
 
     --selection-text: #F7EFE5;
-
-    --authorship-tone-1: #B94A45;
-    --authorship-tone-2: #B44B8D;
-    --authorship-tone-3: #6263C8;
-    --authorship-tone-4: #2F79B8;
-    --authorship-tone-5: #4D8570;
-    --authorship-tone-6: #A96D16;
 
     --accent-text: #D89A5C;
 
@@ -404,11 +396,20 @@ html[data-theme='dark'] {
 
   --bg-deep: #121110;
 
-  --surface: #1F1D1C;
+  --surface: #232120;
 
-  --surface-strong: #262321;
+  --surface-strong: #2B2825;
 
-  --surface-solid: #1F1D1C;
+  --surface-solid: #232120;
+
+  --window-chrome-bg: #F1ECE2;
+  --split-seam-bg: #F1ECE2;
+
+  --window-chrome-fg: #1B1917;
+
+  --window-chrome-border: color-mix(in srgb, var(--window-chrome-fg) 16%, transparent);
+
+  --window-control-hover-bg: color-mix(in srgb, var(--window-chrome-fg) 10%, transparent);
 
   --shell-chrome-bg: rgba(31, 29, 28, 0.52);
 
@@ -422,9 +423,9 @@ html[data-theme='dark'] {
 
   --editor-prose: #EDE6DC;
 
-  --text-secondary: rgba(237, 230, 220, 0.60);
+  --text-secondary: #97938C;
 
-  --text-tertiary: rgba(237, 230, 220, 0.30);
+  --text-tertiary: #575451;
 
   --accent: #B86830;
 
@@ -433,13 +434,6 @@ html[data-theme='dark'] {
   --selection-bg: #7A4A2E;
 
   --selection-text: #F7EFE5;
-
-  --authorship-tone-1: #B94A45;
-  --authorship-tone-2: #B44B8D;
-  --authorship-tone-3: #6263C8;
-  --authorship-tone-4: #2F79B8;
-  --authorship-tone-5: #4D8570;
-  --authorship-tone-6: #A96D16;
 
   --accent-text: #D89A5C;
 
@@ -470,11 +464,19 @@ html[data-theme='light'] {
 
   --bg-deep: #EFE7D9;
 
-  --surface: #EEE5D8;
+  --surface: #FBF7EF;
 
-  --surface-strong: #F4EDE3;
+  --surface-strong: #FEFBF6;
 
-  --surface-solid: #EEE5D8;
+  --surface-solid: #FBF7EF;
+
+  --window-chrome-bg: #171615;
+
+  --window-chrome-fg: #F7F2E8;
+
+  --window-chrome-border: color-mix(in srgb, var(--window-chrome-fg) 18%, transparent);
+
+  --window-control-hover-bg: color-mix(in srgb, var(--window-chrome-fg) 14%, transparent);
 
   --shell-chrome-bg: rgba(247, 242, 232, 0.82);
 
@@ -488,9 +490,9 @@ html[data-theme='light'] {
 
   --editor-prose: #1D150E;
 
-  --text-secondary: rgba(29, 21, 14, 0.70);
+  --text-secondary: #5E574F;
 
-  --text-tertiary: rgba(29, 21, 14, 0.48);
+  --text-tertiary: #8E887F;
 
   --accent: #A85F32;
 
@@ -499,13 +501,6 @@ html[data-theme='light'] {
   --selection-bg: #D6A071;
 
   --selection-text: #1D150E;
-
-  --authorship-tone-1: #B94A45;
-  --authorship-tone-2: #B44B8D;
-  --authorship-tone-3: #6263C8;
-  --authorship-tone-4: #2F79B8;
-  --authorship-tone-5: #4D8570;
-  --authorship-tone-6: #A96D16;
 
   --accent-text: #7A3F1D;
 
@@ -539,6 +534,14 @@ html[data-theme='light'][data-notebook-theme='anthracite_grey'] {
 
   --surface-solid: #E6E4DD;
 
+  --window-chrome-bg: #2A2926;
+
+  --window-chrome-fg: #F3F1EA;
+
+  --window-chrome-border: color-mix(in srgb, var(--window-chrome-fg) 15%, transparent);
+
+  --window-control-hover-bg: color-mix(in srgb, var(--window-chrome-fg) 12%, transparent);
+
   --shell-chrome-bg: rgba(241, 240, 234, 0.82);
 
   --shell-chrome-bg-strong: rgba(224, 222, 214, 0.92);
@@ -549,9 +552,9 @@ html[data-theme='light'][data-notebook-theme='anthracite_grey'] {
 
   --editor-prose: #1C1B18;
 
-  --text-secondary: rgba(28, 27, 24, 0.68);
+  --text-secondary: #605F5B;
 
-  --text-tertiary: rgba(28, 27, 24, 0.46);
+  --text-tertiary: #8F8E89;
 
   --accent: #65625B;
 
@@ -583,6 +586,14 @@ html[data-theme='dark'][data-notebook-theme='ochre_black'] {
 
   --surface-solid: #1C1710;
 
+  --window-chrome-bg: #2A1D0D;
+
+  --window-chrome-fg: #F6EBD8;
+
+  --window-chrome-border: color-mix(in srgb, var(--window-chrome-fg) 16%, transparent);
+
+  --window-control-hover-bg: color-mix(in srgb, var(--window-chrome-fg) 12%, transparent);
+
   --shell-chrome-bg: rgba(28, 23, 16, 0.54);
 
   --shell-chrome-bg-strong: rgba(28, 23, 16, 0.74);
@@ -591,9 +602,9 @@ html[data-theme='dark'][data-notebook-theme='ochre_black'] {
 
   --editor-prose: #EFE4D1;
 
-  --text-secondary: rgba(239, 228, 209, 0.62);
+  --text-secondary: #9C9487;
 
-  --text-tertiary: rgba(239, 228, 209, 0.34);
+  --text-tertiary: #5F5950;
 
   --accent: #C28A33;
 

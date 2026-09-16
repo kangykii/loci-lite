@@ -31,6 +31,110 @@
   gap: var(--space-3);
 }
 
+.settings-theme-section {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.settings-theme-title {
+  margin: 0 0 var(--space-1);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.settings-theme-shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
+}
+
+.settings-theme-cover {
+  position: relative;
+  display: grid;
+  min-height: calc(var(--u) * 7);
+  align-content: end;
+  gap: var(--space-1);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--theme-cover-deep) 72%, var(--border));
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, var(--theme-cover) 0%, var(--theme-cover-deep) 100%);
+  box-shadow: 0 1px 0 color-mix(in srgb, white 22%, transparent) inset;
+  color: var(--theme-cover-text);
+  cursor: pointer;
+  padding: var(--space-3);
+  text-align: left;
+  transition: border-color var(--dur-fast) ease, transform var(--dur-fast) ease;
+}
+
+.settings-theme-cover:hover,
+.settings-theme-cover:focus-visible {
+  transform: translateY(calc(var(--space-1) * -1));
+}
+
+.settings-theme-cover.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle), 0 1px 0 color-mix(in srgb, white 22%, transparent) inset;
+}
+
+.settings-theme-cover > span {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.settings-theme-cover > small {
+  color: var(--theme-cover-muted);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.settings-theme-cover-check {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+}
+
+.settings-theme-cover-default {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  display: grid;
+  width: calc(var(--u) * 1.5);
+  height: calc(var(--u) * 1.5);
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--theme-cover-deep) 72%, transparent);
+  color: var(--theme-cover-text);
+}
+
+.settings-theme-cover--default-white {
+  --theme-cover: #f0ece4;
+  --theme-cover-deep: #dfd7ca;
+  --theme-cover-text: #3c332a;
+  --theme-cover-muted: rgba(60, 51, 42, 0.62);
+}
+
+.settings-theme-cover--default-dark {
+  --theme-cover: #241d18;
+  --theme-cover-deep: #18120f;
+  --theme-cover-text: #ede6dc;
+  --theme-cover-muted: rgba(237, 230, 220, 0.62);
+}
+
+.settings-theme-cover--anthracite-grey {
+  --theme-cover: #d8d7d2;
+  --theme-cover-deep: #aaa8a1;
+  --theme-cover-text: #242421;
+  --theme-cover-muted: rgba(36, 36, 33, 0.62);
+}
+
+.settings-theme-cover--ochre-black {
+  --theme-cover: #1b1710;
+  --theme-cover-deep: #0f0d0a;
+  --theme-cover-text: #efe5d3;
+  --theme-cover-muted: rgba(239, 229, 211, 0.62);
+}
+
 .settings-row {
   display: flex;
   align-items: center;
@@ -85,7 +189,7 @@
 
 .settings-input {
   width: calc(var(--u) * 7);
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--shell-chrome-bg) 50%, transparent);
   color: var(--text-secondary);
@@ -94,6 +198,11 @@
   outline: none;
   padding: var(--space-1) var(--space-2);
   text-align: center;
+  transition: background var(--dur-fast) ease;
+}
+
+.settings-input:focus {
+  background: color-mix(in srgb, var(--shell-chrome-bg) 75%, transparent);
 }
 
 .settings-input:disabled {

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { getDocumentScrollTarget, getDocumentScrollTop } from '../lib/documentScroll';
 import { isTauri } from '../lib/tauri';
 import { setDocumentScrollPosition } from '../store/settings.store';
 
@@ -10,24 +11,26 @@ export function useDocumentScrollRestore(fileId: string, isReady: boolean) {
       return;
     }
 
+    const scrollTarget = getDocumentScrollTarget(document.querySelector(`[data-editor-scroll="${fileId}"]`));
+
     const savePosition = () => {
       if (saveTimerRef.current) {
         window.clearTimeout(saveTimerRef.current);
       }
 
       saveTimerRef.current = window.setTimeout(() => {
-        void setDocumentScrollPosition(fileId, window.scrollY);
+        void setDocumentScrollPosition(fileId, getDocumentScrollTop(scrollTarget));
       }, 250);
     };
 
-    window.addEventListener('scroll', savePosition, { passive: true });
+    scrollTarget.addEventListener('scroll', savePosition, { passive: true });
 
     return () => {
-      window.removeEventListener('scroll', savePosition);
+      scrollTarget.removeEventListener('scroll', savePosition);
       if (saveTimerRef.current) {
         window.clearTimeout(saveTimerRef.current);
       }
-      void setDocumentScrollPosition(fileId, window.scrollY);
+      void setDocumentScrollPosition(fileId, getDocumentScrollTop(scrollTarget));
     };
   }, [fileId, isReady]);
 }

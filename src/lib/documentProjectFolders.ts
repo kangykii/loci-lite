@@ -77,15 +77,10 @@ export function buildDocumentProjectItems(
   }
 
   return [...groups.values()].map((members) => {
-    const sorted = [...members].sort((left, right) => {
-      const pinned = Number(right.pinned) - Number(left.pinned);
-      return pinned || left.title.localeCompare(right.title);
-    });
-
     return {
-      representative: sorted[0],
-      members: sorted,
-      projectCount: sorted.length,
+      representative: members[0],
+      members,
+      projectCount: members.length,
     };
   });
 }

@@ -23,6 +23,8 @@ export default function DefinitionScanPlugin() {
       type: atom.type,
       content: atom.content,
       sourceText: atom.sourceText,
+      spanStart: atom.spanStart,
+      spanEnd: atom.spanEnd,
     }));
 
     editor.update(

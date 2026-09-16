@@ -6,6 +6,7 @@ import { HorizontalRuleNode } from '@lexical/extension';
 import type { InitialConfigType } from '@lexical/react/LexicalComposer';
 import { $getRoot, type LexicalEditor } from 'lexical';
 import { AtomNode } from '../nodes/AtomNode';
+import { ReferenceNode } from '../nodes/ReferenceNode';
 import { markdownTransformers } from './markdownTransformers';
 
 export const editorNodes = [
@@ -17,6 +18,7 @@ export const editorNodes = [
   CodeHighlightNode,
   HorizontalRuleNode,
   AtomNode,
+  ReferenceNode,
 ];
 
 export const editorTheme = {
@@ -93,7 +95,10 @@ export function createEditorConfig(initialMarkdown?: string): InitialConfigType 
     nodes: editorNodes,
     theme: editorTheme,
     onError(error: Error) {
-      throw error;
+      // Rethrowing here used to be able to take down the whole note's render
+      // tree over a single bad update (e.g. an edge case in decoration
+      // matching) — log it and let the editor keep running instead.
+      console.error('Lexical editor error', error);
     },
     editorState: initialMarkdown
       ? (editor) => {

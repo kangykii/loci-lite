@@ -5,12 +5,48 @@
   margin-inline: auto;
 }
 
+.library-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+}
+.library-header h1 { flex: 1; margin: 0; color: var(--text-primary); font-size: var(--text-xl); font-weight: 500; letter-spacing: -.02em; }
+
+.library-new-note {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--accent-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  min-height: calc(var(--u) * 2.25);
+  padding: 0 var(--space-4);
+}
+.library-new-note:hover { background: var(--accent-subtle); }
+.library-new-note:disabled { cursor: not-allowed; opacity: .45; }
+
 .documents-controls {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
 }
+
+.documents-controls .search-field { flex: 1; }
+.document-filter-menu { position: relative; }
+.document-filter-panel { position: absolute; top: calc(100% + var(--space-2)); right: 0; z-index: 110; display: grid; gap: var(--space-1); min-width: 11rem; border: 1px solid var(--ui-contrast-edge); border-radius: var(--radius-md); background: var(--surface-strong); box-shadow: var(--shadow-md); padding: var(--space-2); }
+.document-filter-panel > span { color: var(--ui-contrast-muted); font-size: var(--text-xs); padding: var(--space-1) var(--space-2); }
+.document-filter-panel button { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); width: 100%; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-primary); cursor: pointer; font: inherit; font-size: var(--text-sm); padding: var(--space-2) var(--space-3); text-align: left; }
+.document-filter-panel button:hover { background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong)); }
+.document-filter-panel button.is-active { color: var(--accent-text); }
+.document-filter-divider { border-top: 1px solid var(--ui-contrast-edge); margin-top: var(--space-1); padding-top: var(--space-2) !important; }
 
 .documents-filter {
   display: inline-flex;
@@ -41,30 +77,40 @@
 
 .documents-list {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
   gap: var(--space-3);
+  align-items: stretch;
 }
 
 .document-create-card {
-  min-height: calc(var(--u) * 4);
+  min-height: 12.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
 }
 
 .document-row,
 .document-project-folder {
-  display: grid;
-  min-height: calc(var(--u) * 4);
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--space-4);
-  border: 1px solid transparent;
-  border-radius: var(--radius-lg);
+  position: relative;
+  display: flex;
+  min-height: 12.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
+  overflow: hidden;
   padding: var(--space-4);
   text-align: left;
+  box-shadow: var(--shadow-sm);
   transition:
     background var(--dur-fast) ease,
     border-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease,
     opacity var(--dur-fast) ease;
 }
 
@@ -72,19 +118,23 @@
 .document-row:focus-visible,
 .document-project-folder:hover,
 .document-project-folder:focus-visible {
-  border-color: var(--border);
   background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .document-row.is-project-drop-target,
 .document-project-folder.is-project-drop-target {
-  border-color: var(--border-strong);
+  border-color: var(--accent);
   background: var(--surface);
 }
 
 .document-row > svg,
 .document-project-folder > svg {
   opacity: 0;
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
   transition: opacity var(--dur-fast) ease;
 }
 
@@ -101,14 +151,26 @@
   height: calc(var(--u) * 2.5);
   place-items: center;
   border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-secondary);
+  flex: none;
+  background: var(--accent-subtle);
+  color: var(--accent);
 }
 
 .document-copy {
   display: grid;
   gap: var(--space-1);
+  min-width: 0;
 }
+
+.document-cover {
+  width: 100%;
+  height: 8rem;
+  flex: none;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--bg-deep);
+}
+.document-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
 .document-copy strong {
   color: var(--text-primary);
@@ -116,7 +178,56 @@
   font-weight: 600;
 }
 
-.document-copy span {
+.document-copy .document-details {
   color: var(--text-tertiary);
   font-size: var(--text-sm);
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-height: 1.55;
+}
+.document-details i { font-style: normal; margin: 0 .25rem; }
+
+.document-project-folder { background: color-mix(in srgb, var(--accent-subtle) 45%, var(--surface)); }
+.document-project-folder .document-copy > span { color: var(--text-tertiary); font-size: var(--text-sm); }
+.document-project-folder .document-copy .document-project-recent { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-height: 1.55; }
+.document-project-folder .document-copy .document-project-count { color: var(--text-secondary); }
+.document-project-cluster { display: contents; }
+.document-project-cluster.is-expanded {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--space-3);
+  border: 1px solid var(--ui-contrast-edge);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-3);
+}
+.document-project-cluster.is-expanded .document-project-folder {
+  min-height: 0;
+  flex-direction: row;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  padding: var(--space-3);
+}
+.document-project-cluster.is-expanded .document-project-folder:hover,
+.document-project-cluster.is-expanded .document-project-folder:focus-visible { transform: none; box-shadow: none; }
+.document-project-cluster.is-expanded .document-project-folder .document-copy { padding-right: var(--space-8); }
+.document-project-cluster.is-expanded .document-project-folder .document-project-recent { display: none; }
+.document-project-members { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-3); }
+.document-project-toggle { position: absolute; top: var(--space-3); right: var(--space-3); }
+.document-project-folder .document-copy { padding-right: var(--space-6); }
+
+/* Open project notes use the same shelf geometry, without pretending to be a
+   separate list. Their slim accent signals membership at a glance. */
+@media (max-width: 640px) {
+  .library-new-note { width: 100%; justify-content: center; }
+  .documents-controls { align-items: stretch; flex-wrap: wrap; }
+  .documents-controls .search-field { flex-basis: 100%; }
+  .documents-list { grid-template-columns: 1fr; }
+  .document-project-members { grid-template-columns: 1fr; }
 }

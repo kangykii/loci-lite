@@ -88,23 +88,3 @@ export function isBlockedTarget(target: EventTarget | null): boolean {
 export function hasTextSelection(): boolean {
   return (document.getSelection()?.toString().trim().length ?? 0) > 0;
 }
-
-export function setSidebarGestureVisual(
-  direction: GestureDirection,
-  sum: number,
-  threshold: number,
-): void {
-  const doc = document.documentElement;
-  const progress = Math.min(1, sum / threshold);
-
-  doc.setAttribute('data-sidebar-gesture', direction);
-  doc.style.setProperty('--sidebar-gesture-progress', progress.toFixed(3));
-  doc.style.setProperty('--sidebar-gesture-pull-x', `calc(var(--u) * ${progress.toFixed(3)})`);
-}
-
-export function clearSidebarGestureVisual(): void {
-  const doc = document.documentElement;
-  doc.removeAttribute('data-sidebar-gesture');
-  doc.style.removeProperty('--sidebar-gesture-progress');
-  doc.style.removeProperty('--sidebar-gesture-pull-x');
-}

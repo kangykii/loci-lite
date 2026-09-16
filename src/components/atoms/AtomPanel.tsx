@@ -7,7 +7,9 @@ import {
 import type { AtomRecord } from '../../lib/atomTypes';
 import { matchesSearch } from '../../lib/searchMatch';
 import AtomCard from './AtomCard';
+import AtomCardSkeleton from './AtomCardSkeleton';
 import BookmarkStackFolder from './BookmarkStackFolder';
+import { useDelayedFlag } from '../../hooks/useDelayedFlag';
 
 type AtomPanelProps = {
   atoms: AtomRecord[];
@@ -45,6 +47,7 @@ export default function AtomPanel({
   onContextMenuStack,
 }: AtomPanelProps) {
   const hasActiveSearch = searchQuery.trim().length > 0;
+  const showLoadingSkeleton = useDelayedFlag(status === 'loading');
 
   const filteredGridItems = useMemo(() => {
     const items = buildBookmarkGridItems(atoms);
@@ -60,7 +63,13 @@ export default function AtomPanel({
 
   return (
     <section aria-label="Bookmark list" className="atom-panel">
-      {status === 'loading' ? <p className="atom-list-status">Loading bookmarks…</p> : null}
+      {showLoadingSkeleton ? (
+        <div className="bookmark-flashcard-grid">
+          {[0, 1, 2, 3].map((index) => (
+            <AtomCardSkeleton key={index} />
+          ))}
+        </div>
+      ) : null}
       {error ? (
         <p className="atom-list-status atom-list-error" role="alert">
           {error}
@@ -72,7 +81,7 @@ export default function AtomPanel({
         </p>
       ) : null}
       {status === 'ready' && filteredGridItems.length > 0 ? (
-        <div className="bookmark-flashcard-grid">
+        <div className="bookmark-flashcard-grid" data-stagger>
           {filteredGridItems.map((item) => {
             const key = item.representative.groupLabel ?? item.representative.id;
 

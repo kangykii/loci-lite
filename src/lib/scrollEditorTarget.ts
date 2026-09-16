@@ -49,15 +49,15 @@ function cancelScrollAnimation(): void {
   }
 }
 
-function animateWindowScrollTo(targetTop: number): void {
+function animateDocumentScrollTo(targetTop: number, scrollTarget: DocumentScrollTarget): void {
   cancelScrollAnimation();
 
-  const startTop = window.scrollY;
+  const startTop = getDocumentScrollTop(scrollTarget);
   const delta = targetTop - startTop;
   if (Math.abs(delta) < 1) return;
 
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    window.scrollTo({ top: targetTop, behavior: 'instant' });
+    scrollDocumentTo(targetTop, scrollTarget);
     return;
   }
 
@@ -67,7 +67,7 @@ function animateWindowScrollTo(targetTop: number): void {
   const step = (now: number) => {
     const linear = Math.min((now - startTime) / duration, 1);
     const eased = easeOutBezier(linear);
-    window.scrollTo({ top: startTop + delta * eased, behavior: 'instant' });
+    scrollDocumentTo(startTop + delta * eased, scrollTarget);
 
     if (linear < 1) {
       scrollAnimationId = requestAnimationFrame(step);
@@ -79,20 +79,33 @@ function animateWindowScrollTo(targetTop: number): void {
   scrollAnimationId = requestAnimationFrame(step);
 }
 
-function scrollRectIntoEditorView(rect: DOMRect): void {
+function scrollRectIntoEditorView(rect: DOMRect, editorElement?: Element | null): void {
   if (rect.width === 0 && rect.height === 0) return;
 
-  const viewportH = window.innerHeight;
+  const scrollTarget = getDocumentScrollTarget(editorElement);
+  const viewport = getDocumentViewport(scrollTarget);
   const ratio = readRatioVar('--editor-scroll-target-ratio', 0.4);
-  const targetTop = Math.max(0, window.scrollY + rect.top - viewportH * ratio);
+  const targetTop = Math.max(
+    0,
+    getDocumentScrollTop(scrollTarget) + rect.top - viewport.top - viewport.height * ratio,
+  );
 
-  animateWindowScrollTo(targetTop);
+  animateDocumentScrollTo(targetTop, scrollTarget);
 }
 
 export function scrollElementIntoEditorView(element: HTMLElement): void {
-  scrollRectIntoEditorView(element.getBoundingClientRect());
+  scrollRectIntoEditorView(element.getBoundingClientRect(), element);
 }
 
 export function scrollRangeIntoEditorView(range: Range): void {
-  scrollRectIntoEditorView(range.getBoundingClientRect());
+  const owner = range.startContainer.nodeType === Node.ELEMENT_NODE
+    ? range.startContainer as Element : range.startContainer.parentElement;
+  scrollRectIntoEditorView(range.getBoundingClientRect(), owner);
 }
+import {
+  getDocumentScrollTarget,
+  getDocumentScrollTop,
+  getDocumentViewport,
+  scrollDocumentTo,
+  type DocumentScrollTarget,
+} from './documentScroll';

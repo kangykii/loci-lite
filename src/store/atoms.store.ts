@@ -1,101 +1,30 @@
-import type { AtomRecord, AtomType } from '../lib/atomTypes';
-import { getDb } from './db';
+import { invoke } from '@tauri-apps/api/core';
+import type { AtomRecord, AtomType, CreateAtomInput } from '../lib/atomTypes';
 
 export type { AtomRecord, AtomType };
 
-type AtomRow = {
-  id: string;
-  file_id: string;
-  type: AtomType;
-  question: string;
-  answer: string;
-  source_text: string;
-  group_label: string | null;
-  span_start: number | null;
-  span_end: number | null;
-  reminder_due_at: number | null;
-  reminder_surfaced_at: number | null;
-  created_at: number;
-};
-
-function mapAtom(row: AtomRow): AtomRecord {
-  return {
-    id: row.id,
-    fileId: row.file_id,
-    type: row.type,
-    question: row.question,
-    answer: row.answer,
-    sourceText: row.source_text,
-    groupLabel: row.group_label,
-    spanStart: row.span_start,
-    spanEnd: row.span_end,
-    reminderDueAt: row.reminder_due_at,
-    reminderSurfacedAt: row.reminder_surfaced_at,
-    createdAt: row.created_at,
-  };
-}
-
-export async function createAtom(atom: AtomRecord): Promise<void> {
-  const db = await getDb();
-  await db.execute(
-    `INSERT INTO atoms (
-      id, file_id, type, question, answer, source_text,
-      group_label, span_start, span_end, reminder_due_at,
-      reminder_surfaced_at, created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-    [
-      atom.id,
-      atom.fileId,
-      atom.type,
-      atom.question,
-      atom.answer,
-      atom.sourceText,
-      atom.groupLabel,
-      atom.spanStart,
-      atom.spanEnd,
-      atom.reminderDueAt,
-      atom.reminderSurfacedAt,
-      atom.createdAt,
-    ],
-  );
+export async function createAtom(input: CreateAtomInput): Promise<AtomRecord> {
+  return invoke<AtomRecord>('create_atom', { input });
 }
 
 export async function getAtomsForFile(fileId: string): Promise<AtomRecord[]> {
-  const db = await getDb();
-  const rows = await db.select<AtomRow[]>(
-    'SELECT * FROM atoms WHERE file_id = $1 ORDER BY created_at DESC',
-    [fileId],
-  );
-  return rows.map(mapAtom);
+  return invoke<AtomRecord[]>('get_atoms_for_file', { fileId });
 }
 
 export async function getVisibleAtomsForFile(fileId: string): Promise<AtomRecord[]> {
-  const db = await getDb();
-  const rows = await db.select<AtomRow[]>(
-    "SELECT * FROM atoms WHERE file_id = $1 AND type IN ('definition', 'note') ORDER BY created_at DESC",
-    [fileId],
-  );
-  return rows.map(mapAtom);
+  return invoke<AtomRecord[]>('get_visible_atoms_for_file', { fileId });
 }
 
 export async function getDefinitionAtoms(): Promise<AtomRecord[]> {
-  const db = await getDb();
-  const rows = await db.select<AtomRow[]>(
-    "SELECT * FROM atoms WHERE type = 'definition' ORDER BY created_at DESC",
-  );
-  return rows.map(mapAtom);
+  return invoke<AtomRecord[]>('get_definition_atoms');
 }
 
 export async function getAtomById(id: string): Promise<AtomRecord | null> {
-  const db = await getDb();
-  const rows = await db.select<AtomRow[]>('SELECT * FROM atoms WHERE id = $1', [id]);
-  const row = rows[0];
-  return row ? mapAtom(row) : null;
+  return invoke<AtomRecord | null>('get_atom_by_id', { id });
 }
 
 export async function deleteAtom(id: string): Promise<void> {
-  const db = await getDb();
-  await db.execute('DELETE FROM atoms WHERE id = $1', [id]);
+  await invoke('delete_atom', { id });
 }
 
 export async function updateAtom(
@@ -107,29 +36,7 @@ export async function updateAtom(
     reminderDueAt?: number | null;
   },
 ): Promise<void> {
-  const db = await getDb();
-  const answer = patch.answer.trim();
-  const reminderDueAt = patch.type === 'reminder' ? patch.reminderDueAt ?? null : null;
-  const reminderSurfacedAt = null;
-
-  if (patch.sourceText !== undefined) {
-    const sourceText = patch.sourceText.trim();
-    await db.execute(
-      `UPDATE atoms
-       SET type = $1, answer = $2, question = $3, source_text = $4,
-           reminder_due_at = $5, reminder_surfaced_at = $6
-       WHERE id = $7`,
-      [patch.type, answer, sourceText, sourceText, reminderDueAt, reminderSurfacedAt, id],
-    );
-    return;
-  }
-
-  await db.execute(
-    `UPDATE atoms
-     SET type = $1, answer = $2, reminder_due_at = $3, reminder_surfaced_at = $4
-     WHERE id = $5`,
-    [patch.type, answer, reminderDueAt, reminderSurfacedAt, id],
-  );
+  await invoke('update_atom', { id, patch });
 }
 
 export async function updateAtomsGroupLabel(
@@ -140,55 +47,23 @@ export async function updateAtomsGroupLabel(
     return;
   }
 
-  const db = await getDb();
-  const placeholders = ids.map((_, index) => `$${index + 2}`).join(', ');
-
-  await db.execute(`UPDATE atoms SET group_label = $1 WHERE id IN (${placeholders})`, [
-    groupLabel,
-    ...ids,
-  ]);
+  await invoke('update_atoms_group_label', { ids, groupLabel });
 }
 
 export async function getAtomsByGroupLabel(groupLabel: string): Promise<AtomRecord[]> {
-  const db = await getDb();
-  const rows = await db.select<AtomRow[]>(
-    'SELECT * FROM atoms WHERE group_label = $1 ORDER BY created_at ASC',
-    [groupLabel],
-  );
-
-  return rows.map(mapAtom);
+  return invoke<AtomRecord[]>('get_atoms_by_group_label', { groupLabel });
 }
 
 export async function clearSingletonGroupLabel(groupLabel: string): Promise<void> {
-  const db = await getDb();
-  const rows = await db.select<{ id: string }[]>(
-    'SELECT id FROM atoms WHERE group_label = $1',
-    [groupLabel],
-  );
-
-  if (rows.length === 1) {
-    await db.execute('UPDATE atoms SET group_label = NULL WHERE id = $1', [rows[0].id]);
-  }
+  await invoke('clear_singleton_group_label', { groupLabel });
 }
 
 export async function listAllAtoms(): Promise<AtomRecord[]> {
-  const db = await getDb();
-  const rows = await db.select<AtomRow[]>('SELECT * FROM atoms ORDER BY created_at DESC');
-  return rows.map(mapAtom);
+  return invoke<AtomRecord[]>('list_all_atoms');
 }
 
 export async function listDueUnsurfacedReminders(now: number): Promise<AtomRecord[]> {
-  const db = await getDb();
-  const rows = await db.select<AtomRow[]>(
-    `SELECT * FROM atoms
-     WHERE type = 'reminder'
-       AND reminder_due_at IS NOT NULL
-       AND reminder_due_at <= $1
-       AND reminder_surfaced_at IS NULL
-     ORDER BY reminder_due_at ASC`,
-    [now],
-  );
-  return rows.map(mapAtom);
+  return invoke<AtomRecord[]>('list_due_unsurfaced_reminders', { now });
 }
 
 export async function markRemindersSurfaced(
@@ -199,10 +74,5 @@ export async function markRemindersSurfaced(
     return;
   }
 
-  const db = await getDb();
-  const placeholders = ids.map((_, index) => `$${index + 2}`).join(', ');
-  await db.execute(
-    `UPDATE atoms SET reminder_surfaced_at = $1 WHERE id IN (${placeholders})`,
-    [surfacedAt, ...ids],
-  );
+  await invoke('mark_reminders_surfaced', { ids, surfacedAt });
 }

@@ -25,19 +25,21 @@
 }
 
 .document-project-member-row {
-  display: grid;
-  min-height: calc(var(--u) * 3.25);
-  align-items: center;
-  margin-left: calc(var(--u) * 3.5);
-  border: 1px solid transparent;
-  border-radius: var(--radius-lg);
-  background: transparent;
+  position: relative;
+  display: flex;
+  min-height: 12.5rem;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-left: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
   color: var(--text-secondary);
   cursor: pointer;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
   transition:
     background var(--dur-fast) ease,
-    border-color var(--dur-fast) ease,
     opacity var(--dur-fast) ease;
 }
 
@@ -51,8 +53,9 @@
 
 .document-project-member-row:hover,
 .document-project-member-row:focus-visible {
-  border-color: var(--border);
   background: color-mix(in srgb, var(--surface) 70%, var(--surface-strong));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .document-project-member-row strong {
@@ -64,4 +67,16 @@
 .document-project-member-row span {
   color: var(--text-tertiary);
   font-size: var(--text-sm);
+}
+
+.document-project-member-row .document-copy {
+  gap: var(--space-2);
+}
+
+.document-project-member-row .document-copy span:not(:last-child) {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-height: 1.55;
 }

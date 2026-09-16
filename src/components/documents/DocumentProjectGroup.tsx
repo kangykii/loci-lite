@@ -27,7 +27,7 @@ export default function DocumentProjectGroup({
   onToggle,
 }: DocumentProjectGroupProps) {
   return (
-    <>
+    <div className={`document-project-cluster${isExpanded ? ' is-expanded' : ''}`}>
       <DocumentProjectFolder
         canDrag={canDrag}
         displayName={displayName}
@@ -38,8 +38,9 @@ export default function DocumentProjectGroup({
         onProjectDrop={onProjectDrop}
         onToggle={onToggle}
       />
-      {isExpanded
-        ? item.members.map((document, memberIndex) => (
+      {isExpanded ? (
+        <div className="document-project-members">
+          {item.members.map((document, memberIndex) => (
             <DocumentProjectMemberRow
               displayName={displayName}
               document={document}
@@ -47,8 +48,9 @@ export default function DocumentProjectGroup({
               key={document.id}
               onOpenDocument={onOpenDocument}
             />
-          ))
-        : null}
-    </>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }

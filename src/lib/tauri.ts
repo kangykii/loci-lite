@@ -1,10 +1,23 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { currentMonitor, getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
+import { open as openFileDialog } from '@tauri-apps/plugin-dialog';
 
 export { isTauri };
 
 function appWindow() {
   return getCurrentWindow();
+}
+
+// A monitor-relative minimum keeps the frameless shell usable across display
+// sizes and DPI settings; split view has its own stricter content-width gate.
+export async function setAdaptiveWindowMinimum(): Promise<void> {
+  if (!isTauri()) return;
+  const monitor = await currentMonitor();
+  if (!monitor) return;
+  await appWindow().setMinSize(new LogicalSize(
+    Math.round((monitor.workArea.size.width / monitor.scaleFactor) * 0.48),
+    Math.round((monitor.workArea.size.height / monitor.scaleFactor) * 0.48),
+  ));
 }
 
 export async function getNotesDir(): Promise<string> {
@@ -37,6 +50,40 @@ export async function revealFile(path: string): Promise<void> {
 
 export async function lookupWord(text: string): Promise<boolean> {
   return invoke<boolean>('lookup_word', { text });
+}
+
+export async function pickPdfFile(): Promise<string | null> {
+  if (!isTauri()) {
+    return null;
+  }
+
+  const selected = await openFileDialog({
+    multiple: false,
+    filters: [{ name: 'PDF', extensions: ['pdf'] }],
+  });
+
+  return typeof selected === 'string' ? selected : null;
+}
+
+export type ExtractResult = {
+  title: string | null;
+  text: string;
+};
+
+export async function extractPdfText(path: string): Promise<string> {
+  return invoke<string>('extract_pdf_text', { path });
+}
+
+export async function extractPdfBytes(bytes: Uint8Array): Promise<string> {
+  return invoke<string>('extract_pdf_bytes', { bytes: Array.from(bytes) });
+}
+
+export async function extractUrlText(url: string): Promise<ExtractResult> {
+  return invoke<ExtractResult>('extract_url_text', { url });
+}
+
+export async function extractPastedText(raw: string): Promise<ExtractResult> {
+  return invoke<ExtractResult>('extract_pasted_text', { raw });
 }
 
 export async function minimizeWindow(): Promise<void> {
@@ -79,29 +126,4 @@ export function onWindowResized(callback: () => void): Promise<() => void> {
     return Promise.resolve(() => {});
   }
   return appWindow().onResized(callback);
-}
-
-export async function openUrl(url: string): Promise<void> {
-  if (!isTauri()) {
-    window.open(url, '_blank', 'noopener,noreferrer');
-    return;
-  }
-  await invoke('open_url', { url });
-}
-
-export function waitForOAuthCallback(port: number): Promise<string> {
-  if (!isTauri()) {
-    return Promise.reject(new Error('OAuth callback requires the desktop app'));
-  }
-  return invoke<string>('wait_for_oauth_callback', { port });
-}
-
-export function waitForLocalCallback(port: number): Promise<string> {
-  if (!isTauri()) {
-    return Promise.reject(new Error('Local callback requires the desktop app'));
-  }
-  return invoke<string>('wait_for_local_callback', {
-    port,
-    responseHtml: '<html><body>Payment check complete. You can close this window.</body></html>',
-  });
 }

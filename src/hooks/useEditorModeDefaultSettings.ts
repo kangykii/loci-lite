@@ -2,10 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { isTauri } from '../lib/tauri';
 import {
-  getDefaultAuthorship,
   getDefaultBookmarkHighlight,
   getDefaultFocusMode,
-  setDefaultAuthorship,
   setDefaultBookmarkHighlight,
   setDefaultFocusMode,
 } from '../store/settings.store';
@@ -14,7 +12,6 @@ import { useNotifications } from './useNotifications';
 export function useEditorModeDefaultSettings() {
   const { notifySaved } = useNotifications();
   const [focusMode, setFocusMode] = useState(false);
-  const [authorship, setAuthorship] = useState(false);
   const [bookmarkHighlight, setBookmarkHighlight] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -28,14 +25,12 @@ export function useEditorModeDefaultSettings() {
 
     void Promise.all([
       getDefaultFocusMode(),
-      getDefaultAuthorship(),
       getDefaultBookmarkHighlight(),
     ])
-      .then(([focus, authorshipOn, bookmarkOn]) => {
+      .then(([focus, bookmarkOn]) => {
         if (cancelled) return;
 
         setFocusMode(focus);
-        setAuthorship(authorshipOn);
         setBookmarkHighlight(bookmarkOn);
         setReady(true);
       })
@@ -59,15 +54,6 @@ export function useEditorModeDefaultSettings() {
     }
   }, [notifySaved]);
 
-  const toggleAuthorship = useCallback(async (enabled: boolean) => {
-    setAuthorship(enabled);
-
-    if (isTauri()) {
-      await setDefaultAuthorship(enabled);
-      notifySaved();
-    }
-  }, [notifySaved]);
-
   const toggleBookmarkHighlight = useCallback(async (enabled: boolean) => {
     setBookmarkHighlight(enabled);
 
@@ -78,11 +64,9 @@ export function useEditorModeDefaultSettings() {
   }, [notifySaved]);
 
   return {
-    authorship,
     bookmarkHighlight,
     focusMode,
     ready,
-    toggleAuthorship,
     toggleBookmarkHighlight,
     toggleFocusMode,
   };

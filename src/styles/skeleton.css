@@ -1,0 +1,83 @@
+/*
+ * Shared skeleton-loading primitives. Standardizes on stencil/skeleton
+ * placeholders (shaped exactly like the real row/card/line about to appear)
+ * as the only in-app loading pattern — no spinners, no dot bouncers, no bare
+ * "Loading…" text. Quiet opacity pulse, not a moving shimmer gradient — a
+ * sweeping highlight reads as "dashboard energy", which DESIGN.md's writer-
+ * room direction explicitly avoids.
+ *
+ * The Boot screen (full-app cold start, before any view or content model
+ * exists) is the one exception and keeps its own dots + paper-line treatment
+ * — see the "Boot screen" section.
+ */
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.skeleton-block {
+  display: block;
+  flex-shrink: 0;
+  background: var(--border-strong);
+  border-radius: var(--radius-sm);
+  animation: skeleton-pulse 1500ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.skeleton-line {
+  height: 0.7em;
+  width: 100%;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-icon {
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--radius-sm);
+}
+
+/* Reserves the trailing chevron's column width without drawing anything —
+   the real chevron is opacity:0 at rest too (hover-revealed), so a pulsing
+   block there would be more visible than the row it's mimicking. */
+.skeleton-icon-spacer {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: var(--bookmark-card-w);
+  height: var(--bookmark-card-h);
+  border: 1px solid var(--shell-chrome-border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: var(--space-4);
+}
+
+.skeleton-card .skeleton-line:last-child {
+  width: 55%;
+}
+
+/* Row-shaped skeletons reuse the real row's own container class (.document-row,
+   .recent-row, .shell-sidebar-document, …) for pixel-exact layout — only the
+   interior swaps to skeleton-block fills — so nothing shifts once real content
+   lands. */
+.is-skeleton {
+  pointer-events: none;
+}

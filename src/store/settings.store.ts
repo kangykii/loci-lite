@@ -14,9 +14,10 @@ const FONT_SIZE_KEY_PREFIX = 'font_size_';
 const EDITOR_DEFAULT_FONT_KEY = 'editor_default_font';
 const EDITOR_DEFAULT_FONT_SIZE_KEY = 'editor_default_font_size';
 const EDITOR_DEFAULT_FOCUS_MODE_KEY = 'editor_default_focus_mode';
-const EDITOR_DEFAULT_AUTHORSHIP_KEY = 'editor_default_authorship';
 const EDITOR_DEFAULT_BOOKMARK_HIGHLIGHT_KEY = 'editor_default_bookmark_highlight';
 const DOCUMENT_SCROLL_KEY_PREFIX = 'document_scroll_';
+const PROFILE_NAME_KEY = 'profile.name';
+const PROFILE_BIO_KEY = 'profile.bio';
 
 export const EDITOR_FONT_SIZE_MIN = 14;
 export const EDITOR_FONT_SIZE_MAX = 24;
@@ -35,6 +36,11 @@ function parseFontSize(value: string | undefined): number | null {
 export type SettingRecord = {
   key: string;
   value: string;
+};
+
+export type LocalProfile = {
+  name: string;
+  bio: string;
 };
 
 export async function listSettings(): Promise<SettingRecord[]> {
@@ -157,14 +163,6 @@ export async function setDefaultFocusMode(enabled: boolean): Promise<void> {
   await setBooleanSetting(EDITOR_DEFAULT_FOCUS_MODE_KEY, enabled);
 }
 
-export async function getDefaultAuthorship(): Promise<boolean> {
-  return getBooleanSetting(EDITOR_DEFAULT_AUTHORSHIP_KEY, false);
-}
-
-export async function setDefaultAuthorship(enabled: boolean): Promise<void> {
-  await setBooleanSetting(EDITOR_DEFAULT_AUTHORSHIP_KEY, enabled);
-}
-
 export async function getDefaultBookmarkHighlight(): Promise<boolean> {
   return getBooleanSetting(EDITOR_DEFAULT_BOOKMARK_HIGHLIGHT_KEY, false);
 }
@@ -264,4 +262,20 @@ export async function setSeedDocsComplete(): Promise<void> {
     'INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT(key) DO UPDATE SET value = $2',
     [SEED_DOCS_FLAG_KEY, '1'],
   );
+}
+
+export async function getLocalProfile(): Promise<LocalProfile> {
+  const [name, bio] = await Promise.all([
+    getStringSetting(PROFILE_NAME_KEY),
+    getStringSetting(PROFILE_BIO_KEY),
+  ]);
+
+  return { name: name ?? '', bio: bio ?? '' };
+}
+
+export async function setLocalProfile(profile: LocalProfile): Promise<void> {
+  await Promise.all([
+    setStringSetting(PROFILE_NAME_KEY, profile.name.trim()),
+    setStringSetting(PROFILE_BIO_KEY, profile.bio.trim()),
+  ]);
 }

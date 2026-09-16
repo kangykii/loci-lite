@@ -24,12 +24,6 @@ const EVENING_LETTERS: TimedLetter[] = [
   },
   {
     greeting: 'Good evening',
-    body: 'Authorship mode shows what you wrote and what arrived from elsewhere.',
-    sign: 'Ctrl/Cmd+Shift+A to try authorship mode',
-    teaches: 'authorship',
-  },
-  {
-    greeting: 'Good evening',
     body: 'A note does not have to be finished to be useful.\nSome of the best ones are just a paragraph that knew what it was.',
     sign: null,
     teaches: null,

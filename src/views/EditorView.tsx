@@ -1,15 +1,18 @@
-import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AtomPopup from '../components/atoms/AtomPopup';
-import BottomBar from '../components/shell/BottomBar';
 import FocusExitButton from '../components/shell/FocusExitButton';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import EditorSkeleton from '../components/editor/EditorSkeleton';
+import OpenDocumentPopup from '../components/editor/OpenDocumentPopup';
+import OutlinePanel from '../components/editor/OutlinePanel';
 import Editor from '../editor/Editor';
+import { ChevronDown, ChevronUp, ListTree } from 'lucide-react';
+import EditorBarMenu from '../components/shell/EditorBarMenu';
+import EditorPromptBar from '../components/shell/EditorPromptBar';
+import { useDelayedFlag } from '../hooks/useDelayedFlag';
 import { useDeleteDocument } from '../hooks/useDeleteDocument';
 import { useDocument } from '../hooks/useDocument';
 import { useEditorAtomBridge } from '../hooks/useEditorAtomBridge';
-import { useEditorAuthorshipBridge } from '../hooks/useEditorAuthorshipBridge';
-import { useAuthorshipMode } from '../hooks/useAuthorshipMode';
 import { useBookmarkHighlight } from '../hooks/useBookmarkHighlight';
 import { useBottomBar } from '../hooks/useBottomBar';
 import { useFindHighlight } from '../hooks/useFindHighlight';
@@ -17,10 +20,12 @@ import { useDocumentScrollRestore } from '../hooks/useDocumentScrollRestore';
 import { useDocumentScrollbar } from '../hooks/useDocumentScrollbar';
 import { useEditorChromeEntry } from '../hooks/useEditorChromeEntry';
 import { useFocusMode } from '../hooks/useFocusMode';
+import { useNotifications } from '../hooks/useNotifications';
 import { useTypewriterMode } from '../hooks/useTypewriterMode';
 import {
   outlineEntriesForDisplay,
   outlineEntriesFromMarkdown,
+  scrollToReference,
   scrollToOutlineHeading,
 } from '../lib/outlineNavigation';
 import { dispatchNoteClose, dispatchNoteOpen } from '../lib/pluginLifecycle';
@@ -30,6 +35,13 @@ type EditorViewProps = {
   fileId: string;
   onDocumentDeleted: (fileId: string) => void;
   onOpenDocument: (fileId: string) => void;
+  onOpenInPane: (fileId: string, placement: 'replace' | 'split') => void;
+  onCloseTab: () => void;
+  active: boolean;
+  canSplit: boolean;
+  splitMode: boolean;
+  otherFileId: string | null;
+  onActivate: () => void;
 };
 
 type PendingBookmarkDelete = {
@@ -37,32 +49,38 @@ type PendingBookmarkDelete = {
   sourceText: string;
 };
 
-type OutlineRowStyle = CSSProperties & {
-  '--outline-depth': number;
-};
-
-export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }: EditorViewProps) {
+export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument, onOpenInPane, onCloseTab, active, canSplit, splitMode, otherFileId, onActivate }: EditorViewProps) {
+  const [isOpenPopup, setIsOpenPopup] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const flushSaveRef = useRef<(() => Promise<void>) | null>(null);
   const [isOutlineOpen, setIsOutlineOpen] = useState(false);
+  const [outlineTab, setOutlineTab] = useState<'contents' | 'references'>('contents');
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [pendingBookmarkDelete, setPendingBookmarkDelete] =
     useState<PendingBookmarkDelete | null>(null);
   const [isRemovingBookmark, setIsRemovingBookmark] = useState(false);
   const [bookmarkDeleteError, setBookmarkDeleteError] = useState<string | null>(null);
   const [editorText, setEditorText] = useState('');
+  const [titleDraft, setTitleDraft] = useState('');
   const editorRootRef = useRef<HTMLDivElement | null>(null);
+  const titleSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const titleDraftRef = useRef(titleDraft);
+  titleDraftRef.current = titleDraft;
   const isDeletingNoteRef = useRef(false);
   const { isActive: isFocusMode, toggle: toggleFocusMode, exit: exitFocusMode } =
     useFocusMode(editorRootRef, fileId);
-  const { isActive: isAuthorshipOn, toggle: toggleAuthorship } =
-    useAuthorshipMode(editorRootRef, fileId);
   const { isHighlightOn: isBookmarkHighlightOn, toggle: toggleBookmarkHighlight } =
     useBookmarkHighlight(editorRootRef, fileId);
   const { isActive: isTypewriterOn, toggle: toggleTypewriter } =
     useTypewriterMode(editorRootRef);
-  const { state, save } = useDocument(fileId);
+  const { state, save, renameTitle, waitForSaves } = useDocument(fileId);
+  const { notifyError } = useNotifications();
   const { remove, isDeleting, error: deleteError, clearError } = useDeleteDocument();
   const documentReady = state.status === 'ready';
-  const isEditorRevealed = useEditorChromeEntry(fileId, documentReady);
+  const isEditorRevealed = useEditorChromeEntry(fileId, documentReady, isTypewriterOn, splitMode);
+  const showFetchSkeleton = useDelayedFlag(state.status === 'loading' || state.status === 'idle');
+  const showEntrySkeleton = useDelayedFlag(documentReady && !isEditorRevealed);
   const bottomBar = useBottomBar(fileId, editorText);
   const wordCountRef = useRef(bottomBar.wordCount);
   wordCountRef.current = bottomBar.wordCount;
@@ -79,10 +97,10 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
     };
   }, [documentReady, fileId]);
 
-  useFindHighlight(editorRootRef, bottomBar.mode, bottomBar.query, bottomBar.matchIndex);
+  useFindHighlight(editorRootRef, bottomBar.mode, bottomBar.query, bottomBar.matchIndex, active);
 
   useDocumentScrollRestore(fileId, state.status === 'ready' && isEditorRevealed);
-  useDocumentScrollbar();
+  useDocumentScrollbar(fileId);
 
   const handleRequestDeleteAtom = useCallback((id: string, sourceText: string) => {
     setBookmarkDeleteError(null);
@@ -98,34 +116,34 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
     removeAtom,
     reloadAtoms,
   } = useEditorAtomBridge(fileId, markdown, handleRequestDeleteAtom);
-  const { authorshipEditor: baseAuthorshipEditor } = useEditorAuthorshipBridge(fileId);
-  const authorshipEditor = useMemo(
-    () => ({
-      ...baseAuthorshipEditor,
-      authorshipVisible: isAuthorshipOn,
-    }),
-    [baseAuthorshipEditor, isAuthorshipOn],
-  );
 
   const editorChrome = useMemo(
     () => ({
       ...baseEditorChrome,
       isFocusMode,
       onOpenDocument,
+      onOpenNewTab: () => setIsOpenPopup(true),
     }),
     [baseEditorChrome, isFocusMode, onOpenDocument],
   );
 
   const handleSave = useCallback(
-    (nextMarkdown: string) => {
+    async (nextMarkdown: string) => {
       if (isDeletingNoteRef.current) {
         return;
       }
 
       setEditorText(nextMarkdown);
-      void save(nextMarkdown);
+
+      try {
+        await save(nextMarkdown);
+      } catch (cause: unknown) {
+        const message = cause instanceof Error ? cause.message : 'Failed to save note';
+        notifyError(message);
+        throw cause;
+      }
     },
-    [save],
+    [notifyError, save],
   );
 
   const documentTitle = useMemo(() => {
@@ -148,15 +166,83 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
     () => outlineEntriesForDisplay(outlineEntries, documentTitle),
     [documentTitle, outlineEntries],
   );
-
   useEffect(() => {
     if (state.status === 'ready') {
       setEditorText(state.markdown);
+      setTitleDraft(state.file.title ?? '');
     }
   }, [state]);
 
+  const handleTitleChange = useCallback(
+    (nextTitle: string) => {
+      setTitleDraft(nextTitle);
+
+      if (titleSaveTimeoutRef.current) {
+        clearTimeout(titleSaveTimeoutRef.current);
+      }
+
+      titleSaveTimeoutRef.current = setTimeout(() => {
+        titleSaveTimeoutRef.current = null;
+        titleSaveQueueRef.current = titleSaveQueueRef.current.catch(() => undefined)
+          .then(() => renameTitle(nextTitle.trim() ? nextTitle : null));
+        void titleSaveQueueRef.current.catch((cause: unknown) => {
+          notifyError(cause instanceof Error ? cause.message : 'Failed to save note title');
+        });
+      }, 500);
+    },
+    [notifyError, renameTitle],
+  );
+
+  const flushAndSave = useCallback(async () => {
+    if (titleSaveTimeoutRef.current) {
+      clearTimeout(titleSaveTimeoutRef.current);
+      titleSaveTimeoutRef.current = null;
+      const pendingTitle = titleDraftRef.current;
+      titleSaveQueueRef.current = titleSaveQueueRef.current.catch(() => undefined)
+        .then(() => renameTitle(pendingTitle.trim() ? pendingTitle : null));
+      void titleSaveQueueRef.current.catch(() => undefined);
+    }
+    await titleSaveQueueRef.current;
+    await flushSaveRef.current?.();
+    await waitForSaves();
+  }, [renameTitle, waitForSaves]);
+
+  const handleCloseTab = useCallback(async () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    try {
+      await flushAndSave();
+      onCloseTab();
+    } catch (cause: unknown) {
+      notifyError(cause instanceof Error ? cause.message : 'Failed to save note');
+      setIsClosing(false);
+    }
+  }, [flushAndSave, isClosing, notifyError, onCloseTab]);
+
+  const handleOpenInPane = useCallback(async (nextId: string, placement: 'replace' | 'split') => {
+    if (placement === 'replace') await flushAndSave();
+    onOpenInPane(nextId, placement);
+    setIsOpenPopup(false);
+  }, [flushAndSave, onOpenInPane]);
+
+  useEffect(() => {
+    return () => {
+      if (!titleSaveTimeoutRef.current) {
+        return;
+      }
+
+      clearTimeout(titleSaveTimeoutRef.current);
+      titleSaveTimeoutRef.current = null;
+      const pendingTitle = titleDraftRef.current;
+      titleSaveQueueRef.current = titleSaveQueueRef.current.catch(() => undefined)
+        .then(() => renameTitle(pendingTitle.trim() ? pendingTitle : null));
+      void titleSaveQueueRef.current.catch(() => undefined);
+    };
+  }, [fileId, renameTitle]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (!active) return;
       const mod = event.metaKey || event.ctrlKey;
 
       if (mod && event.shiftKey) {
@@ -168,10 +254,6 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
           case 't':
             event.preventDefault();
             toggleTypewriter();
-            break;
-          case 'a':
-            event.preventDefault();
-            toggleAuthorship();
             break;
           case 'b':
             event.preventDefault();
@@ -196,8 +278,8 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
+    active,
     bottomBar,
-    toggleAuthorship,
     toggleBookmarkHighlight,
     toggleFocusMode,
     toggleTypewriter,
@@ -239,25 +321,25 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
   }, [pendingBookmarkDelete, reloadAtoms, removeAtom]);
 
   useEffect(() => {
+    if (!active) return;
     document.body.classList.toggle('focus-mode-active', isFocusMode);
 
     return () => {
       document.body.classList.remove('focus-mode-active');
     };
-  }, [isFocusMode]);
+  }, [active, isFocusMode]);
 
   const handleEditorRootRef = useCallback(
     (node: HTMLDivElement | null) => {
       editorRootRef.current = node;
 
       if (node) {
-        node.classList.toggle('authorship-visible', isAuthorshipOn);
         node.classList.toggle('bookmark-highlight-on', isBookmarkHighlightOn);
         node.classList.toggle('focus-active', isFocusMode);
         node.classList.toggle('typewriter-active', isTypewriterOn);
       }
     },
-    [isAuthorshipOn, isBookmarkHighlightOn, isFocusMode, isTypewriterOn],
+    [isBookmarkHighlightOn, isFocusMode, isTypewriterOn],
   );
 
   if (!isTauri()) {
@@ -271,7 +353,7 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
   if (state.status === 'loading' || state.status === 'idle') {
     return (
       <main className="app-shell editor-view">
-        <p className="editor-status">Loading document…</p>
+        {showFetchSkeleton ? <EditorSkeleton /> : null}
       </main>
     );
   }
@@ -285,11 +367,12 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
   }
 
   return (
-    <main className="app-shell editor-view">
-      {!isEditorRevealed ? (
-        <p className="editor-status editor-entry-loading">Loading document…</p>
-      ) : null}
-      <div className="editor-layout">
+    <main className={`app-shell editor-view${isEditorRevealed ? ' is-revealed' : ''}`}>
+      <div className="editor-scroll" data-editor-scroll={fileId}>
+        {!isEditorRevealed && showEntrySkeleton ? (
+          <EditorSkeleton className="editor-entry-loading" />
+        ) : null}
+        <div className="editor-layout">
         {shortcutError ? (
           <p className="editor-shortcut-error" role="alert">
             {shortcutError}
@@ -298,84 +381,87 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
         <Editor
           key={fileId}
           atomEditor={atomEditor}
-          authorshipEditor={authorshipEditor}
           editorChrome={editorChrome}
           editorRootRef={handleEditorRootRef}
           initialMarkdown={state.markdown}
           onSave={handleSave}
+          onFlushReady={(flush) => { flushSaveRef.current = flush; }}
+          onTitleChange={handleTitleChange}
+          title={titleDraft}
           typewriterActive={isTypewriterOn}
         />
-        {isOutlineOpen ? (
-          <div className="outline-layer" role="presentation">
-            <button
-              aria-label="Close outline"
-              className="outline-scrim"
-              onClick={() => setIsOutlineOpen(false)}
-              type="button"
-            />
-            <aside
-              aria-label={`Table of contents for ${documentTitle}`}
-              className="outline-panel"
-            >
-              <p className="outline-panel-title">{documentTitle}</p>
-              <nav aria-label="Outline sections" className="outline-nav">
-                {visibleOutlineEntries.length > 0 ? (
-                  visibleOutlineEntries.map((entry) => (
-                    <button
-                      aria-label={`H${entry.level}: ${entry.text}`}
-                      data-level={entry.level}
-                      key={`${entry.text}-${entry.index}`}
-                      onClick={() => scrollToOutlineHeading(editorRootRef.current, entry.index)}
-                      style={
-                        {
-                          '--outline-depth': Math.min(entry.level - 1, 4),
-                        } as OutlineRowStyle
-                      }
-                      type="button"
-                    >
-                      {entry.text}
-                    </button>
-                  ))
-                ) : (
-                  <p className="outline-empty">No headings yet</p>
-                )}
-              </nav>
-            </aside>
-          </div>
-        ) : null}
+        </div>
       </div>
+      {isOutlineOpen ? (
+        <OutlinePanel
+          documentTitle={documentTitle}
+          entries={visibleOutlineEntries}
+          onClose={() => setIsOutlineOpen(false)}
+          onNavigate={(entry) => {
+            if (entry.kind === 'heading') {
+              scrollToOutlineHeading(editorRootRef.current, entry.index);
+            } else {
+              scrollToReference(editorRootRef.current, entry.number);
+            }
+          }}
+          onTabChange={setOutlineTab}
+          tab={outlineTab}
+        />
+      ) : null}
       {isEditorRevealed ? (
         <>
-      <FocusExitButton onExit={exitFocusMode} visible={isFocusMode} />
-      <BottomBar
-        arrowsDisabled={bottomBar.arrowsDisabled}
-        centreLabel={bottomBar.centreLabel}
-        findFocusTick={bottomBar.findFocusTick}
-        isAuthorshipOn={isAuthorshipOn}
-        isBookmarkHighlightOn={isBookmarkHighlightOn}
-        isFocusMode={isFocusMode}
-        isOutlineOpen={isOutlineOpen}
-        isTypewriterOn={isTypewriterOn}
-        mode={bottomBar.mode}
-        onArrowDown={bottomBar.arrowDown}
-        onArrowUp={bottomBar.arrowUp}
-        onAuthorshipToggle={toggleAuthorship}
-        onBookmarkHighlightToggle={toggleBookmarkHighlight}
-        onCloseFind={bottomBar.closeFind}
-        onDeleteNote={() => {
-          clearError();
-          setIsDeleteConfirmOpen(true);
-        }}
-        onFind={bottomBar.arrowUp}
-        onFocusModeToggle={toggleFocusMode}
-        onOutlineToggle={() => setIsOutlineOpen((current) => !current)}
-        onQueryChange={bottomBar.setQuery}
-        onReplace={() => undefined}
-        onReplacementChange={bottomBar.setReplacement}
-        onTypewriterToggle={toggleTypewriter}
-        query={bottomBar.query}
-        replacement={bottomBar.replacement}
-      />
+          {active ? <FocusExitButton onExit={exitFocusMode} visible={isFocusMode} /> : null}
+          <footer
+            aria-label={`Editor controls for document ${fileId}`}
+            className={`editor-bar bottom-bar${isFocusMode ? ' is-focus-hidden' : ''}`}
+            id={`bottom-bar-${fileId}`}
+            onPointerDown={onActivate}
+          >
+            <div className="bottom-bar-inner">
+              <div className="bb-arrows">
+                <button aria-label="Up" className="bb-arrow" disabled={bottomBar.arrowsDisabled} onClick={bottomBar.arrowUp} type="button">
+                  <ChevronUp size={13} strokeWidth={1.8} />
+                </button>
+                <button aria-label="Down" className="bb-arrow" disabled={bottomBar.arrowsDisabled} onClick={bottomBar.arrowDown} type="button">
+                  <ChevronDown size={13} strokeWidth={1.8} />
+                </button>
+              </div>
+              <span className="bb-label">{bottomBar.centreLabel}</span>
+              <EditorPromptBar
+                findFocusTick={bottomBar.findFocusTick}
+                mode={bottomBar.mode}
+                onClose={bottomBar.closeFind}
+                onFind={bottomBar.arrowUp}
+                onQueryChange={bottomBar.setQuery}
+                query={bottomBar.query}
+              />
+              <button
+                aria-expanded={isOutlineOpen}
+                aria-label={isOutlineOpen ? 'Close outline' : 'Open outline'}
+                aria-pressed={isOutlineOpen}
+                className={`bb-action ${isOutlineOpen ? 'active' : ''}`}
+                onClick={() => setIsOutlineOpen((current) => !current)}
+                type="button"
+              >
+                <ListTree size={14} strokeWidth={1.5} />
+                <span>Outline</span>
+              </button>
+              <EditorBarMenu
+                isBookmarkHighlightOn={isBookmarkHighlightOn}
+                isClosing={isClosing}
+                isFocusMode={isFocusMode}
+                isTypewriterOn={isTypewriterOn}
+                onBookmarkHighlightToggle={toggleBookmarkHighlight}
+                onCloseTab={() => void handleCloseTab()}
+                onDeleteNote={() => {
+                  clearError();
+                  setIsDeleteConfirmOpen(true);
+                }}
+                onFocusModeToggle={toggleFocusMode}
+                onTypewriterToggle={toggleTypewriter}
+              />
+            </div>
+          </footer>
       <ConfirmDialog
         error={deleteError}
         isConfirming={isDeleting}
@@ -414,6 +500,7 @@ export default function EditorView({ fileId, onDocumentDeleted, onOpenDocument }
       ) : null}
         </>
       ) : null}
+      {isOpenPopup ? <OpenDocumentPopup canSplit={canSplit} currentFileId={fileId} otherFileId={otherFileId} onClose={() => setIsOpenPopup(false)} onSelect={handleOpenInPane} /> : null}
     </main>
   );
 }

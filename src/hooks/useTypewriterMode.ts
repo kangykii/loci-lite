@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
 
-import { destroyContext, playKeyClick, resumeContext } from '../editor/sound/typewriterSound';
+import { playKeyClick, resumeContext } from '../editor/sound/typewriterSound';
 import { markFeatureLearned } from '../store/onboarding.store';
 import { useTypewriterSoundSetting } from './useTypewriterSoundSetting';
 
@@ -47,8 +47,6 @@ export function useTypewriterMode(editorRootRef: RefObject<HTMLDivElement | null
 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isActive, soundOn]);
-
-  useEffect(() => destroyContext, []);
 
   return { isActive, toggle, soundOn, soundReady, toggleSound };
 }

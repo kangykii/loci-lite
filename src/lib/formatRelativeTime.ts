@@ -33,6 +33,37 @@ export function formatRelativeTime(timestamp: number, now = Date.now()): string 
   return years === 1 ? '1 year ago' : `${years} years ago`;
 }
 
+export function formatRelativeTimeShort(timestamp: number, now = Date.now()): string {
+  const diff = Math.max(0, now - timestamp);
+
+  if (diff < MINUTE_MS) {
+    return 'now';
+  }
+
+  const minutes = Math.floor(diff / MINUTE_MS);
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+
+  const hours = Math.floor(diff / HOUR_MS);
+  if (hours < 24) {
+    return `${hours}hr`;
+  }
+
+  const days = Math.floor(diff / DAY_MS);
+  if (days < 30) {
+    return `${days}d`;
+  }
+
+  const months = Math.floor(days / 30);
+  if (months < 12) {
+    return `${months}mo`;
+  }
+
+  const years = Math.floor(days / 365);
+  return `${years}y`;
+}
+
 export function formatOpenedAt(openedAtMs: number, nowMs = Date.now()): string {
   const opened = new Date(openedAtMs);
   const now = new Date(nowMs);
